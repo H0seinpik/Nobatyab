@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { RouterLink } from "vue-router";
+import { RouterLink, RouterView } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import { useTheme } from "@/composables/useTheme";
 import UiButton from "@/components/ui/UiButton.vue";
@@ -37,6 +37,6 @@ const { theme, toggle } = useTheme();
     </div>
   </header>
   <main class="mx-auto max-w-6xl px-4 py-8">
-    <slot />
+    <RouterView />
   </main>
 </template>

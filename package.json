@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 {
   "name": "nobatyab",
   "private": true,
@@ -12,18 +11,3 @@
     "smoke": "npm run smoke --prefix backend"
   }
 }
-=======
-{
-  "name": "nobatyab",
-  "private": true,
-  "scripts": {
-    "dev:backend": "npm run dev --prefix backend",
-    "dev:frontend": "npm run dev --prefix frontend",
-    "build": "npm run build --prefix backend && npm run build --prefix frontend",
-    "db:migrate": "npm run db:migrate --prefix backend",
-    "db:seed": "npm run seed --prefix backend",
-    "setup:db": "npm run db:migrate --prefix backend && npm run seed --prefix backend",
-    "smoke": "npm run smoke --prefix backend"
-  }
-}
->>>>>>> ea347423de2e54e0c178acb46e77763e80231ac1

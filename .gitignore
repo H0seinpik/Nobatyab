@@ -1,13 +1,5 @@
-<<<<<<< HEAD
 node_modules/
 dist/
 .env
 *.log
 .DS_Store
-=======
-node_modules/
-dist/
-.env
-*.log
-.DS_Store
->>>>>>> ea347423de2e54e0c178acb46e77763e80231ac1

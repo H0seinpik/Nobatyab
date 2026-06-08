@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { RouterLink, useRoute } from "vue-router";
+import { RouterLink, RouterView, useRoute } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import { useTheme } from "@/composables/useTheme";
 import UiButton from "@/components/ui/UiButton.vue";
@@ -51,7 +51,7 @@ const links = computed(() => {
       </div>
     </aside>
     <main class="flex-1 p-6">
-      <slot />
+      <RouterView />
     </main>
   </div>
 </template>
