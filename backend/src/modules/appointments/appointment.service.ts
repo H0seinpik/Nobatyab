@@ -1,0 +1,200 @@
+import {
+  AppointmentStatus,
+  PaymentStatus,
+  Role,
+} from "@prisma/client";
+import { prisma } from "../../config/database.js";
+import { getPaymentProvider } from "../../integrations/payment/index.js";
+import { getSmsProvider } from "../../integrations/sms/index.js";
+import { ApiError, parsePagination, paginationMeta } from "../../shared/utils/apiError.js";
+import type { AccessTokenPayload } from "../../shared/utils/jwt.js";
+import { appointmentRepository } from "./appointment.repository.js";
+import type { bookAppointmentSchema, cancelAppointmentSchema } from "./appointment.schema.js";
+import type { z } from "zod";
+
+type BookInput = z.infer<typeof bookAppointmentSchema>;
+type CancelInput = z.infer<typeof cancelAppointmentSchema>;
+
+export class AppointmentService {
+  private repo = appointmentRepository;
+
+  async book(input: BookInput, user?: AccessTokenPayload) {
+    if (!user && (!input.guestFullName || !input.guestPhone)) {
+      throw ApiError.badRequest("Guest bookings require guestFullName and guestPhone");
+    }
+
+    const provider = await this.repo.findProvider(input.providerId);
+    if (!provider) throw ApiError.notFound("Provider not available for booking");
+
+    const providerService = await this.repo.findProviderService(
+      input.providerServiceId,
+      input.providerId,
+    );
+    if (!providerService) throw ApiError.notFound("Provider service not found");
+
+    const startAt = new Date(input.startAt);
+    const endAt = new Date(startAt.getTime() + providerService.duration * 60_000);
+
+    if (startAt <= new Date()) {
+      throw ApiError.badRequest("Cannot book appointments in the past");
+    }
+
+    const appointment = await prisma.$transaction(async (tx) => {
+      const overlap = await this.repo.findOverlapping(
+        input.providerId,
+        startAt,
+        endAt,
+        undefined,
+        tx,
+      );
+      if (overlap) throw ApiError.conflict("Selected time slot is no longer available");
+
+      return this.repo.create(
+        {
+          providerId: input.providerId,
+          providerServiceId: input.providerServiceId,
+          userId: user?.sub,
+          guestFullName: user ? undefined : input.guestFullName,
+          guestPhone: user ? undefined : input.guestPhone,
+          guestEmail: user ? undefined : input.guestEmail,
+          startAt,
+          endAt,
+          notes: input.notes,
+        },
+        tx,
+      );
+    });
+
+    const phone =
+      user?.sub && appointment.user?.phone
+        ? appointment.user.phone
+        : input.guestPhone ?? appointment.guestPhone;
+
+    if (phone) {
+      const sms = getSmsProvider();
+      await sms.send({
+        phone,
+        message: `Your appointment for ${appointment.providerService.service.name} is pending confirmation.`,
+        appointmentId: appointment.id,
+        userId: user?.sub,
+      });
+    }
+
+    return appointment;
+  }
+
+  async getMyAppointments(
+    userId: string,
+    query: { status?: string; page?: string; limit?: string },
+  ) {
+    const { page, limit, skip } = parsePagination(query);
+    const status = query.status as AppointmentStatus | undefined;
+    const [items, total] = await this.repo.findByUser(userId, { status, skip, take: limit });
+    return { items, meta: paginationMeta(page, limit, total) };
+  }
+
+  async getById(id: string, user?: AccessTokenPayload) {
+    const appointment = await this.repo.findById(id);
+    if (!appointment) throw ApiError.notFound("Appointment not found");
+
+    if (!user) throw ApiError.unauthorized();
+
+    let providerProfileId: string | null = null;
+    if (user.role === Role.PROVIDER) {
+      const profile = await this.repo.findProviderProfileIdByUserId(user.sub);
+      providerProfileId = profile?.id ?? null;
+    }
+
+    const allowed = this.repo.canAccessAppointment(
+      appointment,
+      user.sub,
+      user.role,
+      providerProfileId,
+    );
+    if (!allowed) throw ApiError.forbidden();
+
+    return appointment;
+  }
+
+  async cancel(id: string, input: CancelInput, user: AccessTokenPayload) {
+    const appointment = await this.repo.findById(id);
+    if (!appointment) throw ApiError.notFound("Appointment not found");
+
+    let providerProfileId: string | null = null;
+    if (user.role === Role.PROVIDER) {
+      const profile = await this.repo.findProviderProfileIdByUserId(user.sub);
+      providerProfileId = profile?.id ?? null;
+    }
+
+    const allowed =
+      user.role === Role.ADMIN ||
+      appointment.userId === user.sub ||
+      (user.role === Role.PROVIDER && providerProfileId === appointment.providerId);
+
+    if (!allowed) throw ApiError.forbidden();
+
+    if (appointment.status === AppointmentStatus.CANCELLED) {
+      throw ApiError.badRequest("Appointment is already cancelled");
+    }
+    if (appointment.status === AppointmentStatus.COMPLETED) {
+      throw ApiError.badRequest("Completed appointments cannot be cancelled");
+    }
+
+    const policy = await this.repo.findCancellationPolicy(appointment.providerId);
+    const minHoursBefore = policy?.minHoursBefore ?? 24;
+    const deadline = new Date(appointment.startAt.getTime() - minHoursBefore * 60 * 60 * 1000);
+
+    if (new Date() > deadline) {
+      throw ApiError.forbidden(
+        `Cancellation must be at least ${minHoursBefore} hours before the appointment`,
+      );
+    }
+
+    const cancelled = await this.repo.cancel(id, input.reason);
+
+    if (cancelled.paymentStatus === PaymentStatus.PAID) {
+      const latestTx = await prisma.paymentTransaction.findFirst({
+        where: { appointmentId: id, status: "SUCCESS" },
+        orderBy: { createdAt: "desc" },
+      });
+      if (latestTx) {
+        const payment = getPaymentProvider();
+        await payment.refund({
+          transactionId: latestTx.id,
+          amount: Number(latestTx.amount),
+        });
+        return this.repo.updatePaymentStatus(id, PaymentStatus.REFUNDED);
+      }
+    }
+
+    return cancelled;
+  }
+
+  async pay(id: string, user: AccessTokenPayload) {
+    const appointment = await this.repo.findById(id);
+    if (!appointment) throw ApiError.notFound("Appointment not found");
+    if (appointment.userId !== user.sub) throw ApiError.forbidden();
+    if (appointment.status === AppointmentStatus.CANCELLED) {
+      throw ApiError.badRequest("Cannot pay for a cancelled appointment");
+    }
+    if (appointment.paymentStatus === PaymentStatus.PAID) {
+      throw ApiError.badRequest("Appointment is already paid");
+    }
+
+    const amount = Number(appointment.providerService.price);
+    const payment = getPaymentProvider();
+    const result = await payment.charge({
+      appointmentId: id,
+      amount,
+    });
+
+    if (!result.success) {
+      await this.repo.updatePaymentStatus(id, PaymentStatus.FAILED);
+      throw ApiError.badRequest(result.errorMessage ?? "Payment failed");
+    }
+
+    return this.repo.updatePaymentStatus(id, PaymentStatus.PAID);
+  }
+}
+
+export const appointmentService = new AppointmentService();

@@ -1,0 +1,38 @@
+import type { Response } from "express";
+import { successResponse, getParam } from "../../shared/utils/apiError.js";
+import type { AuthRequest } from "../../shared/middlewares/auth.js";
+import { adminService } from "./admin.service.js";
+
+type QueryRequest = AuthRequest & { validatedQuery?: Record<string, string | undefined> };
+
+export class AdminController {
+  listUsers = async (req: QueryRequest, res: Response) => {
+    const q = req.validatedQuery ?? req.query;
+    const result = await adminService.listUsers(q as Record<string, string | undefined> & { role?: import("@prisma/client").Role });
+    res.json(successResponse(result.items, result.meta));
+  };
+
+  updateUser = async (req: AuthRequest, res: Response) => {
+    res.json(successResponse(await adminService.updateUser(getParam(req.params.id), req.body)));
+  };
+
+  listServiceRequests = async (req: QueryRequest, res: Response) => {
+    const q = req.validatedQuery ?? req.query;
+    const result = await adminService.listServiceRequests(
+      q as Record<string, string | undefined> & { status?: import("@prisma/client").ServiceRequestStatus },
+    );
+    res.json(successResponse(result.items, result.meta));
+  };
+
+  reviewServiceRequest = async (req: AuthRequest, res: Response) => {
+    res.json(successResponse(await adminService.reviewServiceRequest(getParam(req.params.id), req.body)));
+  };
+
+  listAppointments = async (req: QueryRequest, res: Response) => {
+    const q = req.validatedQuery ?? req.query;
+    const result = await adminService.listAppointments(q as Record<string, string | undefined>);
+    res.json(successResponse(result.items, result.meta));
+  };
+}
+
+export const adminController = new AdminController();
