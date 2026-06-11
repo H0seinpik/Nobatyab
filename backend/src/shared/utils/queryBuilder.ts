@@ -240,6 +240,19 @@ export const serviceListConfig: QueryBuilderConfig = {
   defaultSort: [{ field: "name", direction: "asc" }],
 };
 
+export const categoryListConfig: QueryBuilderConfig = {
+  sortableFields: {
+    name: "name",
+    slug: "slug",
+    createdAt: "createdAt",
+  },
+  filterableFields: {
+    isActive: { prismaPath: "isActive", type: "boolean" },
+  },
+  searchFields: [{ prismaPath: "name" }, { prismaPath: "slug" }],
+  defaultSort: [{ field: "name", direction: "asc" }],
+};
+
 export const appointmentListConfig: QueryBuilderConfig = {
   sortableFields: {
     startAt: "startAt",

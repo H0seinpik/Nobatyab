@@ -1,4 +1,6 @@
 import crypto from "crypto";
+import fs from "fs";
+import path from "path";
 import { Role } from "@prisma/client";
 import { env } from "../../config/env.js";
 import { ApiError } from "../../shared/utils/apiError.js";
@@ -26,6 +28,7 @@ function sanitizeUser(user: {
   email: string;
   fullName: string;
   phone: string | null;
+  avatarUrl?: string | null;
   role: Role;
   isActive: boolean;
   providerProfile?: { id: string } | null;
@@ -35,10 +38,24 @@ function sanitizeUser(user: {
     email: user.email,
     fullName: user.fullName,
     phone: user.phone,
+    avatarUrl: user.avatarUrl ?? null,
     role: user.role,
     isActive: user.isActive,
     providerProfileId: user.providerProfile?.id ?? null,
   };
+}
+
+function resolveAvatarFilePath(avatarUrl: string): string | null {
+  if (!avatarUrl.startsWith("/uploads/")) return null;
+  return path.join(env.upload.dir, avatarUrl.slice("/uploads/".length));
+}
+
+function deleteAvatarFile(avatarUrl: string | null | undefined) {
+  if (!avatarUrl) return;
+  const filePath = resolveAvatarFilePath(avatarUrl);
+  if (filePath && fs.existsSync(filePath)) {
+    fs.unlinkSync(filePath);
+  }
 }
 
 export class AuthService {
@@ -112,7 +129,7 @@ export class AuthService {
   }
 
   async updateProfile(userId: string, input: UpdateProfileInput) {
-    if (!input.fullName && !input.email) {
+    if (input.fullName === undefined && input.email === undefined && input.phone === undefined) {
       throw ApiError.badRequest("No profile fields to update");
     }
 
@@ -171,6 +188,17 @@ export class AuthService {
     await this.repo.revokeAllUserTokens(stored.userId);
 
     return { message: "Password reset successfully" };
+  }
+
+  async uploadAvatar(userId: string, filename: string) {
+    const user = await this.repo.findUserById(userId);
+    if (!user) throw ApiError.notFound("User not found");
+
+    const avatarUrl = `/uploads/avatars/${filename}`;
+    deleteAvatarFile(user.avatarUrl);
+
+    const updated = await this.repo.updateUser(userId, { avatarUrl });
+    return sanitizeUser(updated);
   }
 
   private async issueTokens(user: { id: string; email: string; role: Role }) {

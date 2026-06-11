@@ -1,4 +1,6 @@
-import { ApiError } from "../../shared/utils/apiError.js";
+import { ApiError, paginationMeta } from "../../shared/utils/apiError.js";
+import type { BaseListQuery } from "../../shared/schemas/listQuery.schema.js";
+import { buildListQuery, categoryListConfig } from "../../shared/utils/queryBuilder.js";
 import { categoryRepository } from "./category.repository.js";
 
 export class CategoryService {
@@ -8,8 +10,18 @@ export class CategoryService {
     return this.repo.findMany(true);
   }
 
-  listAdmin() {
-    return this.repo.findMany(false);
+  async listAdmin(query?: BaseListQuery) {
+    if (!query) {
+      return this.repo.findMany(false);
+    }
+    const built = buildListQuery(categoryListConfig, query);
+    const [items, total] = await this.repo.findManyPaginated({
+      where: built.where,
+      orderBy: built.orderBy,
+      skip: built.skip,
+      take: built.take,
+    });
+    return { items, meta: paginationMeta(built.page, built.pageSize, total) };
   }
 
   async create(input: { name: string; slug: string; description?: string; isActive?: boolean }) {

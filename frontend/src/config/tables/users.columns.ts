@@ -1,4 +1,5 @@
 import type { DataTableColumn, RowAction } from "@/types/dataTable";
+import { jalaliDateColumn } from "./_formatters";
 
 export interface UserRow {
   id: string;
@@ -33,10 +34,11 @@ export const usersColumns: DataTableColumn[] = [
     filterType: "boolean",
     formatter: (r) => ((r as unknown as UserRow).isActive ? "فعال" : "غیرفعال"),
   },
-  { key: "createdAt", label: "تاریخ ثبت", sortable: true, filterType: "date" },
+  jalaliDateColumn("createdAt", "تاریخ ثبت"),
 ];
 
 export const usersRowActions: RowAction[] = [
+  { key: "edit", label: "ویرایش" },
   { key: "toggle-active", label: "فعال/غیرفعال" },
   {
     key: "set-provider",

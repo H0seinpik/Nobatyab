@@ -1,14 +1,16 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from "vue";
-import { apiGet, apiPost, apiDelete } from "@/services/api";
-import { useZodForm } from "@/composables/useZodForm";
-import { createServiceFormSchema } from "@/schemas/admin.schema";
+import { ref, onMounted } from "vue";
+import { apiGet, apiPost, apiPatch, apiDelete } from "@/services/api";
+import { useCrudForm } from "@/composables/useCrudForm";
+import { useConfirmDialog } from "@/composables/useConfirmDialog";
+import { createServiceSchema, updateServiceSchema } from "@/schemas/admin/service.schema";
 import DataTable from "@/components/ui/data-table/DataTable.vue";
-import UiCard from "@/components/ui/UiCard.vue";
-import UiInput from "@/components/ui/UiInput.vue";
-import UiSelect from "@/components/ui/UiSelect.vue";
+import PageHeader from "@/components/layout/PageHeader.vue";
+import UiModal from "@/components/ui/UiModal.vue";
+import UiConfirmDialog from "@/components/ui/UiConfirmDialog.vue";
 import UiButton from "@/components/ui/UiButton.vue";
-import SkeletonForm from "@/components/ui/skeleton/SkeletonForm.vue";
+import CrudFormShell from "@/components/forms/CrudFormShell.vue";
+import ServiceForm from "@/components/forms/admin/ServiceForm.vue";
 import {
   servicesColumns,
   servicesRowActions,
@@ -21,60 +23,93 @@ interface Category {
 }
 
 const tableRef = ref<{ refresh: () => void } | null>(null);
-const showCreate = ref(false);
 const categories = ref<Category[]>([]);
-const categoriesLoading = ref(true);
+const {
+  open: confirmOpen,
+  title: confirmTitle,
+  message: confirmMessage,
+  confirm: showConfirm,
+  onConfirm,
+  onCancel,
+} = useConfirmDialog();
 
-const { values, fieldError, touch, isValid, submitting, handleSubmit, reset } = useZodForm(
-  createServiceFormSchema,
-  { categoryId: "", name: "", defaultDuration: 30, basePrice: 0 },
-);
+const initialValues = {
+  categoryId: "",
+  name: "",
+  description: "",
+  defaultDuration: 30,
+  basePrice: 0,
+  isActive: true,
+};
+
+const {
+  isOpen,
+  mode,
+  formError,
+  modalTitle,
+  values,
+  fieldError,
+  touch,
+  submitting,
+  openCreate,
+  openEdit,
+  close,
+  submit,
+} = useCrudForm({
+  schemas: { create: createServiceSchema, update: updateServiceSchema },
+  initialValues,
+  create: (data) => apiPost("/admin/services", data),
+  update: (id, data) => apiPatch(`/admin/services/${id}`, data),
+  mapEditValues: (row) => {
+    const svc = row as unknown as ServiceRow;
+    return {
+      categoryId: svc.category?.id ?? "",
+      name: svc.name,
+      description: svc.description ?? "",
+      defaultDuration: svc.defaultDuration,
+      basePrice: Number(svc.basePrice),
+      isActive: svc.isActive,
+    };
+  },
+  onSuccess: () => tableRef.value?.refresh(),
+});
 
 async function loadCategories() {
-  categoriesLoading.value = true;
-  try {
-    const res = await apiGet<Category[]>("/admin/categories");
-    categories.value = res.data;
-    if (categories.value.length && !values.categoryId) {
-      values.categoryId = categories.value[0].id;
-    }
-  } finally {
-    categoriesLoading.value = false;
+  const res = await apiGet<Category[]>("/admin/categories", { page: 1, pageSize: 100 });
+  categories.value = res.data;
+  if (categories.value.length && !values.categoryId) {
+    values.categoryId = categories.value[0].id;
   }
-}
-
-async function create() {
-  await handleSubmit(async (data) => {
-    await apiPost("/admin/services", data);
-    reset({ categoryId: values.categoryId, name: "", defaultDuration: 30, basePrice: 0 });
-    showCreate.value = false;
-    tableRef.value?.refresh();
-  });
 }
 
 async function onRowAction({ action, row }: { action: string; row: Record<string, unknown> }) {
   const svc = row as unknown as ServiceRow;
+  if (action === "edit") {
+    openEdit(row);
+    return;
+  }
   if (action === "delete") {
-    if (!confirm(`حذف «${svc.name}»؟`)) return;
+    const ok = await showConfirm(`حذف «${svc.name}»؟`, { title: "حذف خدمت" });
+    if (!ok) return;
     await apiDelete(`/admin/services/${svc.id}`);
     tableRef.value?.refresh();
   }
 }
-
-watch(showCreate, (open) => {
-  if (open && categories.value.length && !values.categoryId) {
-    values.categoryId = categories.value[0].id;
-  }
-});
 
 onMounted(loadCategories);
 </script>
 
 <template>
   <div>
-    <h1 class="mb-6 text-2xl font-bold">خدمات</h1>
+    <PageHeader title="خدمات" description="مدیریت خدمات و قیمت‌گذاری">
+      <template #actions>
+        <UiButton @click="openCreate()">افزودن خدمت</UiButton>
+      </template>
+    </PageHeader>
+
     <DataTable
       ref="tableRef"
+      title="خدمات"
       endpoint="/admin/services"
       :columns="servicesColumns"
       :row-actions="servicesRowActions"
@@ -82,56 +117,36 @@ onMounted(loadCategories);
       advanced-filters
       default-sort="name:asc"
       @row-action="onRowAction"
-    >
-      <template #toolbar-extra>
-        <UiButton @click="showCreate = !showCreate">
-          {{ showCreate ? "بستن فرم" : "افزودن خدمت" }}
-        </UiButton>
-      </template>
-    </DataTable>
+    />
 
-    <UiCard v-if="showCreate" class="mt-6 max-w-2xl">
-      <h2 class="mb-4 font-semibold">افزودن خدمت جدید</h2>
-      <SkeletonForm v-if="categoriesLoading" :fields="4" />
-      <form v-else class="grid gap-3 sm:grid-cols-2" @submit.prevent="create">
-        <div class="sm:col-span-2">
-        <UiSelect
-          v-model="values.categoryId"
-          label="دسته"
-          required
-          :error="fieldError('categoryId')"
-          @blur="touch('categoryId')"
+    <UiModal v-model:open="isOpen" :title="`${modalTitle} خدمت`" size="lg">
+      <form @submit.prevent="submit">
+        <CrudFormShell
+          :submitting="submitting"
+          :error="formError"
+          :submit-label="mode === 'create' ? 'ایجاد' : 'ذخیره'"
+          @submit="submit"
+          @cancel="close"
         >
-          <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
-        </UiSelect>
-        </div>
-        <UiInput
-          v-model="values.name"
-          label="نام"
-          required
-          :error="fieldError('name')"
-          @blur="touch('name')"
-        />
-        <UiInput
-          v-model="values.defaultDuration"
-          label="مدت (دقیقه)"
-          type="number"
-          required
-          :error="fieldError('defaultDuration')"
-          @blur="touch('defaultDuration')"
-        />
-        <UiInput
-          v-model="values.basePrice"
-          label="قیمت پایه"
-          type="number"
-          required
-          :error="fieldError('basePrice')"
-          @blur="touch('basePrice')"
-        />
-        <UiButton type="submit" class="sm:col-span-2" :loading="submitting" :disabled="!isValid || submitting">
-          ذخیره
-        </UiButton>
+          <ServiceForm
+            :mode="mode"
+            :values="values"
+            :field-error="(f) => fieldError(f as keyof typeof values)"
+            :touch="(f) => touch(f as keyof typeof values)"
+            :categories="categories"
+          />
+        </CrudFormShell>
       </form>
-    </UiCard>
+    </UiModal>
+
+    <UiConfirmDialog
+      v-model:open="confirmOpen"
+      :title="confirmTitle"
+      :message="confirmMessage"
+      variant="danger"
+      confirm-label="حذف"
+      @confirm="onConfirm"
+      @cancel="onCancel"
+    />
   </div>
 </template>

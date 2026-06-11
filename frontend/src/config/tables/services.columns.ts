@@ -1,4 +1,6 @@
 import type { DataTableColumn, RowAction } from "@/types/dataTable";
+import { jalaliDateColumn } from "./_formatters";
+import { crudRowActions } from "./_rowActions";
 
 export interface ServiceRow {
   id: string;
@@ -36,9 +38,7 @@ export const servicesColumns: DataTableColumn[] = [
     filterType: "boolean",
     formatter: (r) => ((r as unknown as ServiceRow).isActive ? "فعال" : "غیرفعال"),
   },
-  { key: "createdAt", label: "تاریخ ایجاد", sortable: true },
+  jalaliDateColumn("createdAt", "تاریخ ایجاد"),
 ];
 
-export const servicesRowActions: RowAction[] = [
-  { key: "delete", label: "حذف", variant: "danger" },
-];
+export const servicesRowActions: RowAction[] = crudRowActions();

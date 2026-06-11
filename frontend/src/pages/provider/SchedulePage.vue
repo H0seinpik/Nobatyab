@@ -79,7 +79,7 @@ async function savePolicy() {
       <UiCard class="space-y-4">
         <form @submit.prevent="saveHours">
           <div v-for="(h, i) in hoursValues.hours" :key="i" class="mb-3 grid grid-cols-4 gap-2">
-            <select v-model.number="h.dayOfWeek" class="rounded border border-[var(--color-border)] px-2 py-1">
+            <select v-model.number="h.dayOfWeek" class="form-control">
               <option v-for="(name, d) in dayNames" :key="d" :value="d">{{ name }}</option>
             </select>
             <UiInput v-model="h.startTime" placeholder="09:00" />

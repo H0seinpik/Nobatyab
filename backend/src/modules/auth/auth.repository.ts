@@ -35,7 +35,7 @@ export class AuthRepository {
 
   updateUser(
     userId: string,
-    data: { fullName?: string; email?: string },
+    data: { fullName?: string; email?: string; phone?: string; avatarUrl?: string | null },
   ) {
     return prisma.user.update({
       where: { id: userId },

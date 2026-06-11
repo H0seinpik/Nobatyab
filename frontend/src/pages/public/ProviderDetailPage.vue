@@ -133,7 +133,7 @@ async function book() {
         <label class="mt-4 block text-sm text-[var(--color-muted)]">انتخاب خدمت</label>
         <select
           v-model="selectedServiceId"
-          class="mt-1 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2"
+          class="form-control mt-1"
         >
           <option v-for="ps in provider.providerServices" :key="ps.id" :value="ps.id">
             {{ ps.service.name }} — {{ Number(ps.price).toLocaleString("fa-IR") }} تومان

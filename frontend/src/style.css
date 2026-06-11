@@ -12,4 +12,62 @@
 body {
   @apply bg-[var(--color-bg)] text-[var(--color-text)] antialiased;
   font-family: var(--font-family);
+  transition: var(--transition-theme);
+}
+
+.form-control {
+  width: 100%;
+  border-radius: 0.5rem;
+  border: 1px solid var(--color-input-border);
+  background-color: var(--color-input-bg);
+  color: var(--color-input-text);
+  padding: 0.5rem 0.75rem;
+  outline: none;
+  transition: var(--transition-theme);
+}
+
+.form-control::placeholder {
+  color: var(--color-input-placeholder);
+}
+
+.form-control:focus {
+  border-color: var(--color-focus-ring);
+  box-shadow: 0 0 0 1px var(--color-focus-ring);
+}
+
+.form-control:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.form-control--error {
+  border-color: #ef4444;
+}
+
+.form-control--error:focus {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 1px #ef4444;
+}
+
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]):not([type="submit"]):not([type="button"]):not([type="reset"]),
+textarea,
+select {
+  border-radius: 0.5rem;
+  border: 1px solid var(--color-input-border);
+  background-color: var(--color-input-bg);
+  color: var(--color-input-text);
+  transition: var(--transition-theme);
+}
+
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]):not([type="submit"]):not([type="button"]):not([type="reset"])::placeholder,
+textarea::placeholder {
+  color: var(--color-input-placeholder);
+}
+
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]):not([type="submit"]):not([type="button"]):not([type="reset"]):focus,
+textarea:focus,
+select:focus {
+  border-color: var(--color-focus-ring);
+  outline: none;
+  box-shadow: 0 0 0 1px var(--color-focus-ring);
 }

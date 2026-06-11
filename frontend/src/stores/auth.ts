@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
-import { apiGet, apiPost, apiPatch, setTokens } from "@/services/api";
+import { apiGet, apiPost, apiPatch, apiUpload, setTokens } from "@/services/api";
 
 export type UserRole = "USER" | "PROVIDER" | "ADMIN";
 
@@ -9,6 +9,7 @@ export interface User {
   email: string;
   fullName: string;
   phone: string | null;
+  avatarUrl: string | null;
   role: UserRole;
   isActive: boolean;
   providerProfileId: string | null;
@@ -85,7 +86,7 @@ export const useAuthStore = defineStore("auth", () => {
     loading.value = false;
   }
 
-  async function updateProfile(data: { fullName?: string; email?: string }) {
+  async function updateProfile(data: { fullName?: string; email?: string; phone?: string }) {
     error.value = null;
     try {
       const res = await apiPatch<User>("/auth/me", data);
@@ -115,6 +116,20 @@ export const useAuthStore = defineStore("auth", () => {
     await apiPost("/auth/reset-password", { token, password });
   }
 
+  async function uploadAvatar(file: File) {
+    error.value = null;
+    const formData = new FormData();
+    formData.append("avatar", file);
+    try {
+      const res = await apiUpload<User>("/auth/me/avatar", formData);
+      user.value = res.data;
+      return res.data;
+    } catch {
+      error.value = "آپلود تصویر ناموفق بود";
+      throw new Error("upload avatar failed");
+    }
+  }
+
   return {
     user,
     loading,
@@ -128,5 +143,6 @@ export const useAuthStore = defineStore("auth", () => {
     resetPassword,
     updateProfile,
     changePassword,
+    uploadAvatar,
   };
 });

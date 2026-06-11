@@ -1,6 +1,6 @@
 import type { Response } from "express";
 import { authService } from "./auth.service.js";
-import { successResponse } from "../../shared/utils/apiError.js";
+import { ApiError, successResponse } from "../../shared/utils/apiError.js";
 import type { AuthRequest } from "../../shared/middlewares/auth.js";
 
 export class AuthController {
@@ -39,6 +39,13 @@ export class AuthController {
   changePassword = async (req: AuthRequest, res: Response) => {
     const result = await authService.changePassword(req.user!.sub, req.body);
     res.json(successResponse(result));
+  };
+
+  uploadAvatar = async (req: AuthRequest, res: Response) => {
+    const file = (req as AuthRequest & { file?: Express.Multer.File }).file;
+    if (!file) throw ApiError.badRequest("No file uploaded");
+    const user = await authService.uploadAvatar(req.user!.sub, file.filename);
+    res.json(successResponse(user));
   };
 
   forgotPassword = async (req: AuthRequest, res: Response) => {

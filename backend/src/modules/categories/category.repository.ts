@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "../../config/database.js";
 
 export class CategoryRepository {
@@ -7,6 +8,25 @@ export class CategoryRepository {
       orderBy: { name: "asc" },
       include: { _count: { select: { services: true } } },
     });
+  }
+
+  findManyPaginated(filters: {
+    where?: Prisma.CategoryWhereInput;
+    orderBy?: Prisma.CategoryOrderByWithRelationInput | Prisma.CategoryOrderByWithRelationInput[];
+    skip?: number;
+    take?: number;
+  }) {
+    const where = filters.where ?? {};
+    return Promise.all([
+      prisma.category.findMany({
+        where,
+        skip: filters.skip,
+        take: filters.take,
+        orderBy: filters.orderBy ?? { name: "asc" },
+        include: { _count: { select: { services: true } } },
+      }),
+      prisma.category.count({ where }),
+    ]);
   }
 
   findById(id: string) {

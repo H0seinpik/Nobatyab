@@ -1,96 +1,116 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { apiGet, apiPatch } from "@/services/api";
-import UiCard from "@/components/ui/UiCard.vue";
-import UiButton from "@/components/ui/UiButton.vue";
-import UiBadge from "@/components/ui/UiBadge.vue";
+import { useZodForm } from "@/composables/useZodForm";
+import { reviewServiceRequestSchema } from "@/schemas/admin/serviceRequest.schema";
+import DataTable from "@/components/ui/data-table/DataTable.vue";
+import PageHeader from "@/components/layout/PageHeader.vue";
+import UiModal from "@/components/ui/UiModal.vue";
+import CrudFormShell from "@/components/forms/CrudFormShell.vue";
+import ServiceRequestReviewForm from "@/components/forms/admin/ServiceRequestReviewForm.vue";
+import {
+  serviceRequestsColumns,
+  serviceRequestsRowActions,
+  type ServiceRequestRow,
+} from "@/config/tables/serviceRequests.columns";
 
 interface Category {
   id: string;
   name: string;
 }
 
-interface ServiceRequest {
-  id: string;
-  status: string;
-  serviceId: string | null;
-  proposedName: string | null;
-  proposedPrice: string | null;
-  proposedDuration: number | null;
-  provider: { user: { fullName: string } };
-  service: { name: string } | null;
-}
-
-const requests = ref<ServiceRequest[]>([]);
+const tableRef = ref<{ refresh: () => void } | null>(null);
+const modalOpen = ref(false);
+const reviewingRequest = ref<ServiceRequestRow | null>(null);
 const categories = ref<Category[]>([]);
-const categoryByRequest = ref<Record<string, string>>({});
-const error = ref("");
+const formError = ref<string | null>(null);
 
-async function load() {
-  const [reqRes, catRes] = await Promise.all([
-    apiGet<ServiceRequest[]>("/admin/service-requests", { status: "PENDING" }),
-    apiGet<Category[]>("/admin/categories"),
-  ]);
-  requests.value = reqRes.data;
-  categories.value = catRes.data;
+const { values, fieldError, touch, submitting, validateAll, reset } = useZodForm(
+  reviewServiceRequestSchema,
+  { status: "APPROVED" as const, adminNote: "", categoryId: "" },
+);
+
+async function loadCategories() {
+  const res = await apiGet<Category[]>("/admin/categories", { page: 1, pageSize: 100 });
+  categories.value = res.data;
 }
 
-async function review(id: string, status: "APPROVED" | "REJECTED") {
-  error.value = "";
+function openReview(row: Record<string, unknown>) {
+  reviewingRequest.value = row as unknown as ServiceRequestRow;
+  formError.value = null;
+  reset({ status: "APPROVED", adminNote: "", categoryId: "" });
+  modalOpen.value = true;
+}
+
+async function submitReview() {
+  formError.value = null;
+  if (!validateAll()) return;
+  const req = reviewingRequest.value;
+  if (
+    values.status === "APPROVED" &&
+    req &&
+    !req.serviceId &&
+    !values.categoryId
+  ) {
+    formError.value = "انتخاب دسته برای تایید خدمت جدید الزامی است";
+    return;
+  }
+  submitting.value = true;
   try {
-    const body: { status: string; categoryId?: string } = { status };
-    if (status === "APPROVED") {
-      const req = requests.value.find((r) => r.id === id);
-      if (req && !req.serviceId && !categoryByRequest.value[id]) {
-        error.value = "برای تایید خدمت جدید، دسته‌بندی را انتخاب کنید";
-        return;
-      }
-      if (categoryByRequest.value[id]) {
-        body.categoryId = categoryByRequest.value[id];
-      }
-    }
-    await apiPatch(`/admin/service-requests/${id}`, body);
-    await load();
+    await apiPatch(`/admin/service-requests/${req!.id}`, {
+      status: values.status,
+      adminNote: values.adminNote || undefined,
+      categoryId: values.categoryId || undefined,
+    });
+    modalOpen.value = false;
+    tableRef.value?.refresh();
   } catch {
-    error.value = "خطا در بررسی درخواست";
+    formError.value = "خطا در بررسی درخواست";
+  } finally {
+    submitting.value = false;
   }
 }
 
-onMounted(load);
+function onRowAction({ action, row }: { action: string; row: Record<string, unknown> }) {
+  if (action === "review") openReview(row);
+}
+
+onMounted(loadCategories);
 </script>
 
 <template>
   <div>
-    <h1 class="mb-6 text-2xl font-bold">درخواست‌های خدمت</h1>
-    <p v-if="error" class="mb-4 text-sm text-red-600">{{ error }}</p>
-    <p v-if="!requests.length" class="text-[var(--color-muted)]">درخواست در انتظاری نیست</p>
-    <div class="space-y-3">
-      <UiCard v-for="r in requests" :key="r.id">
-        <div class="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <p class="font-semibold">{{ r.service?.name ?? r.proposedName }}</p>
-            <p class="text-sm">{{ r.provider.user.fullName }}</p>
-            <p v-if="!r.serviceId" class="mt-1 text-xs text-[var(--color-muted)]">
-              خدمت جدید — قیمت: {{ r.proposedPrice }} — مدت: {{ r.proposedDuration }} دقیقه
-            </p>
-            <UiBadge class="mt-2">{{ r.status }}</UiBadge>
-            <div v-if="!r.serviceId && categories.length" class="mt-3">
-              <label class="text-xs text-[var(--color-muted)]">دسته‌بندی (برای تایید)</label>
-              <select
-                v-model="categoryByRequest[r.id]"
-                class="mt-1 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1 text-sm"
-              >
-                <option value="">انتخاب کنید</option>
-                <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
-              </select>
-            </div>
-          </div>
-          <div class="flex gap-2">
-            <UiButton @click="review(r.id, 'APPROVED')">تایید</UiButton>
-            <UiButton variant="danger" @click="review(r.id, 'REJECTED')">رد</UiButton>
-          </div>
-        </div>
-      </UiCard>
-    </div>
+    <PageHeader title="درخواست‌های خدمت" description="بررسی و تأیید درخواست‌های ارائه‌دهندگان" />
+
+    <DataTable
+      ref="tableRef"
+      title="درخواست‌ها"
+      endpoint="/admin/service-requests"
+      :columns="serviceRequestsColumns"
+      :row-actions="serviceRequestsRowActions"
+      advanced-filters
+      default-sort="createdAt:desc"
+      @row-action="onRowAction"
+    />
+
+    <UiModal v-model:open="modalOpen" title="بررسی درخواست">
+      <form @submit.prevent="submitReview">
+        <CrudFormShell
+          :submitting="submitting"
+          :error="formError"
+          submit-label="ثبت نتیجه"
+          @submit="submitReview"
+          @cancel="modalOpen = false"
+        >
+          <ServiceRequestReviewForm
+            :values="values"
+            :field-error="(f) => fieldError(f as keyof typeof values)"
+            :touch="(f) => touch(f as keyof typeof values)"
+            :request="reviewingRequest"
+            :categories="categories"
+          />
+        </CrudFormShell>
+      </form>
+    </UiModal>
   </div>
 </template>

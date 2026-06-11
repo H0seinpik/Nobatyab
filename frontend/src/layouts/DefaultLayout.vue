@@ -1,47 +1,12 @@
 <script setup lang="ts">
-import { RouterLink, RouterView } from "vue-router";
-import { useAuthStore } from "@/stores/auth";
-import { useTheme } from "@/composables/useTheme";
-import { useLogout } from "@/composables/useLogout";
-import UiButton from "@/components/ui/UiButton.vue";
-
-const auth = useAuthStore();
-const logout = useLogout();
-const { theme, toggle } = useTheme();
+import { RouterView } from "vue-router";
+import AppShell from "@/components/layout/AppShell.vue";
 </script>
 
 <template>
-  <header class="border-b border-[var(--color-border)] bg-[var(--color-surface)]">
-    <div class="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
-      <RouterLink to="/" class="text-xl font-bold text-[var(--color-primary)]">نوبت‌یاب</RouterLink>
-      <nav class="flex items-center gap-3 text-sm">
-        <RouterLink to="/services" class="hover:text-[var(--color-primary)]">خدمات</RouterLink>
-        <RouterLink to="/providers" class="hover:text-[var(--color-primary)]">ارائه‌دهندگان</RouterLink>
-        <RouterLink v-if="auth.isAuthenticated" to="/appointments" class="hover:text-[var(--color-primary)]">
-          نوبت‌های من
-        </RouterLink>
-        <RouterLink v-if="auth.isAuthenticated" to="/profile" class="hover:text-[var(--color-primary)]">
-          پروفایل
-        </RouterLink>
-        <RouterLink
-          v-if="auth.user?.role === 'PROVIDER'"
-          to="/provider"
-          class="hover:text-[var(--color-primary)]"
-        >
-          پنل ارائه‌دهنده
-        </RouterLink>
-        <RouterLink v-if="auth.user?.role === 'ADMIN'" to="/admin" class="hover:text-[var(--color-primary)]">
-          پنل مدیریت
-        </RouterLink>
-        <UiButton variant="ghost" @click="toggle">{{ theme === "dark" ? "☀️" : "🌙" }}</UiButton>
-        <RouterLink v-if="!auth.isAuthenticated" to="/login">
-          <UiButton variant="secondary">ورود</UiButton>
-        </RouterLink>
-        <UiButton v-else variant="secondary" @click="logout">خروج</UiButton>
-      </nav>
+  <AppShell>
+    <div class="mx-auto w-full max-w-6xl flex-1 px-4 py-8">
+      <RouterView />
     </div>
-  </header>
-  <main class="mx-auto max-w-6xl px-4 py-8">
-    <RouterView />
-  </main>
+  </AppShell>
 </template>

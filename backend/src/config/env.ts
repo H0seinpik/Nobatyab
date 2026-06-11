@@ -23,6 +23,8 @@ const envSchema = z.object({
   RATE_LIMIT_MAX: z.coerce.number().default(100),
   PAYMENT_PROVIDER: z.string().default("simulated"),
   SMS_PROVIDER: z.string().default("simulated"),
+  UPLOAD_DIR: z.string().default("./uploads"),
+  MAX_AVATAR_SIZE_MB: z.coerce.number().default(2),
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -70,6 +72,11 @@ export const env = {
   integrations: {
     paymentProvider: data.PAYMENT_PROVIDER,
     smsProvider: data.SMS_PROVIDER,
+  },
+  upload: {
+    dir: data.UPLOAD_DIR,
+    maxAvatarSizeMb: data.MAX_AVATAR_SIZE_MB,
+    maxAvatarSizeBytes: data.MAX_AVATAR_SIZE_MB * 1024 * 1024,
   },
   isProduction: data.NODE_ENV === "production",
 };

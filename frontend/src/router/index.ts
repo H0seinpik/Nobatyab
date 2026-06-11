@@ -81,6 +81,11 @@ const router = createRouter({
           name: "admin-appointments",
           component: () => import("@/pages/admin/AppointmentsPage.vue"),
         },
+        {
+          path: "settings",
+          name: "admin-settings",
+          component: () => import("@/pages/admin/SettingsPage.vue"),
+        },
       ],
     },
   ],

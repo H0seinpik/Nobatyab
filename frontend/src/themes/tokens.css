@@ -7,6 +7,13 @@
   --color-border: #e2e8f0;
   --color-text: #0f172a;
   --color-muted: #64748b;
+  --color-input-bg: #ffffff;
+  --color-input-border: #e2e8f0;
+  --color-input-text: #0f172a;
+  --color-input-placeholder: #94a3b8;
+  --color-focus-ring: #2563eb;
+  --transition-theme: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  color-scheme: light;
 }
 
 .dark {
@@ -17,4 +24,10 @@
   --color-border: #334155;
   --color-text: #f1f5f9;
   --color-muted: #94a3b8;
+  --color-input-bg: #1e293b;
+  --color-input-border: #475569;
+  --color-input-text: #f1f5f9;
+  --color-input-placeholder: #64748b;
+  --color-focus-ring: #3b82f6;
+  color-scheme: dark;
 }

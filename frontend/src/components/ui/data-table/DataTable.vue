@@ -128,7 +128,7 @@ defineExpose({ refresh, clearSelection });
     <ContentFade v-else>
       <div v-if="error" class="px-4 py-6 text-center text-red-600">{{ error }}</div>
       <div v-else class="overflow-x-auto">
-        <table class="min-w-full text-sm">
+        <table class="min-w-[640px] w-full text-sm">
           <DataTableHead
             :columns="columns"
             :selectable="selectable"

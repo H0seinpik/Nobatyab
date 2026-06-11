@@ -149,6 +149,22 @@ async function main() {
     });
   }
 
+  const defaultSettings = [
+    { key: "site.title", value: "نوبت‌یاب", group: "general", label: "عنوان سایت", type: "text" },
+    { key: "site.description", value: "پلتفرم رزرو آنلاین نوبت", group: "general", label: "توضیحات سایت", type: "textarea" },
+    { key: "contact.email", value: "info@nobatyab.com", group: "contact", label: "ایمیل تماس", type: "email" },
+    { key: "contact.phone", value: "021-12345678", group: "contact", label: "تلفن تماس", type: "tel" },
+    { key: "contact.address", value: "تهران، ایران", group: "contact", label: "آدرس", type: "textarea" },
+  ];
+
+  for (const setting of defaultSettings) {
+    await prisma.appSetting.upsert({
+      where: { key: setting.key },
+      update: {},
+      create: setting,
+    });
+  }
+
   console.log("Seed completed:");
   console.log(`  Admin:    admin@nobatyab.com / Admin123!`);
   console.log(`  Provider: provider@nobatyab.com / Provider123!`);

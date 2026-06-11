@@ -11,10 +11,8 @@ export const adminUpdateUserSchema = z.object({
   role: z.nativeEnum(Role).optional(),
 });
 
-export const adminServiceRequestQuerySchema = z.object({
+export const adminServiceRequestQuerySchema = baseListQuerySchema.extend({
   status: z.nativeEnum(ServiceRequestStatus).optional(),
-  page: z.string().optional(),
-  limit: z.string().optional(),
 });
 
 export const adminServiceRequestIdSchema = z.object({ id: z.string().cuid() });

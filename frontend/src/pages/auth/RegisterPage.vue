@@ -79,9 +79,9 @@ async function submit() {
         </UiButton>
       </form>
       <div class="mt-4 text-center">
-        <RouterLink to="/login">
-          <UiButton variant="secondary" class="w-full">ورود</UiButton>
-        </RouterLink>
+               <RouterLink to="/login" class="mt-4 block text-center text-sm text-[var(--color-primary)]">
+        ورود
+      </RouterLink>
       </div>
     </UiCard>
   </div>

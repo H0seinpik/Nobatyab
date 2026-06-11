@@ -28,6 +28,7 @@ export const refreshSchema = z.object({
 export const updateProfileSchema = z.object({
   fullName: z.string().min(2).optional(),
   email: z.string().email().optional(),
+  phone: z.string().optional(),
 });
 
 export const changePasswordSchema = z.object({

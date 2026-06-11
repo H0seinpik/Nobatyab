@@ -13,6 +13,7 @@ import {
 import { validateBody } from "../../shared/middlewares/errorHandler.js";
 import { requireAuth, optionalAuth } from "../../shared/middlewares/auth.js";
 import { asyncHandler } from "../../shared/middlewares/errorHandler.js";
+import { avatarUpload } from "../../shared/middlewares/upload.js";
 
 const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 20, message: { success: false, error: { code: "RATE_LIMIT", message: "Too many attempts" } } });
 
@@ -34,6 +35,12 @@ authRoutes.patch(
   requireAuth,
   validateBody(changePasswordSchema),
   asyncHandler(authController.changePassword),
+);
+authRoutes.post(
+  "/me/avatar",
+  requireAuth,
+  avatarUpload.single("avatar"),
+  asyncHandler(authController.uploadAvatar),
 );
 authRoutes.post("/forgot-password", authLimiter, validateBody(forgotPasswordSchema), asyncHandler(authController.forgotPassword));
 authRoutes.post("/reset-password", validateBody(resetPasswordSchema), asyncHandler(authController.resetPassword));

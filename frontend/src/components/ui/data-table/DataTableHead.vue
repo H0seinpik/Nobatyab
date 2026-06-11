@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { DataTableColumn } from "@/types/dataTable";
+import JalaliDateFilter from "@/components/ui/JalaliDateFilter.vue";
 
 defineProps<{
   columns: DataTableColumn[];
@@ -49,7 +50,7 @@ const emit = defineEmits<{
         <template v-if="col.filterable">
           <select
             v-if="col.filterType === 'select' && col.filterOptions"
-            class="w-full rounded border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1 text-xs"
+            class="form-control text-xs"
             :value="String(filterValues[col.key] ?? '')"
             @change="
               emit(
@@ -66,7 +67,7 @@ const emit = defineEmits<{
           </select>
           <select
             v-else-if="col.filterType === 'boolean'"
-            class="w-full rounded border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1 text-xs"
+            class="form-control text-xs"
             :value="String(filterValues[col.key] ?? '')"
             @change="
               emit(
@@ -82,23 +83,20 @@ const emit = defineEmits<{
             <option value="true">بله</option>
             <option value="false">خیر</option>
           </select>
-          <input
+          <JalaliDateFilter
             v-else-if="col.filterType === 'date'"
-            type="date"
-            class="w-full rounded border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1 text-xs"
-            :value="(filterValues[col.key] as { gte?: string })?.gte?.slice(0, 10) ?? ''"
-            @change="
-              emit('filter-change', col.key, {
-                gte: ($event.target as HTMLInputElement).value
-                  ? new Date(($event.target as HTMLInputElement).value).toISOString()
-                  : undefined,
-              })
+            :model-value="(filterValues[col.key] as { gte?: string })?.gte"
+            @update:model-value="
+              (v) =>
+                emit('filter-change', col.key, {
+                  gte: v,
+                })
             "
           />
           <input
             v-else
             type="text"
-            class="w-full rounded border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1 text-xs"
+            class="form-control text-xs"
             :value="String(filterValues[col.key] ?? '')"
             @input="emit('filter-change', col.key, { op: 'contains', value: ($event.target as HTMLInputElement).value })"
           />

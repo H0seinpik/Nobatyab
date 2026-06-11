@@ -1,6 +1,8 @@
 import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
 import jalaliPlugin from "jalali-plugin-dayjs";
 
+dayjs.extend(relativeTime);
 dayjs.extend(jalaliPlugin);
 
 export function toJalali(date: string | Date) {
@@ -31,4 +33,20 @@ export function todayGregorian(): string {
 
 export function todayJalali(): string {
   return dayjs().calendar("jalali").format("YYYY/MM/DD");
+}
+
+export function formatJalaliRelative(date: string | Date) {
+  return dayjs(date).calendar("jalali").fromNow();
+}
+
+/** Normalize Jalali input (1403/01/15 or 1403-01-15) to ISO date string for API filters */
+export function parseJalaliInput(jalaliDate: string): string {
+  if (!jalaliDate.trim()) return "";
+  return jalaliToGregorianDate(jalaliDate);
+}
+
+/** Convert ISO date to Jalali display string */
+export function isoToJalali(iso: string | undefined | null): string {
+  if (!iso) return "";
+  return formatJalaliDate(iso);
 }

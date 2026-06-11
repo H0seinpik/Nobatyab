@@ -27,12 +27,8 @@ const emit = defineEmits<{
       :placeholder="placeholder"
       :required="required"
       :disabled="disabled"
-      class="w-full rounded-lg border bg-[var(--color-surface)] px-3 py-2 text-[var(--color-text)] outline-none transition-colors focus:border-[var(--color-primary)] disabled:opacity-50"
-      :class="
-        error
-          ? 'border-red-500 focus:border-red-500'
-          : 'border-[var(--color-border)]'
-      "
+      class="form-control"
+      :class="{ 'form-control--error': error }"
       @input="$emit('update:modelValue', ($event.target as HTMLInputElement).value)"
       @blur="emit('blur')"
     />

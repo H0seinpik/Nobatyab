@@ -10,6 +10,8 @@ import UiButton from "@/components/ui/UiButton.vue";
 import UiAlert from "@/components/ui/UiAlert.vue";
 import SkeletonForm from "@/components/ui/skeleton/SkeletonForm.vue";
 import ContentFade from "@/components/ui/ContentFade.vue";
+import AvatarUpload from "@/components/profile/AvatarUpload.vue";
+import ThemeSettings from "@/components/profile/ThemeSettings.vue";
 
 const auth = useAuthStore();
 const logout = useLogout();
@@ -27,7 +29,7 @@ const {
   isValid: profileValid,
   submitting: profileSubmitting,
   validateAll: validateProfile,
-} = useZodForm(updateProfileFormSchema, { fullName: "", email: "" });
+} = useZodForm(updateProfileFormSchema, { fullName: "", email: "", phone: "" });
 
 const {
   values: passwordValues,
@@ -49,6 +51,7 @@ onMounted(async () => {
     if (auth.user) {
       profileValues.fullName = auth.user.fullName;
       profileValues.email = auth.user.email;
+      profileValues.phone = auth.user.phone ?? "";
     }
   } finally {
     pageLoading.value = false;
@@ -65,6 +68,7 @@ async function saveProfile() {
     await auth.updateProfile({
       fullName: profileValues.fullName,
       email: profileValues.email,
+      phone: profileValues.phone || undefined,
     });
     profileSuccess.value = "پروفایل با موفقیت به‌روزرسانی شد";
   } catch {
@@ -104,6 +108,11 @@ async function changePassword() {
 
     <ContentFade v-else class="max-w-lg space-y-6">
       <UiCard>
+        <h2 class="mb-4 font-semibold">تصویر پروفایل</h2>
+        <AvatarUpload />
+      </UiCard>
+
+      <UiCard>
         <h2 class="mb-4 font-semibold">اطلاعات حساب</h2>
         <form class="space-y-4" @submit.prevent="saveProfile">
           <UiInput
@@ -121,6 +130,13 @@ async function changePassword() {
             :error="profileFieldError('email')"
             @blur="profileTouch('email')"
           />
+          <UiInput
+            v-model="profileValues.phone"
+            label="شماره تماس"
+            type="tel"
+            :error="profileFieldError('phone')"
+            @blur="profileTouch('phone')"
+          />
           <UiAlert v-if="profileSuccess" variant="success">{{ profileSuccess }}</UiAlert>
           <UiAlert v-if="profileError" variant="error">{{ profileError }}</UiAlert>
           <UiButton
@@ -131,6 +147,11 @@ async function changePassword() {
             ذخیره تغییرات
           </UiButton>
         </form>
+      </UiCard>
+
+      <UiCard>
+        <h2 class="mb-4 font-semibold">تنظیمات ظاهر</h2>
+        <ThemeSettings />
       </UiCard>
 
       <UiCard>

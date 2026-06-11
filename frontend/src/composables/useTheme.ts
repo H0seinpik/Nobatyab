@@ -1,6 +1,6 @@
-import { ref, watch } from "vue";
+import { ref, computed, watch } from "vue";
 
-type Theme = "light" | "dark";
+export type Theme = "light" | "dark";
 
 const theme = ref<Theme>((localStorage.getItem("theme") as Theme) || "light");
 
@@ -16,9 +16,15 @@ watch(theme, (value) => {
 });
 
 export function useTheme() {
+  const isDark = computed(() => theme.value === "dark");
+
+  function setTheme(value: Theme) {
+    theme.value = value;
+  }
+
   function toggle() {
     theme.value = theme.value === "light" ? "dark" : "light";
   }
 
-  return { theme, toggle };
+  return { theme, isDark, setTheme, toggle };
 }

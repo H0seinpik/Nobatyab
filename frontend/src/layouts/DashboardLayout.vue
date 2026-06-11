@@ -1,15 +1,12 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import { RouterLink, RouterView, useRoute } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
-import { useTheme } from "@/composables/useTheme";
-import { useLogout } from "@/composables/useLogout";
-import UiButton from "@/components/ui/UiButton.vue";
+import AppShell from "@/components/layout/AppShell.vue";
 
 const route = useRoute();
 const auth = useAuthStore();
-const logout = useLogout();
-const { toggle } = useTheme();
+const sidebarOpen = ref(false);
 
 const links = computed(() => {
   if (auth.user?.role === "ADMIN") {
@@ -20,6 +17,7 @@ const links = computed(() => {
       { to: "/admin/users", label: "کاربران" },
       { to: "/admin/service-requests", label: "درخواست‌ها" },
       { to: "/admin/appointments", label: "نوبت‌ها" },
+      { to: "/admin/settings", label: "تنظیمات" },
     ];
   }
   return [
@@ -30,36 +28,67 @@ const links = computed(() => {
     { to: "/provider/service-requests", label: "درخواست خدمات" },
   ];
 });
+
+function closeSidebar() {
+  sidebarOpen.value = false;
+}
 </script>
 
 <template>
-  <div class="flex min-h-screen">
-    <aside class="w-56 border-l border-[var(--color-border)] bg-[var(--color-surface)] p-4">
-      <RouterLink to="/" class="mb-6 block font-bold text-[var(--color-primary)]">نوبت‌یاب</RouterLink>
-      <nav class="space-y-1">
-        <RouterLink
-          v-for="link in links"
-          :key="link.to"
-          :to="link.to"
-          class="block rounded-lg px-3 py-2 text-sm transition"
-          :class="route.path.startsWith(link.to) ? 'bg-[var(--color-primary)] text-white' : 'hover:bg-[var(--color-bg)]'"
-        >
-          {{ link.label }}
-        </RouterLink>
-      </nav>
-      <div class="mt-8 space-y-2">
-        <RouterLink
-          to="/profile"
-          class="block rounded-lg px-3 py-2 text-sm hover:bg-[var(--color-bg)]"
-        >
-          حساب کاربری
-        </RouterLink>
-        <UiButton variant="ghost" class="w-full" @click="toggle">تغییر تم</UiButton>
-        <UiButton variant="secondary" class="w-full" @click="logout">خروج</UiButton>
+  <AppShell :show-nav="false">
+    <div class="flex flex-1">
+      <div
+        v-if="sidebarOpen"
+        class="fixed inset-0 z-40 bg-black/50 lg:hidden"
+        @click="closeSidebar"
+      />
+
+      <aside
+        class="fixed inset-y-0 right-0 z-50 w-56 shrink-0 border-l border-[var(--color-border)] bg-[var(--color-surface)] p-4 transition-transform lg:static lg:translate-x-0"
+        :class="sidebarOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'"
+      >
+        <nav class="space-y-1">
+          <RouterLink
+            v-for="link in links"
+            :key="link.to"
+            :to="link.to"
+            class="block rounded-lg px-3 py-2 text-sm transition"
+            :class="
+              route.path.startsWith(link.to)
+                ? 'bg-[var(--color-primary)] text-white'
+                : 'hover:bg-[var(--color-bg)]'
+            "
+            @click="closeSidebar"
+          >
+            {{ link.label }}
+          </RouterLink>
+        </nav>
+        <div class="mt-8">
+          <RouterLink
+            to="/profile"
+            class="block rounded-lg px-3 py-2 text-sm hover:bg-[var(--color-bg)]"
+            @click="closeSidebar"
+          >
+            حساب کاربری
+          </RouterLink>
+        </div>
+      </aside>
+
+      <div class="flex min-w-0 flex-1 flex-col">
+        <div class="flex items-center border-b border-[var(--color-border)] px-4 py-3 lg:hidden">
+          <button
+            type="button"
+            class="rounded-lg px-3 py-2 text-sm hover:bg-[var(--color-bg)]"
+            aria-label="منو"
+            @click="sidebarOpen = !sidebarOpen"
+          >
+            ☰ منو
+          </button>
+        </div>
+        <div class="flex-1 p-4 sm:p-6">
+          <RouterView />
+        </div>
       </div>
-    </aside>
-    <main class="flex-1 p-6">
-      <RouterView />
-    </main>
-  </div>
+    </div>
+  </AppShell>
 </template>

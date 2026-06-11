@@ -1,4 +1,5 @@
 import express from "express";
+import path from "path";
 import helmet from "helmet";
 import cors from "cors";
 import cookieParser from "cookie-parser";
@@ -11,6 +12,7 @@ import { providerRoutes } from "./modules/providers/provider.routes.js";
 import { appointmentRoutes } from "./modules/appointments/appointment.routes.js";
 import { providerDashboardRoutes } from "./modules/provider/provider.routes.js";
 import { adminRoutes } from "./modules/admin/admin.routes.js";
+import { settingsRoutes, adminSettingsRoutes } from "./modules/settings/settings.routes.js";
 import { errorHandler, notFoundHandler } from "./shared/middlewares/errorHandler.js";
 
 export function createApp() {
@@ -28,6 +30,7 @@ export function createApp() {
   );
   app.use(express.json());
   app.use(cookieParser());
+  app.use("/uploads", express.static(path.resolve(env.upload.dir)));
 
   app.get("/health", (_req, res) => {
     res.json({ success: true, data: { status: "ok" } });
@@ -43,6 +46,8 @@ export function createApp() {
   api.use("/admin", adminRoutes);
   api.use("/admin/categories", adminCategoryRoutes);
   api.use("/admin/services", adminServiceRoutes);
+  api.use("/settings", settingsRoutes);
+  api.use("/admin/settings", adminSettingsRoutes);
 
   app.use("/api/v1", api);
   app.use(notFoundHandler);

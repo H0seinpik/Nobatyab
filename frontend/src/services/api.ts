@@ -119,3 +119,17 @@ export async function apiDelete<T>(url: string) {
   const res = await api.delete<ApiResponse<T>>(url);
   return res.data;
 }
+
+export async function apiUpload<T>(
+  url: string,
+  formData: FormData,
+  options?: { skipGlobalLoading?: boolean },
+) {
+  const res = await api.post<ApiResponse<T>>(url, formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+      ...(options?.skipGlobalLoading ? { [SKIP_LOADING_HEADER]: "true" } : {}),
+    },
+  });
+  return res.data;
+}

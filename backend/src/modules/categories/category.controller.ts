@@ -8,8 +8,14 @@ export class CategoryController {
     res.json(successResponse(await categoryService.listPublic()));
   };
 
-  listAdmin = async (_req: AuthRequest, res: Response) => {
-    res.json(successResponse(await categoryService.listAdmin()));
+  listAdmin = async (req: AuthRequest, res: Response) => {
+    const q = (req as AuthRequest & { validatedQuery?: import("../../shared/schemas/listQuery.schema.js").BaseListQuery }).validatedQuery;
+    const result = await categoryService.listAdmin(q);
+    if (Array.isArray(result)) {
+      res.json(successResponse(result));
+    } else {
+      res.json(successResponse(result.items, result.meta));
+    }
   };
 
   create = async (req: AuthRequest, res: Response) => {

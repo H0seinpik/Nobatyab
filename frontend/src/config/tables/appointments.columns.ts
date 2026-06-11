@@ -50,7 +50,6 @@ export const appointmentsColumns: DataTableColumn[] = [
       { label: "تأیید شده", value: "CONFIRMED" },
       { label: "لغو شده", value: "CANCELLED" },
       { label: "انجام شده", value: "COMPLETED" },
-      { label: "عدم حضور", value: "NO_SHOW" },
     ],
   },
   {

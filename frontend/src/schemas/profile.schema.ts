@@ -5,6 +5,7 @@ const email = z.string().min(1, "ایمیل الزامی است").email("ایم�
 export const updateProfileFormSchema = z.object({
   fullName: z.string().min(2, "نام باید حداقل ۲ کاراکتر باشد"),
   email,
+  phone: z.string().optional(),
 });
 
 export const changePasswordFormSchema = z
