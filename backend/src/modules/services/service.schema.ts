@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { baseListQuerySchema } from "../../shared/schemas/listQuery.schema.js";
 
 export const createServiceSchema = z.object({
   categoryId: z.string().cuid(),
@@ -16,4 +17,6 @@ export const serviceQuerySchema = z.object({
   page: z.string().optional(),
   limit: z.string().optional(),
 });
+
+export const adminServiceListQuerySchema = baseListQuerySchema;
 export const serviceIdSchema = z.object({ id: z.string().cuid() });

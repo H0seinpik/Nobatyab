@@ -22,6 +22,12 @@ const router = createRouter({
           component: () => import("@/pages/user/MyAppointmentsPage.vue"),
           meta: { requiresAuth: true, roles: ["USER"] as UserRole[] },
         },
+        {
+          path: "profile",
+          name: "profile",
+          component: () => import("@/pages/user/ProfilePage.vue"),
+          meta: { requiresAuth: true },
+        },
         { path: "login", name: "login", component: () => import("@/pages/auth/LoginPage.vue") },
         { path: "register", name: "register", component: () => import("@/pages/auth/RegisterPage.vue") },
         {

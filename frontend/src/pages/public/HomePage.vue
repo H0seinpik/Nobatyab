@@ -3,6 +3,8 @@ import { ref, onMounted } from "vue";
 import { RouterLink } from "vue-router";
 import { apiGet } from "@/services/api";
 import UiCard from "@/components/ui/UiCard.vue";
+import SkeletonCard from "@/components/ui/skeleton/SkeletonCard.vue";
+import ContentFade from "@/components/ui/ContentFade.vue";
 
 interface Category {
   id: string;
@@ -32,9 +34,12 @@ onMounted(async () => {
       <p class="text-[var(--color-muted)]">خدمات مورد نظر خود را انتخاب کنید و نوبت بگیرید</p>
     </section>
 
-    <p v-if="loading" class="text-center text-[var(--color-muted)]">در حال بارگذاری...</p>
+    <div v-if="loading" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <SkeletonCard v-for="i in 6" :key="i" />
+    </div>
 
-    <div v-else class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <ContentFade v-else>
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       <RouterLink v-for="cat in categories" :key="cat.id" :to="`/services?categoryId=${cat.id}`">
         <UiCard class="h-full transition hover:border-[var(--color-primary)]">
           <h2 class="mb-2 text-lg font-semibold">{{ cat.name }}</h2>
@@ -45,5 +50,6 @@ onMounted(async () => {
         </UiCard>
       </RouterLink>
     </div>
+    </ContentFade>
   </div>
 </template>

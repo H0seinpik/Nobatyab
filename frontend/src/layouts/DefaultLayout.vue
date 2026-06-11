@@ -2,9 +2,11 @@
 import { RouterLink, RouterView } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import { useTheme } from "@/composables/useTheme";
+import { useLogout } from "@/composables/useLogout";
 import UiButton from "@/components/ui/UiButton.vue";
 
 const auth = useAuthStore();
+const logout = useLogout();
 const { theme, toggle } = useTheme();
 </script>
 
@@ -17,6 +19,9 @@ const { theme, toggle } = useTheme();
         <RouterLink to="/providers" class="hover:text-[var(--color-primary)]">ارائه‌دهندگان</RouterLink>
         <RouterLink v-if="auth.isAuthenticated" to="/appointments" class="hover:text-[var(--color-primary)]">
           نوبت‌های من
+        </RouterLink>
+        <RouterLink v-if="auth.isAuthenticated" to="/profile" class="hover:text-[var(--color-primary)]">
+          پروفایل
         </RouterLink>
         <RouterLink
           v-if="auth.user?.role === 'PROVIDER'"
@@ -32,7 +37,7 @@ const { theme, toggle } = useTheme();
         <RouterLink v-if="!auth.isAuthenticated" to="/login">
           <UiButton variant="secondary">ورود</UiButton>
         </RouterLink>
-        <UiButton v-else variant="secondary" @click="auth.logout()">خروج</UiButton>
+        <UiButton v-else variant="secondary" @click="logout">خروج</UiButton>
       </nav>
     </div>
   </header>

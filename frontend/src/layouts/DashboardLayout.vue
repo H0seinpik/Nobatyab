@@ -3,10 +3,12 @@ import { computed } from "vue";
 import { RouterLink, RouterView, useRoute } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import { useTheme } from "@/composables/useTheme";
+import { useLogout } from "@/composables/useLogout";
 import UiButton from "@/components/ui/UiButton.vue";
 
 const route = useRoute();
 const auth = useAuthStore();
+const logout = useLogout();
 const { toggle } = useTheme();
 
 const links = computed(() => {
@@ -46,8 +48,14 @@ const links = computed(() => {
         </RouterLink>
       </nav>
       <div class="mt-8 space-y-2">
+        <RouterLink
+          to="/profile"
+          class="block rounded-lg px-3 py-2 text-sm hover:bg-[var(--color-bg)]"
+        >
+          حساب کاربری
+        </RouterLink>
         <UiButton variant="ghost" class="w-full" @click="toggle">تغییر تم</UiButton>
-        <UiButton variant="secondary" class="w-full" @click="auth.logout()">خروج</UiButton>
+        <UiButton variant="secondary" class="w-full" @click="logout">خروج</UiButton>
       </div>
     </aside>
     <main class="flex-1 p-6">

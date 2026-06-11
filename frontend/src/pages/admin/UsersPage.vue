@@ -1,57 +1,51 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
-import { apiGet, apiPatch } from "@/services/api";
-import UiCard from "@/components/ui/UiCard.vue";
-import UiButton from "@/components/ui/UiButton.vue";
+import { ref } from "vue";
+import { apiPatch } from "@/services/api";
+import DataTable from "@/components/ui/data-table/DataTable.vue";
 import UiBadge from "@/components/ui/UiBadge.vue";
+import {
+  usersColumns,
+  usersRowActions,
+  type UserRow,
+} from "@/config/tables/users.columns";
 
-interface User {
-  id: string;
-  email: string;
-  fullName: string;
-  role: string;
-  isActive: boolean;
+const tableRef = ref<{ refresh: () => void } | null>(null);
+
+const roleLabels: Record<string, string> = {
+  ADMIN: "مدیر",
+  PROVIDER: "ارائه‌دهنده",
+  USER: "کاربر",
+};
+
+async function onRowAction({ action, row }: { action: string; row: Record<string, unknown> }) {
+  const user = row as unknown as UserRow;
+  if (action === "toggle-active") {
+    await apiPatch(`/admin/users/${user.id}`, { isActive: !user.isActive });
+  } else if (action === "set-provider") {
+    await apiPatch(`/admin/users/${user.id}`, { role: "PROVIDER" });
+  } else if (action === "set-user") {
+    await apiPatch(`/admin/users/${user.id}`, { role: "USER" });
+  }
+  tableRef.value?.refresh();
 }
-
-const users = ref<User[]>([]);
-
-async function load() {
-  const res = await apiGet<User[]>("/admin/users");
-  users.value = res.data;
-}
-
-async function updateUser(user: User, patch: Partial<User>) {
-  await apiPatch(`/admin/users/${user.id}`, patch);
-  await load();
-}
-
-onMounted(load);
 </script>
 
 <template>
   <div>
     <h1 class="mb-6 text-2xl font-bold">کاربران</h1>
-    <div class="space-y-3">
-      <UiCard v-for="user in users" :key="user.id">
-        <div class="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <p class="font-semibold">{{ user.fullName }}</p>
-            <p class="text-sm text-[var(--color-muted)]">{{ user.email }}</p>
-            <UiBadge class="mt-2">{{ user.role }}</UiBadge>
-          </div>
-          <div class="flex flex-wrap gap-2">
-            <UiButton variant="secondary" @click="updateUser(user, { isActive: !user.isActive })">
-              {{ user.isActive ? "غیرفعال" : "فعال" }}
-            </UiButton>
-            <UiButton v-if="user.role !== 'ADMIN'" variant="ghost" @click="updateUser(user, { role: 'PROVIDER' })">
-              ارائه‌دهنده
-            </UiButton>
-            <UiButton v-if="user.role !== 'ADMIN'" variant="ghost" @click="updateUser(user, { role: 'USER' })">
-              کاربر
-            </UiButton>
-          </div>
-        </div>
-      </UiCard>
-    </div>
+    <DataTable
+      ref="tableRef"
+      endpoint="/admin/users"
+      :columns="usersColumns"
+      :row-actions="usersRowActions"
+      searchable
+      advanced-filters
+      default-sort="createdAt:desc"
+      @row-action="onRowAction"
+    >
+      <template #cell-role="{ row }">
+        <UiBadge>{{ roleLabels[String(row.role)] ?? row.role }}</UiBadge>
+      </template>
+    </DataTable>
   </div>
 </template>

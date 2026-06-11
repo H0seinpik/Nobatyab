@@ -1,11 +1,15 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/forms";
 
+@import "@fontsource/vazirmatn/400.css";
+@import "@fontsource/vazirmatn/500.css";
+@import "@fontsource/vazirmatn/700.css";
+
 @import "./themes/tokens.css";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
 body {
   @apply bg-[var(--color-bg)] text-[var(--color-text)] antialiased;
-  font-family: system-ui, -apple-system, "Segoe UI", Tahoma, sans-serif;
+  font-family: var(--font-family);
 }

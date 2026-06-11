@@ -17,8 +17,8 @@ export class ServiceController {
   };
 
   listAdmin = async (req: QueryRequest, res: Response) => {
-    const q = req.validatedQuery ?? req.query;
-    const result = await serviceCatalogService.listAdmin(q as Record<string, string | undefined>);
+    const q = (req as QueryRequest & { validatedQuery: import("../../shared/schemas/listQuery.schema.js").BaseListQuery }).validatedQuery;
+    const result = await serviceCatalogService.listAdmin(q);
     res.json(successResponse(result.items, result.meta));
   };
 

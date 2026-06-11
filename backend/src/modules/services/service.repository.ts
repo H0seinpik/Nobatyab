@@ -1,14 +1,17 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "../../config/database.js";
 
 export class ServiceRepository {
   findMany(filters: {
+    where?: Prisma.ServiceWhereInput;
+    orderBy?: Prisma.ServiceOrderByWithRelationInput | Prisma.ServiceOrderByWithRelationInput[];
+    skip?: number;
+    take?: number;
     categoryId?: string;
     q?: string;
     activeOnly?: boolean;
-    skip?: number;
-    take?: number;
   }) {
-    const where = {
+    const legacyWhere: Prisma.ServiceWhereInput = {
       ...(filters.activeOnly ? { isActive: true } : {}),
       ...(filters.categoryId ? { categoryId: filters.categoryId } : {}),
       ...(filters.q
@@ -21,12 +24,18 @@ export class ServiceRepository {
         : {}),
     };
 
+    const where = filters.where
+      ? Object.keys(legacyWhere).length
+        ? { AND: [filters.where, legacyWhere] }
+        : filters.where
+      : legacyWhere;
+
     return Promise.all([
       prisma.service.findMany({
         where,
         skip: filters.skip,
         take: filters.take,
-        orderBy: { name: "asc" },
+        orderBy: filters.orderBy ?? { name: "asc" },
         include: { category: true },
       }),
       prisma.service.count({ where }),

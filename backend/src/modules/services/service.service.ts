@@ -1,4 +1,6 @@
 import { ApiError, parsePagination, paginationMeta } from "../../shared/utils/apiError.js";
+import type { BaseListQuery } from "../../shared/schemas/listQuery.schema.js";
+import { buildListQuery, serviceListConfig } from "../../shared/utils/queryBuilder.js";
 import { serviceRepository } from "./service.repository.js";
 
 export class ServiceCatalogService {
@@ -16,16 +18,16 @@ export class ServiceCatalogService {
     return { items, meta: paginationMeta(page, limit, total) };
   }
 
-  async listAdmin(query: { categoryId?: string; q?: string; page?: string; limit?: string }) {
-    const { page, limit, skip } = parsePagination(query);
+  async listAdmin(query: BaseListQuery) {
+    const built = buildListQuery(serviceListConfig, query);
     const [items, total] = await this.repo.findMany({
-      categoryId: query.categoryId,
-      q: query.q,
+      where: built.where,
+      orderBy: built.orderBy,
       activeOnly: false,
-      skip,
-      take: limit,
+      skip: built.skip,
+      take: built.take,
     });
-    return { items, meta: paginationMeta(page, limit, total) };
+    return { items, meta: paginationMeta(built.page, built.pageSize, total) };
   }
 
   async getById(id: string) {

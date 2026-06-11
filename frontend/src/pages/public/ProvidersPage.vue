@@ -3,6 +3,8 @@ import { ref, onMounted, watch } from "vue";
 import { useRoute, RouterLink } from "vue-router";
 import { apiGet } from "@/services/api";
 import UiCard from "@/components/ui/UiCard.vue";
+import SkeletonCard from "@/components/ui/skeleton/SkeletonCard.vue";
+import ContentFade from "@/components/ui/ContentFade.vue";
 
 interface Provider {
   id: string;
@@ -35,8 +37,11 @@ watch(serviceId, load);
 <template>
   <div>
     <h1 class="mb-6 text-2xl font-bold">ارائه‌دهندگان</h1>
-    <p v-if="loading" class="text-[var(--color-muted)]">در حال بارگذاری...</p>
-    <div v-else class="grid gap-4 sm:grid-cols-2">
+    <div v-if="loading" class="grid gap-4 sm:grid-cols-2">
+      <SkeletonCard v-for="i in 4" :key="i" />
+    </div>
+    <ContentFade v-else>
+    <div class="grid gap-4 sm:grid-cols-2">
       <RouterLink v-for="p in providers" :key="p.id" :to="`/providers/${p.id}`">
         <UiCard class="transition hover:border-[var(--color-primary)]">
           <h2 class="font-semibold">{{ p.user.fullName }}</h2>
@@ -47,5 +52,6 @@ watch(serviceId, load);
         </UiCard>
       </RouterLink>
     </div>
+    </ContentFade>
   </div>
 </template>

@@ -14,7 +14,12 @@ import {
   parseExpiresInToMs,
 } from "../../shared/utils/jwt.js";
 import { authRepository } from "./auth.repository.js";
-import type { LoginInput, RegisterInput } from "./auth.schema.js";
+import type {
+  ChangePasswordInput,
+  LoginInput,
+  RegisterInput,
+  UpdateProfileInput,
+} from "./auth.schema.js";
 
 function sanitizeUser(user: {
   id: string;
@@ -104,6 +109,36 @@ export class AuthService {
     const user = await this.repo.findUserById(userId);
     if (!user) throw ApiError.notFound("User not found");
     return sanitizeUser(user);
+  }
+
+  async updateProfile(userId: string, input: UpdateProfileInput) {
+    if (!input.fullName && !input.email) {
+      throw ApiError.badRequest("No profile fields to update");
+    }
+
+    if (input.email) {
+      const existing = await this.repo.findUserByEmail(input.email);
+      if (existing && existing.id !== userId) {
+        throw ApiError.conflict("Email already in use");
+      }
+    }
+
+    const user = await this.repo.updateUser(userId, input);
+    return sanitizeUser(user);
+  }
+
+  async changePassword(userId: string, input: ChangePasswordInput) {
+    const user = await this.repo.findUserById(userId);
+    if (!user) throw ApiError.notFound("User not found");
+
+    const valid = await verifyPassword(input.currentPassword, user.passwordHash);
+    if (!valid) throw ApiError.unauthorized("Current password is incorrect");
+
+    const passwordHash = await hashPassword(input.newPassword);
+    await this.repo.updatePassword(userId, passwordHash);
+    await this.repo.revokeAllUserTokens(userId);
+
+    return { message: "Password changed successfully" };
   }
 
   async forgotPassword(email: string) {

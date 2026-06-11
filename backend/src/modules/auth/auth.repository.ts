@@ -33,6 +33,17 @@ export class AuthRepository {
     return prisma.user.update({ where: { id: userId }, data: { passwordHash } });
   }
 
+  updateUser(
+    userId: string,
+    data: { fullName?: string; email?: string },
+  ) {
+    return prisma.user.update({
+      where: { id: userId },
+      data,
+      include: { providerProfile: true },
+    });
+  }
+
   createRefreshToken(userId: string, tokenHash: string, expiresAt: Date) {
     return prisma.refreshToken.create({ data: { userId, tokenHash, expiresAt } });
   }

@@ -1,33 +1,21 @@
-import { AppointmentStatus, Prisma, Role, ServiceRequestStatus } from "@prisma/client";
+import { Prisma, ServiceRequestStatus } from "@prisma/client";
 import { prisma } from "../../config/database.js";
 
 export class AdminRepository {
   findUsers(filters: {
-    q?: string;
-    role?: Role;
-    isActive?: boolean;
+    where?: Prisma.UserWhereInput;
+    orderBy?: Prisma.UserOrderByWithRelationInput | Prisma.UserOrderByWithRelationInput[];
     skip?: number;
     take?: number;
   }) {
-    const where = {
-      ...(filters.role ? { role: filters.role } : {}),
-      ...(filters.isActive !== undefined ? { isActive: filters.isActive } : {}),
-      ...(filters.q
-        ? {
-            OR: [
-              { email: { contains: filters.q, mode: "insensitive" as const } },
-              { fullName: { contains: filters.q, mode: "insensitive" as const } },
-            ],
-          }
-        : {}),
-    };
+    const where = filters.where ?? {};
 
     return Promise.all([
       prisma.user.findMany({
         where,
         skip: filters.skip,
         take: filters.take,
-        orderBy: { createdAt: "desc" },
+        orderBy: filters.orderBy ?? { createdAt: "desc" },
         select: {
           id: true,
           email: true,
@@ -153,32 +141,19 @@ export class AdminRepository {
   }
 
   findAppointments(filters: {
-    status?: AppointmentStatus;
-    providerId?: string;
-    from?: Date;
-    to?: Date;
+    where?: Prisma.AppointmentWhereInput;
+    orderBy?: Prisma.AppointmentOrderByWithRelationInput | Prisma.AppointmentOrderByWithRelationInput[];
     skip?: number;
     take?: number;
   }) {
-    const where = {
-      ...(filters.status ? { status: filters.status } : {}),
-      ...(filters.providerId ? { providerId: filters.providerId } : {}),
-      ...(filters.from || filters.to
-        ? {
-            startAt: {
-              ...(filters.from ? { gte: filters.from } : {}),
-              ...(filters.to ? { lte: filters.to } : {}),
-            },
-          }
-        : {}),
-    };
+    const where = filters.where ?? {};
 
     return Promise.all([
       prisma.appointment.findMany({
         where,
         skip: filters.skip,
         take: filters.take,
-        orderBy: { startAt: "desc" },
+        orderBy: filters.orderBy ?? { startAt: "desc" },
         include: {
           provider: { include: { user: { select: { fullName: true } } } },
           providerService: { include: { service: true } },

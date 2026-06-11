@@ -1,6 +1,12 @@
 import { Role, ServiceRequestStatus } from "@prisma/client";
 import { prisma } from "../../config/database.js";
 import { ApiError, parsePagination, paginationMeta } from "../../shared/utils/apiError.js";
+import type { BaseListQuery } from "../../shared/schemas/listQuery.schema.js";
+import {
+  appointmentListConfig,
+  buildListQuery,
+  userListConfig,
+} from "../../shared/utils/queryBuilder.js";
 import { adminRepository } from "./admin.repository.js";
 import type { adminReviewServiceRequestSchema, adminUpdateUserSchema } from "./admin.schema.js";
 import type { z } from "zod";
@@ -11,25 +17,15 @@ type ReviewServiceRequestInput = z.infer<typeof adminReviewServiceRequestSchema>
 export class AdminService {
   private repo = adminRepository;
 
-  async listUsers(query: {
-    q?: string;
-    role?: Role;
-    isActive?: string;
-    page?: string;
-    limit?: string;
-  }) {
-    const { page, limit, skip } = parsePagination(query);
-    const isActive =
-      query.isActive === "true" ? true : query.isActive === "false" ? false : undefined;
-
+  async listUsers(query: BaseListQuery) {
+    const built = buildListQuery(userListConfig, query);
     const [items, total] = await this.repo.findUsers({
-      q: query.q,
-      role: query.role,
-      isActive,
-      skip,
-      take: limit,
+      where: built.where,
+      orderBy: built.orderBy,
+      skip: built.skip,
+      take: built.take,
     });
-    return { items, meta: paginationMeta(page, limit, total) };
+    return { items, meta: paginationMeta(built.page, built.pageSize, total) };
   }
 
   async updateUser(id: string, input: UpdateUserInput) {
@@ -133,27 +129,15 @@ export class AdminService {
     });
   }
 
-  async listAppointments(query: {
-    status?: string;
-    providerId?: string;
-    from?: string;
-    to?: string;
-    page?: string;
-    limit?: string;
-  }) {
-    const { page, limit, skip } = parsePagination(query);
-    const from = query.from ? new Date(query.from) : undefined;
-    const to = query.to ? new Date(query.to) : undefined;
-
+  async listAppointments(query: BaseListQuery) {
+    const built = buildListQuery(appointmentListConfig, query);
     const [items, total] = await this.repo.findAppointments({
-      status: query.status as import("@prisma/client").AppointmentStatus | undefined,
-      providerId: query.providerId,
-      from,
-      to,
-      skip,
-      take: limit,
+      where: built.where,
+      orderBy: built.orderBy,
+      skip: built.skip,
+      take: built.take,
     });
-    return { items, meta: paginationMeta(page, limit, total) };
+    return { items, meta: paginationMeta(built.page, built.pageSize, total) };
   }
 }
 

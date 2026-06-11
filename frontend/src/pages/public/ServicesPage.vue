@@ -4,6 +4,8 @@ import { useRoute, RouterLink } from "vue-router";
 import { apiGet } from "@/services/api";
 import UiCard from "@/components/ui/UiCard.vue";
 import UiInput from "@/components/ui/UiInput.vue";
+import SkeletonCard from "@/components/ui/skeleton/SkeletonCard.vue";
+import ContentFade from "@/components/ui/ContentFade.vue";
 
 interface Service {
   id: string;
@@ -45,8 +47,11 @@ watch([search, categoryId], load);
       <UiInput v-model="categoryId" label="شناسه دسته (اختیاری)" placeholder="categoryId" />
     </div>
 
-    <p v-if="loading" class="text-[var(--color-muted)]">در حال بارگذاری...</p>
-    <div v-else class="grid gap-4 sm:grid-cols-2">
+    <div v-if="loading" class="grid gap-4 sm:grid-cols-2">
+      <SkeletonCard v-for="i in 4" :key="i" />
+    </div>
+    <ContentFade v-else>
+    <div class="grid gap-4 sm:grid-cols-2">
       <UiCard v-for="svc in services" :key="svc.id">
         <h2 class="font-semibold">{{ svc.name }}</h2>
         <p class="mt-1 text-sm text-[var(--color-muted)]">{{ svc.category.name }}</p>
@@ -57,5 +62,6 @@ watch([search, categoryId], load);
         </RouterLink>
       </UiCard>
     </div>
+    </ContentFade>
   </div>
 </template>

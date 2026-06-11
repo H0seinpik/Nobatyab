@@ -1,40 +1,44 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
-import { apiGet } from "@/services/api";
-import { formatJalaliDateTime } from "@/utils/datetime";
-import UiCard from "@/components/ui/UiCard.vue";
+import DataTable from "@/components/ui/data-table/DataTable.vue";
 import AppointmentStatusBadge from "@/components/booking/AppointmentStatusBadge.vue";
+import { formatJalaliDateTime } from "@/utils/datetime";
+import {
+  appointmentsColumns,
+  appointmentsRowActions,
+  type AppointmentRow,
+} from "@/config/tables/appointments.columns";
 
-interface Appointment {
-  id: string;
-  startAt: string;
-  status: string;
-  paymentStatus: string;
-  provider: { user: { fullName: string } };
-  providerService: { service: { name: string } };
+function onRowAction({ action, row }: { action: string; row: Record<string, unknown> }) {
+  const apt = row as unknown as AppointmentRow;
+  if (action === "view") {
+    alert(
+      `${apt.providerService.service.name}\n${apt.provider.user.fullName}\n${formatJalaliDateTime(apt.startAt)}`,
+    );
+  }
 }
-
-const appointments = ref<Appointment[]>([]);
-
-onMounted(async () => {
-  const res = await apiGet<Appointment[]>("/admin/appointments");
-  appointments.value = res.data;
-});
 </script>
 
 <template>
   <div>
     <h1 class="mb-6 text-2xl font-bold">همه نوبت‌ها</h1>
-    <div class="space-y-3">
-      <UiCard v-for="apt in appointments" :key="apt.id">
-        <p class="font-semibold">{{ apt.providerService.service.name }}</p>
-        <p class="text-sm">{{ apt.provider.user.fullName }}</p>
-        <p class="text-sm text-[var(--color-muted)]">{{ formatJalaliDateTime(apt.startAt) }}</p>
-        <div class="mt-2 flex gap-2">
-          <AppointmentStatusBadge :status="apt.status" />
-          <AppointmentStatusBadge :status="apt.paymentStatus" />
-        </div>
-      </UiCard>
-    </div>
+    <DataTable
+      endpoint="/admin/appointments"
+      :columns="appointmentsColumns"
+      :row-actions="appointmentsRowActions"
+      searchable
+      advanced-filters
+      default-sort="startAt:desc"
+      @row-action="onRowAction"
+    >
+      <template #cell-startAt="{ row }">
+        {{ formatJalaliDateTime(String(row.startAt)) }}
+      </template>
+      <template #cell-status="{ row }">
+        <AppointmentStatusBadge :status="String(row.status)" />
+      </template>
+      <template #cell-paymentStatus="{ row }">
+        <AppointmentStatusBadge :status="String(row.paymentStatus)" />
+      </template>
+    </DataTable>
   </div>
 </template>

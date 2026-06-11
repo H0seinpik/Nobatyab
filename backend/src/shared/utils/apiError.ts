@@ -38,15 +38,28 @@ export function successResponse<T>(data: T, meta?: Record<string, unknown>) {
   return { success: true as const, data, ...(meta ? { meta } : {}) };
 }
 
-export function parsePagination(query: { page?: string; limit?: string }) {
+export function parsePagination(query: {
+  page?: string | number;
+  limit?: string | number;
+  pageSize?: string | number;
+}) {
   const page = Math.max(1, Number(query.page) || 1);
-  const limit = Math.min(100, Math.max(1, Number(query.limit) || 20));
+  const limit = Math.min(
+    100,
+    Math.max(1, Number(query.pageSize ?? query.limit) || 20),
+  );
   const skip = (page - 1) * limit;
-  return { page, limit, skip };
+  return { page, limit, pageSize: limit, skip };
 }
 
-export function paginationMeta(page: number, limit: number, total: number) {
-  return { page, limit, total, totalPages: Math.ceil(total / limit) || 1 };
+export function paginationMeta(page: number, pageSize: number, total: number) {
+  return {
+    page,
+    pageSize,
+    limit: pageSize,
+    total,
+    totalPages: Math.ceil(total / pageSize) || 1,
+  };
 }
 
 export function getParam(value: string | string[]): string {

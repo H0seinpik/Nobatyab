@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
-import { apiGet, apiPost, setTokens } from "@/services/api";
+import { apiGet, apiPost, apiPatch, setTokens } from "@/services/api";
 
 export type UserRole = "USER" | "PROVIDER" | "ADMIN";
 
@@ -23,7 +23,7 @@ export const useAuthStore = defineStore("auth", () => {
 
   async function fetchMe() {
     try {
-      const res = await apiGet<User>("/auth/me");
+      const res = await apiGet<User>("/auth/me", undefined, { skipGlobalLoading: true });
       user.value = res.data;
     } catch {
       user.value = null;
@@ -77,10 +77,34 @@ export const useAuthStore = defineStore("auth", () => {
     try {
       await apiPost("/auth/logout", { refreshToken: localStorage.getItem("refreshToken") });
     } catch {
-      // ignore
+      // ignore — still clear local session
     }
     setTokens(null, null);
     user.value = null;
+    error.value = null;
+    loading.value = false;
+  }
+
+  async function updateProfile(data: { fullName?: string; email?: string }) {
+    error.value = null;
+    try {
+      const res = await apiPatch<User>("/auth/me", data);
+      user.value = res.data;
+      return res.data;
+    } catch {
+      error.value = "به‌روزرسانی پروفایل ناموفق بود";
+      throw new Error("update profile failed");
+    }
+  }
+
+  async function changePassword(currentPassword: string, newPassword: string) {
+    error.value = null;
+    try {
+      await apiPatch("/auth/password", { currentPassword, newPassword });
+    } catch {
+      error.value = "رمز عبور فعلی اشتباه است یا تغییر رمز ناموفق بود";
+      throw new Error("change password failed");
+    }
   }
 
   async function forgotPassword(email: string) {
@@ -102,5 +126,7 @@ export const useAuthStore = defineStore("auth", () => {
     logout,
     forgotPassword,
     resetPassword,
+    updateProfile,
+    changePassword,
   };
 });

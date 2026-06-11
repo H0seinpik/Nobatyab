@@ -7,8 +7,8 @@ type QueryRequest = AuthRequest & { validatedQuery?: Record<string, string | und
 
 export class AdminController {
   listUsers = async (req: QueryRequest, res: Response) => {
-    const q = req.validatedQuery ?? req.query;
-    const result = await adminService.listUsers(q as Record<string, string | undefined> & { role?: import("@prisma/client").Role });
+    const q = (req as QueryRequest & { validatedQuery: import("../../shared/schemas/listQuery.schema.js").BaseListQuery }).validatedQuery;
+    const result = await adminService.listUsers(q);
     res.json(successResponse(result.items, result.meta));
   };
 
@@ -29,8 +29,8 @@ export class AdminController {
   };
 
   listAppointments = async (req: QueryRequest, res: Response) => {
-    const q = req.validatedQuery ?? req.query;
-    const result = await adminService.listAppointments(q as Record<string, string | undefined>);
+    const q = (req as QueryRequest & { validatedQuery: import("../../shared/schemas/listQuery.schema.js").BaseListQuery }).validatedQuery;
+    const result = await adminService.listAppointments(q);
     res.json(successResponse(result.items, result.meta));
   };
 }

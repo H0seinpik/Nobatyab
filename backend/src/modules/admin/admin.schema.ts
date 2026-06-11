@@ -1,13 +1,8 @@
 import { z } from "zod";
 import { Role, ServiceRequestStatus } from "@prisma/client";
+import { baseListQuerySchema } from "../../shared/schemas/listQuery.schema.js";
 
-export const adminUserQuerySchema = z.object({
-  q: z.string().optional(),
-  role: z.nativeEnum(Role).optional(),
-  isActive: z.enum(["true", "false"]).optional(),
-  page: z.string().optional(),
-  limit: z.string().optional(),
-});
+export const adminUserQuerySchema = baseListQuerySchema;
 
 export const adminUserIdSchema = z.object({ id: z.string().cuid() });
 
@@ -35,11 +30,4 @@ export const adminReviewServiceRequestSchema = z
     // categoryId validation happens in service when serviceId is absent on request
   });
 
-export const adminAppointmentQuerySchema = z.object({
-  status: z.string().optional(),
-  providerId: z.string().cuid().optional(),
-  from: z.string().optional(),
-  to: z.string().optional(),
-  page: z.string().optional(),
-  limit: z.string().optional(),
-});
+export const adminAppointmentQuerySchema = baseListQuerySchema;

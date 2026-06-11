@@ -5,6 +5,8 @@ import { formatJalaliDateTime } from "@/utils/datetime";
 import UiCard from "@/components/ui/UiCard.vue";
 import UiButton from "@/components/ui/UiButton.vue";
 import AppointmentStatusBadge from "@/components/booking/AppointmentStatusBadge.vue";
+import SkeletonTable from "@/components/ui/skeleton/SkeletonTable.vue";
+import ContentFade from "@/components/ui/ContentFade.vue";
 
 interface Appointment {
   id: string;
@@ -44,8 +46,9 @@ onMounted(load);
 <template>
   <div>
     <h1 class="mb-6 text-2xl font-bold">نوبت‌ها</h1>
-    <p v-if="loading" class="text-[var(--color-muted)]">در حال بارگذاری...</p>
-    <div v-else class="space-y-4">
+    <SkeletonTable v-if="loading" :columns="4" :rows="6" :show-actions="true" />
+    <ContentFade v-else>
+    <div class="space-y-4">
       <UiCard v-for="apt in appointments" :key="apt.id">
         <div class="flex flex-wrap items-center justify-between gap-4">
           <div>
@@ -61,5 +64,6 @@ onMounted(load);
         </div>
       </UiCard>
     </div>
+    </ContentFade>
   </div>
 </template>

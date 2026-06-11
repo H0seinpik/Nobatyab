@@ -31,6 +31,16 @@ export class AuthController {
     res.json(successResponse(user));
   };
 
+  updateProfile = async (req: AuthRequest, res: Response) => {
+    const user = await authService.updateProfile(req.user!.sub, req.body);
+    res.json(successResponse(user));
+  };
+
+  changePassword = async (req: AuthRequest, res: Response) => {
+    const result = await authService.changePassword(req.user!.sub, req.body);
+    res.json(successResponse(result));
+  };
+
   forgotPassword = async (req: AuthRequest, res: Response) => {
     const result = await authService.forgotPassword(req.body.email);
     res.json(successResponse(result));

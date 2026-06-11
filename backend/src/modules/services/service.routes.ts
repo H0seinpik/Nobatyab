@@ -5,6 +5,7 @@ import {
   createServiceSchema,
   updateServiceSchema,
   serviceQuerySchema,
+  adminServiceListQuerySchema,
   serviceIdSchema,
 } from "./service.schema.js";
 import { validateBody, validateParams, validateQuery, asyncHandler } from "../../shared/middlewares/errorHandler.js";
@@ -16,7 +17,7 @@ serviceRoutes.get("/:id", validateParams(serviceIdSchema), asyncHandler(serviceC
 
 export const adminServiceRoutes = Router();
 adminServiceRoutes.use(requireAuth, requireRole(Role.ADMIN));
-adminServiceRoutes.get("/", validateQuery(serviceQuerySchema), asyncHandler(serviceController.listAdmin));
+adminServiceRoutes.get("/", validateQuery(adminServiceListQuerySchema), asyncHandler(serviceController.listAdmin));
 adminServiceRoutes.post("/", validateBody(createServiceSchema), asyncHandler(serviceController.create));
 adminServiceRoutes.patch("/:id", validateParams(serviceIdSchema), validateBody(updateServiceSchema), asyncHandler(serviceController.update));
 adminServiceRoutes.delete("/:id", validateParams(serviceIdSchema), asyncHandler(serviceController.remove));

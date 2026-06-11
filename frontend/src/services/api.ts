@@ -1,6 +1,8 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from "axios";
+import { useLoadingStore } from "@/stores/loading";
 
 const API_URL = import.meta.env.VITE_API_URL || "/api/v1";
+const SKIP_LOADING_HEADER = "X-Skip-Global-Loading";
 
 export const api = axios.create({
   baseURL: API_URL,
@@ -27,14 +29,27 @@ api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   if (accessToken) {
     config.headers.Authorization = `Bearer ${accessToken}`;
   }
+  if (config.headers[SKIP_LOADING_HEADER] !== "true") {
+    useLoadingStore().start();
+  }
   return config;
 });
 
 let refreshPromise: Promise<string | null> | null = null;
 
+function stopGlobalLoading(config?: InternalAxiosRequestConfig) {
+  if (config?.headers?.[SKIP_LOADING_HEADER] !== "true") {
+    useLoadingStore().stop();
+  }
+}
+
 api.interceptors.response.use(
-  (res) => res,
+  (res) => {
+    stopGlobalLoading(res.config);
+    return res;
+  },
   async (error: AxiosError) => {
+    stopGlobalLoading(error.config);
     const original = error.config;
     if (!original || error.response?.status !== 401 || original.url?.includes("/auth/refresh")) {
       return Promise.reject(error);
@@ -73,8 +88,15 @@ export interface ApiResponse<T> {
   meta?: Record<string, unknown>;
 }
 
-export async function apiGet<T>(url: string, params?: Record<string, unknown>) {
-  const res = await api.get<ApiResponse<T>>(url, { params });
+export async function apiGet<T>(
+  url: string,
+  params?: Record<string, unknown>,
+  options?: { skipGlobalLoading?: boolean },
+) {
+  const res = await api.get<ApiResponse<T>>(url, {
+    params,
+    headers: options?.skipGlobalLoading ? { [SKIP_LOADING_HEADER]: "true" } : undefined,
+  });
   return res.data;
 }
 
