@@ -2,10 +2,11 @@ import { Router } from "express";
 import { z } from "zod";
 import { publicProviderController } from "./provider.controller.js";
 import { validateParams, validateQuery, asyncHandler } from "../../shared/middlewares/errorHandler.js";
+import { idSchema } from "../../shared/schemas/id.schema.js";
 
 const providerQuerySchema = z.object({
-  serviceId: z.string().cuid().optional(),
-  categoryId: z.string().cuid().optional(),
+  serviceId: idSchema.optional(),
+  categoryId: idSchema.optional(),
   q: z.string().optional(),
   page: z.string().optional(),
   limit: z.string().optional(),

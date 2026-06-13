@@ -10,5 +10,10 @@
     "db:seed": "npm run seed --prefix backend",
     "setup:db": "npm run db:migrate --prefix backend && npm run seed --prefix backend",
     "smoke": "npm run smoke --prefix backend"
+  },
+  "dependencies": {
+    "@prisma/client": "^7.8.0",
+    "dotenv": "^17.4.2",
+    "prisma": "^7.8.0"
   }
 }

@@ -44,14 +44,41 @@ export class ProviderRepository {
 
   replaceWorkingHours(
     providerId: string,
-    hours: { dayOfWeek: number; startTime: string; endTime: string }[],
+    hours: { dayOfWeek: number; startTime: string; endTime: string; isActive?: boolean }[],
   ) {
     return prisma.$transaction([
       prisma.workingHours.deleteMany({ where: { providerId } }),
       prisma.workingHours.createMany({
-        data: hours.map((h) => ({ ...h, providerId })),
+        data: hours.map((h) => ({
+          ...h,
+          providerId,
+          isActive: h.isActive ?? true,
+        })),
       }),
     ]);
+  }
+
+  findWorkingHourById(providerId: string, hourId: string) {
+    return prisma.workingHours.findFirst({
+      where: { id: hourId, providerId },
+    });
+  }
+
+  updateWorkingHour(
+    providerId: string,
+    hourId: string,
+    data: { isActive?: boolean },
+  ) {
+    return prisma.workingHours.updateMany({
+      where: { id: hourId, providerId },
+      data,
+    });
+  }
+
+  deleteWorkingHour(providerId: string, hourId: string) {
+    return prisma.workingHours.deleteMany({
+      where: { id: hourId, providerId },
+    });
   }
 
   findCancellationPolicy(providerId: string) {

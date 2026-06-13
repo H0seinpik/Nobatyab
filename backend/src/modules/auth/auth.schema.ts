@@ -33,7 +33,7 @@ export const updateProfileSchema = z.object({
 
 export const changePasswordSchema = z.object({
   currentPassword: z.string().min(1),
-  newPassword: z.string().min(8),
+  newPassword: z.string().min(6),
 });
 
 export type RegisterInput = z.infer<typeof registerSchema>;

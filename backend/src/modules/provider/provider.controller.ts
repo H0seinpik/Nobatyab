@@ -22,6 +22,20 @@ export class ProviderController {
     res.json(successResponse(await providerService.replaceWorkingHours(req.user!.sub, req.body)));
   };
 
+  deleteWorkingHour = async (req: AuthRequest, res: Response) => {
+    const hours = await providerService.deleteWorkingHour(req.user!.sub, getParam(req.params.id));
+    res.json(successResponse(hours));
+  };
+
+  toggleWorkingDay = async (req: AuthRequest, res: Response) => {
+    const hours = await providerService.toggleWorkingDay(
+      req.user!.sub,
+      getParam(req.params.id),
+      req.body.isActive,
+    );
+    res.json(successResponse(hours));
+  };
+
   getCancellationPolicy = async (req: AuthRequest, res: Response) => {
     res.json(successResponse(await providerService.getCancellationPolicy(req.user!.sub)));
   };

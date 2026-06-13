@@ -1,4 +1,4 @@
-import { Role, ServiceRequestStatus } from "@prisma/client";
+import { Role, ServiceRequestStatus, ProviderRequestStatus } from "@prisma/client";
 import { prisma } from "../../config/database.js";
 import { ApiError, parsePagination, paginationMeta } from "../../shared/utils/apiError.js";
 import type { BaseListQuery } from "../../shared/schemas/listQuery.schema.js";
@@ -7,6 +7,7 @@ import {
   buildListQuery,
   userListConfig,
 } from "../../shared/utils/queryBuilder.js";
+import { providerRequestService } from "../provider-request/provider-request.service.js";
 import { adminRepository } from "./admin.repository.js";
 import type { adminReviewServiceRequestSchema, adminUpdateUserSchema } from "./admin.schema.js";
 import type { z } from "zod";
@@ -51,6 +52,14 @@ export class AdminService {
       take: limit,
     });
     return { items, meta: paginationMeta(page, limit, total) };
+  }
+
+  async listProviderRequests(query: {
+    status?: ProviderRequestStatus;
+    page?: string;
+    limit?: string;
+  }) {
+    return providerRequestService.listForAdmin(query);
   }
 
   async reviewServiceRequest(id: string, input: ReviewServiceRequestInput) {

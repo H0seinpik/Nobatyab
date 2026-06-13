@@ -1,19 +1,32 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
-import { apiGet, apiPut } from "@/services/api";
+import { apiGet, apiPut, apiDelete, apiPatch } from "@/services/api";
 import { useZodForm } from "@/composables/useZodForm";
 import { workingHoursFormSchema, cancellationPolicyFormSchema } from "@/schemas/provider.schema";
 import UiCard from "@/components/ui/UiCard.vue";
 import UiButton from "@/components/ui/UiButton.vue";
 import UiInput from "@/components/ui/UiInput.vue";
+import UiAlert from "@/components/ui/UiAlert.vue";
+import UiSwitch from "@/components/ui/UiSwitch.vue";
 import SkeletonForm from "@/components/ui/skeleton/SkeletonForm.vue";
 import ContentFade from "@/components/ui/ContentFade.vue";
+
+type WorkingHourRow = {
+  id?: string;
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+  isActive?: boolean;
+};
 
 const dayNames = ["یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبه", "جمعه", "شنبه"];
 
 const pageLoading = ref(true);
 const hoursMessage = ref("");
+const hoursError = ref("");
 const policyMessage = ref("");
+const deletingIds = ref(new Set<string>());
+const togglingIds = ref(new Set<string>());
 
 const {
   values: hoursValues,
@@ -22,7 +35,7 @@ const {
   submitting: hoursSubmitting,
   handleSubmit: handleHoursSubmit,
 } = useZodForm(workingHoursFormSchema, {
-  hours: [{ dayOfWeek: 0, startTime: "09:00", endTime: "17:00" }],
+  hours: [{ dayOfWeek: 0, startTime: "09:00", endTime: "17:00", isActive: true }],
 });
 
 const {
@@ -39,9 +52,13 @@ const {
 
 onMounted(async () => {
   try {
-    const wh = await apiGet<typeof hoursValues.hours>("/provider/working-hours");
-    hoursValues.hours = wh.data.length ? wh.data : [{ dayOfWeek: 0, startTime: "09:00", endTime: "17:00" }];
-    const cp = await apiGet<{ minHoursBefore: number; description: string | null }>("/provider/cancellation-policy");
+    const wh = await apiGet<WorkingHourRow[]>("/provider/working-hours");
+    hoursValues.hours = wh.data.length
+      ? wh.data.map((row) => ({ ...row, isActive: row.isActive ?? true }))
+      : [{ dayOfWeek: 0, startTime: "09:00", endTime: "17:00", isActive: true }];
+    const cp = await apiGet<{ minHoursBefore: number; description: string | null }>(
+      "/provider/cancellation-policy",
+    );
     policyValues.minHoursBefore = cp.data.minHoursBefore;
     policyValues.description = cp.data.description ?? "";
   } finally {
@@ -50,12 +67,71 @@ onMounted(async () => {
 });
 
 function addRow() {
-  hoursValues.hours.push({ dayOfWeek: 0, startTime: "09:00", endTime: "17:00" });
+  hoursValues.hours.push({ dayOfWeek: 0, startTime: "09:00", endTime: "17:00", isActive: true });
+}
+
+async function removeRow(index: number) {
+  const row = hoursValues.hours[index] as WorkingHourRow;
+  if (!row) return;
+
+  hoursMessage.value = "";
+  hoursError.value = "";
+
+  if (row.id) {
+    if (deletingIds.value.has(row.id)) return;
+    deletingIds.value.add(row.id);
+    try {
+      const res = await apiDelete<WorkingHourRow[]>("/provider/working-day/" + row.id);
+      hoursValues.hours = res.data.map((r) => ({ ...r, isActive: r.isActive ?? true }));
+    } catch {
+      hoursError.value = "خطا در حذف روز کاری";
+    } finally {
+      deletingIds.value.delete(row.id);
+    }
+    return;
+  }
+
+  hoursValues.hours.splice(index, 1);
+}
+
+async function toggleActive(index: number, isActive: boolean) {
+  const row = hoursValues.hours[index] as WorkingHourRow;
+  if (!row?.id) {
+    row.isActive = isActive;
+    return;
+  }
+
+  if (togglingIds.value.has(row.id)) return;
+
+  hoursError.value = "";
+  togglingIds.value.add(row.id);
+  const previous = row.isActive ?? true;
+  row.isActive = isActive;
+
+  try {
+    const res = await apiPatch<WorkingHourRow[]>("/provider/working-day/" + row.id, { isActive });
+    hoursValues.hours = res.data.map((r) => ({ ...r, isActive: r.isActive ?? true }));
+    hoursMessage.value = isActive ? "روز کاری فعال شد" : "روز کاری غیرفعال شد";
+  } catch {
+    row.isActive = previous;
+    hoursError.value = "خطا در تغییر وضعیت روز کاری";
+  } finally {
+    togglingIds.value.delete(row.id);
+  }
 }
 
 async function saveHours() {
+  hoursError.value = "";
   await handleHoursSubmit(async (data) => {
-    await apiPut("/provider/working-hours", data);
+    const res = await apiPut<WorkingHourRow[]>("/provider/working-hours", {
+      hours: data.hours.map((h) => ({
+        dayOfWeek: h.dayOfWeek,
+        startTime: h.startTime,
+        endTime: h.endTime,
+        isActive: h.isActive ?? true,
+      })),
+    });
+    hoursValues.hours = res.data.map((r) => ({ ...r, isActive: r.isActive ?? true }));
     hoursMessage.value = "برنامه ذخیره شد";
   });
 }
@@ -78,13 +154,53 @@ async function savePolicy() {
       <h1 class="mb-4 text-2xl font-bold">برنامه کاری</h1>
       <UiCard class="space-y-4">
         <form @submit.prevent="saveHours">
-          <div v-for="(h, i) in hoursValues.hours" :key="i" class="mb-3 grid grid-cols-4 gap-2">
-            <select v-model.number="h.dayOfWeek" class="form-control">
+          <p
+            v-if="!hoursValues.hours.length"
+            class="mb-4 text-sm text-[var(--color-muted)]"
+          >
+            بازه کاری تعریف نشده است. با «افزودن بازه» شروع کنید.
+          </p>
+
+          <div
+            v-for="(h, i) in hoursValues.hours"
+            :key="h.id ?? `new-${i}`"
+            class="mb-3 grid grid-cols-[auto_1fr_1fr_1fr_auto] items-center gap-2 rounded-lg border border-[var(--color-border)] p-3"
+            :class="h.isActive === false ? 'opacity-60' : ''"
+          >
+            <UiSwitch
+              :model-value="h.isActive !== false"
+              label="فعال"
+              :disabled="h.id ? togglingIds.has(h.id) || deletingIds.has(h.id) : false"
+              @update:model-value="toggleActive(i, $event)"
+            />
+            <select
+              v-model.number="h.dayOfWeek"
+              class="form-control"
+              :disabled="h.id ? deletingIds.has(h.id) || togglingIds.has(h.id) : false"
+            >
               <option v-for="(name, d) in dayNames" :key="d" :value="d">{{ name }}</option>
             </select>
-            <UiInput v-model="h.startTime" placeholder="09:00" />
-            <UiInput v-model="h.endTime" placeholder="17:00" />
+            <UiInput
+              v-model="h.startTime"
+              placeholder="09:00"
+              :disabled="h.id ? deletingIds.has(h.id) || togglingIds.has(h.id) : false"
+            />
+            <UiInput
+              v-model="h.endTime"
+              placeholder="17:00"
+              :disabled="h.id ? deletingIds.has(h.id) || togglingIds.has(h.id) : false"
+            />
+            <UiButton
+              type="button"
+              variant="ghost"
+              :disabled="h.id ? deletingIds.has(h.id) || togglingIds.has(h.id) : false"
+              @click="removeRow(i)"
+            >
+              حذف
+            </UiButton>
           </div>
+
+          <UiAlert v-if="hoursError" variant="error" class="mb-2">{{ hoursError }}</UiAlert>
           <p v-if="hoursFieldError('hours')" class="mb-2 text-xs text-red-600">
             {{ hoursFieldError("hours") }}
           </p>

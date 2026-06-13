@@ -1,5 +1,6 @@
 import { AppointmentStatus } from "@prisma/client";
 import { prisma } from "../../config/database.js";
+import { getActiveHoursForDay } from "../provider/workingHours.helpers.js";
 import {
   formatLocalDate,
   getLocalDayOfWeek,
@@ -44,7 +45,7 @@ export class SlotService {
 
     const referenceDate = localToUtc(input.date, "12:00");
     const dayOfWeek = getLocalDayOfWeek(referenceDate);
-    const dayHours = provider.workingHours.filter((h) => h.dayOfWeek === dayOfWeek);
+    const dayHours = getActiveHoursForDay(provider.workingHours, dayOfWeek);
 
     if (dayHours.length === 0) return [];
 

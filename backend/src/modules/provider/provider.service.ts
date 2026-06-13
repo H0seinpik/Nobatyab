@@ -1,6 +1,7 @@
 import { AppointmentStatus, ServiceRequestStatus } from "@prisma/client";
 import { ApiError, parsePagination, paginationMeta } from "../../shared/utils/apiError.js";
 import { timeToMinutes } from "../../shared/utils/datetime.js";
+import { timeSlotSyncService } from "../smart-booking/timeSlotSync.service.js";
 import { providerRepository } from "./provider.repository.js";
 import type {
   createServiceRequestSchema,
@@ -50,6 +51,27 @@ export class ProviderService {
     }
 
     await this.repo.replaceWorkingHours(providerId, input.hours);
+    await timeSlotSyncService.syncProvider(providerId);
+    return this.repo.findWorkingHours(providerId);
+  }
+
+  async deleteWorkingHour(userId: string, hourId: string) {
+    const providerId = await this.getProviderProfileId(userId);
+    const existing = await this.repo.findWorkingHourById(providerId, hourId);
+    if (!existing) throw ApiError.notFound("Working day not found");
+
+    await this.repo.deleteWorkingHour(providerId, hourId);
+    await timeSlotSyncService.syncProvider(providerId);
+    return this.repo.findWorkingHours(providerId);
+  }
+
+  async toggleWorkingDay(userId: string, hourId: string, isActive: boolean) {
+    const providerId = await this.getProviderProfileId(userId);
+    const existing = await this.repo.findWorkingHourById(providerId, hourId);
+    if (!existing) throw ApiError.notFound("Working day not found");
+
+    await this.repo.updateWorkingHour(providerId, hourId, { isActive });
+    await timeSlotSyncService.syncProvider(providerId);
     return this.repo.findWorkingHours(providerId);
   }
 

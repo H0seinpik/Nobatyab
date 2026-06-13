@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { Role, ServiceRequestStatus } from "@prisma/client";
+import { Role, ServiceRequestStatus, ProviderRequestStatus } from "@prisma/client";
 import { baseListQuerySchema } from "../../shared/schemas/listQuery.schema.js";
 
 export const adminUserQuerySchema = baseListQuerySchema;
@@ -29,3 +29,7 @@ export const adminReviewServiceRequestSchema = z
   });
 
 export const adminAppointmentQuerySchema = baseListQuerySchema;
+
+export const adminProviderRequestQuerySchema = baseListQuerySchema.extend({
+  status: z.nativeEnum(ProviderRequestStatus).optional(),
+});

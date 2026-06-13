@@ -7,8 +7,10 @@ import {
   providerAppointmentQuerySchema,
   replaceWorkingHoursSchema,
   serviceRequestQuerySchema,
+  toggleWorkingDaySchema,
   updateCancellationPolicySchema,
   updateProviderProfileSchema,
+  workingHoursIdSchema,
 } from "./provider.schema.js";
 import {
   validateBody,
@@ -34,6 +36,28 @@ providerDashboardRoutes.put(
   "/working-hours",
   validateBody(replaceWorkingHoursSchema),
   asyncHandler(providerController.replaceWorkingHours),
+);
+providerDashboardRoutes.delete(
+  "/working-hours/:id",
+  validateParams(workingHoursIdSchema),
+  asyncHandler(providerController.deleteWorkingHour),
+);
+providerDashboardRoutes.patch(
+  "/working-day/:id",
+  validateParams(workingHoursIdSchema),
+  validateBody(toggleWorkingDaySchema),
+  asyncHandler(providerController.toggleWorkingDay),
+);
+providerDashboardRoutes.delete(
+  "/working-day/:id",
+  validateParams(workingHoursIdSchema),
+  asyncHandler(providerController.deleteWorkingHour),
+);
+/** Alias for provider availability slot deletion */
+providerDashboardRoutes.delete(
+  "/availability/:id",
+  validateParams(workingHoursIdSchema),
+  asyncHandler(providerController.deleteWorkingHour),
 );
 
 providerDashboardRoutes.get(

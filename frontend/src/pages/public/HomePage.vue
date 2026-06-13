@@ -6,6 +6,7 @@ import { useSettingsStore } from "@/stores/settings";
 import UiCard from "@/components/ui/UiCard.vue";
 import SkeletonCard from "@/components/ui/skeleton/SkeletonCard.vue";
 import ContentFade from "@/components/ui/ContentFade.vue";
+import SmartBookingButton from "@/components/smart-booking/SmartBookingButton.vue";
 
 interface Category {
   id: string;
@@ -39,7 +40,13 @@ onMounted(async () => {
   <div>
     <section class="mb-10 text-center">
       <h1 class="mb-3 text-3xl font-bold">{{ siteTitle }}</h1>
-      <p class="text-[var(--color-muted)]">{{ siteDescription }}</p>
+      <p class="mb-2 text-[var(--color-muted)]">{{ siteDescription }}</p>
+      <p class="mb-6 text-sm text-[var(--color-muted)]">
+        با رزرو هوشمند، بهترین زمان را بر اساس دسترسی شما پیدا کنید
+      </p>
+      <div class="flex justify-center">
+        <SmartBookingButton size="large" />
+      </div>
     </section>
 
     <div v-if="loading" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

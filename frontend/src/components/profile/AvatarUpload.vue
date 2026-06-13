@@ -5,6 +5,10 @@ import { resolveUploadUrl } from "@/utils/uploadUrl";
 import UiButton from "@/components/ui/UiButton.vue";
 import UiAlert from "@/components/ui/UiAlert.vue";
 
+const emit = defineEmits<{
+  uploaded: [avatarUrl: string | null];
+}>();
+
 const MAX_SIZE_BYTES = 2 * 1024 * 1024;
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
@@ -69,10 +73,11 @@ async function upload() {
   success.value = "";
   uploading.value = true;
   try {
-    await auth.uploadAvatar(selectedFile.value);
+    const user = await auth.uploadAvatar(selectedFile.value);
     success.value = "تصویر پروفایل با موفقیت ذخیره شد";
     selectedFile.value = null;
     revokePreview();
+    emit("uploaded", user.avatarUrl);
   } catch {
     error.value = auth.error ?? "آپلود تصویر ناموفق بود";
   } finally {

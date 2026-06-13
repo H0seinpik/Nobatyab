@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
+import { RouterLink } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import { useLogout } from "@/composables/useLogout";
 import { useZodForm } from "@/composables/useZodForm";
@@ -12,6 +13,11 @@ import SkeletonForm from "@/components/ui/skeleton/SkeletonForm.vue";
 import ContentFade from "@/components/ui/ContentFade.vue";
 import AvatarUpload from "@/components/profile/AvatarUpload.vue";
 import ThemeSettings from "@/components/profile/ThemeSettings.vue";
+import {
+  getMyProviderRequest,
+  submitProviderRequest,
+  type ProviderRequest,
+} from "@/services/providerRequest.service";
 
 const auth = useAuthStore();
 const logout = useLogout();
@@ -21,6 +27,13 @@ const profileSuccess = ref("");
 const profileError = ref("");
 const passwordSuccess = ref("");
 const passwordError = ref("");
+
+const providerRequest = ref<ProviderRequest | null>(null);
+const providerRequestNote = ref("");
+const providerRequestLoading = ref(false);
+const providerRequestSubmitting = ref(false);
+const providerRequestSuccess = ref("");
+const providerRequestError = ref("");
 
 const {
   values: profileValues,
@@ -53,10 +66,44 @@ onMounted(async () => {
       profileValues.email = auth.user.email;
       profileValues.phone = auth.user.phone ?? "";
     }
+    if (auth.user?.role === "USER") {
+      providerRequestLoading.value = true;
+      try {
+        providerRequest.value = await getMyProviderRequest();
+      } finally {
+        providerRequestLoading.value = false;
+      }
+    }
   } finally {
     pageLoading.value = false;
   }
 });
+
+async function submitProviderApplication() {
+  providerRequestSuccess.value = "";
+  providerRequestError.value = "";
+  if (providerRequestSubmitting.value) return;
+
+  providerRequestSubmitting.value = true;
+  try {
+    providerRequest.value = await submitProviderRequest(providerRequestNote.value.trim() || undefined);
+    providerRequestNote.value = "";
+    providerRequestSuccess.value = "درخواست شما با موفقیت ثبت شد و در انتظار بررسی است.";
+  } catch (e: unknown) {
+    const msg =
+      (e as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error
+        ?.message ?? "";
+    if (msg.toLowerCase().includes("pending")) {
+      providerRequestError.value = "شما قبلاً یک درخواست در انتظار دارید.";
+    } else if (msg.toLowerCase().includes("already a provider")) {
+      providerRequestError.value = "شما در حال حاضر ارائه‌دهنده هستید.";
+    } else {
+      providerRequestError.value = "ارسال درخواست ناموفق بود. لطفاً دوباره تلاش کنید.";
+    }
+  } finally {
+    providerRequestSubmitting.value = false;
+  }
+}
 
 async function saveProfile() {
   profileSuccess.value = "";
@@ -147,6 +194,61 @@ async function changePassword() {
             ذخیره تغییرات
           </UiButton>
         </form>
+      </UiCard>
+
+      <UiCard v-if="auth.user?.role === 'USER'">
+        <h2 class="mb-2 font-semibold">درخواست ارائه‌دهنده شدن</h2>
+        <p class="mb-4 text-sm text-[var(--color-muted)]">
+          اگر می‌خواهید خدمات خود را در پلتفرم ارائه دهید، درخواست خود را ارسال کنید.
+        </p>
+
+        <div v-if="providerRequestLoading" class="text-sm text-[var(--color-muted)]">
+          در حال بارگذاری وضعیت درخواست...
+        </div>
+
+        <template v-else-if="providerRequest?.status === 'PENDING'">
+          <UiAlert variant="info">
+            درخواست شما در انتظار بررسی است ({{ providerRequest.status }}).
+          </UiAlert>
+        </template>
+
+        <template v-else-if="providerRequest?.status === 'APPROVED'">
+          <UiAlert variant="success">درخواست شما تأیید شده است.</UiAlert>
+        </template>
+
+        <template v-else-if="providerRequest?.status === 'REJECTED'">
+          <UiAlert variant="error" class="mb-4">
+            درخواست قبلی رد شده است.
+            <span v-if="providerRequest.adminNote"> — {{ providerRequest.adminNote }}</span>
+          </UiAlert>
+          <form class="space-y-3" @submit.prevent="submitProviderApplication">
+            <UiInput v-model="providerRequestNote" label="توضیحات (اختیاری)" />
+            <UiButton type="submit" :loading="providerRequestSubmitting" :disabled="providerRequestSubmitting">
+              ارسال درخواست جدید
+            </UiButton>
+          </form>
+        </template>
+
+        <template v-else>
+          <form class="space-y-3" @submit.prevent="submitProviderApplication">
+            <UiInput v-model="providerRequestNote" label="توضیحات (اختیاری)" />
+            <UiAlert v-if="providerRequestSuccess" variant="success">{{ providerRequestSuccess }}</UiAlert>
+            <UiAlert v-if="providerRequestError" variant="error">{{ providerRequestError }}</UiAlert>
+            <UiButton type="submit" :loading="providerRequestSubmitting" :disabled="providerRequestSubmitting">
+              ارسال درخواست
+            </UiButton>
+          </form>
+        </template>
+      </UiCard>
+
+      <UiCard v-if="auth.user?.role === 'USER'">
+        <h2 class="mb-2 font-semibold">رزرو هوشمند</h2>
+        <p class="mb-4 text-sm text-[var(--color-muted)]">
+          زمان‌های آزاد هفتگی خود را برای پیشنهاد خودکار نوبت تنظیم کنید.
+        </p>
+        <RouterLink to="/availability">
+          <UiButton variant="secondary" type="button">تنظیم زمان‌های آزاد</UiButton>
+        </RouterLink>
       </UiCard>
 
       <UiCard>

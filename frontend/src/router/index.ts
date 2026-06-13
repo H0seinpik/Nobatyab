@@ -17,6 +17,12 @@ const router = createRouter({
           component: () => import("@/pages/public/ProviderDetailPage.vue"),
         },
         {
+          path: "dashboard",
+          name: "user-dashboard",
+          component: () => import("@/pages/user/UserDashboardPage.vue"),
+          meta: { requiresAuth: true },
+        },
+        {
           path: "appointments",
           name: "my-appointments",
           component: () => import("@/pages/user/MyAppointmentsPage.vue"),
@@ -27,6 +33,18 @@ const router = createRouter({
           name: "profile",
           component: () => import("@/pages/user/ProfilePage.vue"),
           meta: { requiresAuth: true },
+        },
+        {
+          path: "availability",
+          name: "availability",
+          component: () => import("@/pages/user/AvailabilityPage.vue"),
+          meta: { requiresAuth: true, roles: ["USER"] as UserRole[] },
+        },
+        {
+          path: "smart-booking",
+          name: "smart-booking",
+          component: () => import("@/pages/user/SmartBookingPage.vue"),
+          meta: { requiresAuth: true, roles: ["USER"] as UserRole[] },
         },
         { path: "login", name: "login", component: () => import("@/pages/auth/LoginPage.vue") },
         { path: "register", name: "register", component: () => import("@/pages/auth/RegisterPage.vue") },
@@ -75,6 +93,11 @@ const router = createRouter({
           path: "service-requests",
           name: "admin-service-requests",
           component: () => import("@/pages/admin/ServiceRequestsPage.vue"),
+        },
+        {
+          path: "provider-requests",
+          name: "admin-provider-requests",
+          component: () => import("@/pages/admin/ProviderRequestsPage.vue"),
         },
         {
           path: "appointments",

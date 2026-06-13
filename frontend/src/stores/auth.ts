@@ -1,6 +1,7 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import { apiGet, apiPost, apiPatch, apiUpload, setTokens } from "@/services/api";
+import { changeUserPassword } from "@/services/user.service";
 
 export type UserRole = "USER" | "PROVIDER" | "ADMIN";
 
@@ -101,9 +102,16 @@ export const useAuthStore = defineStore("auth", () => {
   async function changePassword(currentPassword: string, newPassword: string) {
     error.value = null;
     try {
-      await apiPatch("/auth/password", { currentPassword, newPassword });
-    } catch {
-      error.value = "رمز عبور فعلی اشتباه است یا تغییر رمز ناموفق بود";
+      await changeUserPassword(currentPassword, newPassword);
+    } catch (e: unknown) {
+      const msg =
+        (e as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error
+          ?.message ?? "";
+      if (msg.toLowerCase().includes("incorrect")) {
+        error.value = "رمز عبور فعلی اشتباه است";
+      } else {
+        error.value = "تغییر رمز عبور ناموفق بود";
+      }
       throw new Error("change password failed");
     }
   }

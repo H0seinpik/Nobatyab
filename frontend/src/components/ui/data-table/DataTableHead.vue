@@ -2,7 +2,7 @@
 import type { DataTableColumn } from "@/types/dataTable";
 import JalaliDateFilter from "@/components/ui/JalaliDateFilter.vue";
 
-defineProps<{
+const props = defineProps<{
   columns: DataTableColumn[];
   selectable?: boolean;
   hasActions?: boolean;
@@ -16,6 +16,15 @@ const emit = defineEmits<{
   "filter-change": [key: string, value: unknown];
   "toggle-all": [];
 }>();
+
+function textFilterValue(key: string): string {
+  const raw = props.filterValues[key];
+  if (raw == null) return "";
+  if (typeof raw === "object" && "value" in raw) {
+    return String((raw as { value?: unknown }).value ?? "");
+  }
+  return String(raw);
+}
 </script>
 
 <template>
@@ -97,7 +106,7 @@ const emit = defineEmits<{
             v-else
             type="text"
             class="form-control text-xs"
-            :value="String(filterValues[col.key] ?? '')"
+            :value="textFilterValue(col.key)"
             @input="emit('filter-change', col.key, { op: 'contains', value: ($event.target as HTMLInputElement).value })"
           />
         </template>

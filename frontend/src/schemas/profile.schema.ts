@@ -8,10 +8,14 @@ export const updateProfileFormSchema = z.object({
   phone: z.string().optional(),
 });
 
+export const dashboardNameFormSchema = z.object({
+  fullName: z.string().min(2, "نام باید حداقل ۲ کاراکتر باشد"),
+});
+
 export const changePasswordFormSchema = z
   .object({
     currentPassword: z.string().min(1, "رمز فعلی الزامی است"),
-    newPassword: z.string().min(8, "رمز جدید باید حداقل ۸ کاراکتر باشد"),
+    newPassword: z.string().min(6, "رمز جدید باید حداقل ۶ کاراکتر باشد"),
     confirmPassword: z.string().min(1, "تکرار رمز الزامی است"),
   })
   .refine((d) => d.newPassword === d.confirmPassword, {

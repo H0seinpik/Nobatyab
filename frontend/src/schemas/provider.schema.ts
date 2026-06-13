@@ -13,9 +13,10 @@ export const workingHoursFormSchema = z.object({
         dayOfWeek: z.number().int().min(0).max(6),
         startTime: z.string().regex(/^\d{2}:\d{2}$/, "فرمت ساعت: 09:00"),
         endTime: z.string().regex(/^\d{2}:\d{2}$/, "فرمت ساعت: 17:00"),
+        isActive: z.boolean().optional(),
       }),
     )
-    .min(1, "حداقل یک بازه کاری لازم است"),
+    .min(0, "حداقل یک بازه کاری لازم است"),
 });
 
 export const cancellationPolicyFormSchema = z.object({

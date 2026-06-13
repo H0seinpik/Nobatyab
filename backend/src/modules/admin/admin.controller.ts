@@ -24,6 +24,14 @@ export class AdminController {
     res.json(successResponse(result.items, result.meta));
   };
 
+  listProviderRequests = async (req: QueryRequest, res: Response) => {
+    const q = req.validatedQuery ?? req.query;
+    const result = await adminService.listProviderRequests(
+      q as Record<string, string | undefined> & { status?: import("@prisma/client").ProviderRequestStatus },
+    );
+    res.json(successResponse(result.items, result.meta));
+  };
+
   reviewServiceRequest = async (req: AuthRequest, res: Response) => {
     res.json(successResponse(await adminService.reviewServiceRequest(getParam(req.params.id), req.body)));
   };

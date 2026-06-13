@@ -3,6 +3,7 @@ import { Role } from "@prisma/client";
 import { adminController } from "./admin.controller.js";
 import {
   adminAppointmentQuerySchema,
+  adminProviderRequestQuerySchema,
   adminReviewServiceRequestSchema,
   adminServiceRequestIdSchema,
   adminServiceRequestQuerySchema,
@@ -40,6 +41,12 @@ adminRoutes.patch(
   validateParams(adminServiceRequestIdSchema),
   validateBody(adminReviewServiceRequestSchema),
   asyncHandler(adminController.reviewServiceRequest),
+);
+
+adminRoutes.get(
+  "/provider-requests",
+  validateQuery(adminProviderRequestQuerySchema),
+  asyncHandler(adminController.listProviderRequests),
 );
 
 adminRoutes.get(

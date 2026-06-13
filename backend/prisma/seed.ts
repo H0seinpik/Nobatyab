@@ -43,6 +43,8 @@ async function main() {
           bio: "متخصص پوست و مو با ۱۰ سال سابقه",
           slotDurationMinutes: 30,
           isAcceptingBookings: true,
+          latitude: 35.7,
+          longitude: 51.42,
           cancellationPolicy: {
             create: { minHoursBefore: 24, description: "لغو حداقل ۲۴ ساعت قبل از نوبت" },
           },
@@ -52,15 +54,25 @@ async function main() {
     include: { providerProfile: true },
   });
 
-  await prisma.user.upsert({
+  await prisma.providerProfile.update({
+    where: { userId: providerUser.id },
+    data: { latitude: 35.7, longitude: 51.42 },
+  });
+
+  const testUser = await prisma.user.upsert({
     where: { email: "user@nobatyab.com" },
-    update: {},
+    update: {
+      latitude: 35.6892,
+      longitude: 51.389,
+    },
     create: {
       email: "user@nobatyab.com",
       passwordHash: userPassword,
       fullName: "کاربر نمونه",
       phone: "09120000003",
       role: Role.USER,
+      latitude: 35.6892,
+      longitude: 51.389,
     },
   });
 
@@ -110,13 +122,13 @@ async function main() {
 
   const skinCare = await prisma.service.upsert({
     where: { id: "seed-service-skincare" },
-    update: {},
+    update: { defaultDuration: 60 },
     create: {
       id: "seed-service-skincare",
       categoryId: beauty.id,
       name: "مراقبت پوست",
       description: "فیشیال و مراقبت پوست",
-      defaultDuration: 45,
+      defaultDuration: 60,
       basePrice: 800000,
     },
   });
@@ -139,7 +151,10 @@ async function main() {
       where: {
         providerId_serviceId: { providerId: providerProfile.id, serviceId: svc.id },
       },
-      update: {},
+      update: {
+        duration: svc.defaultDuration,
+        price: svc.basePrice,
+      },
       create: {
         providerId: providerProfile.id,
         serviceId: svc.id,

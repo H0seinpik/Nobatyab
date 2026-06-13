@@ -19,6 +19,12 @@ enum ServiceRequestStatus {
   REJECTED
 }
 
+enum ProviderRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 enum AppointmentStatus {
   PENDING
   CONFIRMED
@@ -52,16 +58,21 @@ model User {
   fullName     String
   phone        String?
   avatarUrl    String?
+  latitude     Float?
+  longitude    Float?
   role         Role     @default(USER)
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  providerProfile ProviderProfile?
-  refreshTokens   RefreshToken[]
-  passwordResets  PasswordResetToken[]
-  appointments    Appointment[]      @relation("BookedByUser")
-  serviceRequests ServiceRequest[]
+  providerProfile  ProviderProfile?
+  refreshTokens    RefreshToken[]
+  passwordResets   PasswordResetToken[]
+  appointments     Appointment[]      @relation("BookedByUser")
+  serviceRequests   ServiceRequest[]
+  providerRequests  ProviderRequest[]
+  availabilities    UserAvailability[]
+  bookingRequests  BookingIdempotency[]
 }
 
 model RefreshToken {
@@ -119,6 +130,8 @@ model ProviderProfile {
   id                  String   @id @default(cuid())
   userId              String   @unique
   bio                 String?
+  latitude            Float?
+  longitude           Float?
   slotDurationMinutes Int      @default(30)
   isAcceptingBookings Boolean  @default(true)
   createdAt           DateTime @default(now())
@@ -130,6 +143,7 @@ model ProviderProfile {
   providerServices   ProviderService[]
   appointments       Appointment[]
   serviceRequests    ServiceRequest[]
+  timeSlots          TimeSlot[]
 }
 
 model ProviderService {
@@ -170,12 +184,28 @@ model ServiceRequest {
   @@index([status])
 }
 
+model ProviderRequest {
+  id        String                @id @default(cuid())
+  userId    String
+  status    ProviderRequestStatus @default(PENDING)
+  note      String?
+  adminNote String?
+  createdAt DateTime              @default(now())
+  updatedAt DateTime              @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([userId])
+}
+
 model WorkingHours {
-  id         String @id @default(cuid())
+  id         String   @id @default(cuid())
   providerId String
   dayOfWeek  Int
   startTime  String
   endTime    String
+  isActive   Boolean  @default(true)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
@@ -218,6 +248,8 @@ model Appointment {
   user                User?                @relation("BookedByUser", fields: [userId], references: [id], onDelete: SetNull)
   paymentTransactions PaymentTransaction[]
   smsLogs             SmsLog[]
+  timeSlots           TimeSlot[]
+  bookingIdempotency  BookingIdempotency?
 
   @@index([providerId, startAt, endAt])
   @@index([userId])
@@ -262,4 +294,51 @@ model SmsLog {
   appointment Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
 
   @@index([appointmentId])
+}
+
+model UserAvailability {
+  id        String   @id @default(cuid())
+  userId    String
+  dayOfWeek Int
+  startTime String
+  endTime   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, dayOfWeek])
+}
+
+model TimeSlot {
+  id            String   @id @default(cuid())
+  providerId    String
+  date          String
+  startTime     String
+  endTime       String
+  isBooked      Boolean  @default(false)
+  isActive      Boolean  @default(true)
+  appointmentId String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  provider    ProviderProfile @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  appointment Appointment?    @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+
+  @@unique([providerId, date, startTime])
+  @@index([providerId, date, isBooked])
+  @@index([providerId, date, isActive])
+}
+
+model BookingIdempotency {
+  id            String   @id @default(cuid())
+  key           String   @unique
+  userId        String?
+  appointmentId String   @unique
+  createdAt     DateTime @default(now())
+
+  user        User?       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }

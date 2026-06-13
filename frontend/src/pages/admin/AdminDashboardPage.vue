@@ -11,6 +11,7 @@ import UiCard from "@/components/ui/UiCard.vue";
       <RouterLink to="/admin/services"><UiCard>خدمات</UiCard></RouterLink>
       <RouterLink to="/admin/users"><UiCard>کاربران</UiCard></RouterLink>
       <RouterLink to="/admin/service-requests"><UiCard>درخواست‌های خدمت</UiCard></RouterLink>
+      <RouterLink to="/admin/provider-requests"><UiCard>درخواست‌های ارائه‌دهنده</UiCard></RouterLink>
       <RouterLink to="/admin/appointments"><UiCard>نوبت‌ها</UiCard></RouterLink>
     </div>
   </div>

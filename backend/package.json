@@ -9,6 +9,7 @@
     "start": "node dist/server.js",
     "seed": "tsx prisma/seed.ts",
     "smoke": "tsx scripts/smoke-test.ts",
+    "test": "tsx --test src/modules/smart-booking/helpers/overlap.test.ts src/modules/smart-booking/helpers/availabilityFilter.test.ts src/modules/smart-booking/helpers/expectedSlots.test.ts src/modules/smart-booking/helpers/slotReconcile.test.ts src/modules/appointments/bookingGuard.test.ts src/modules/provider/workingHours.helpers.test.ts src/modules/user/user.changePassword.test.ts",
     "db:migrate": "prisma migrate dev",
     "db:generate": "prisma generate",
     "db:studio": "prisma studio"

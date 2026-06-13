@@ -16,6 +16,7 @@ const links = computed(() => {
       { to: "/admin/services", label: "خدمات" },
       { to: "/admin/users", label: "کاربران" },
       { to: "/admin/service-requests", label: "درخواست‌ها" },
+      { to: "/admin/provider-requests", label: "درخواست ارائه‌دهنده" },
       { to: "/admin/appointments", label: "نوبت‌ها" },
       { to: "/admin/settings", label: "تنظیمات" },
     ];

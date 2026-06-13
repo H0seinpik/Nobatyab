@@ -13,12 +13,19 @@ import { appointmentRoutes } from "./modules/appointments/appointment.routes.js"
 import { providerDashboardRoutes } from "./modules/provider/provider.routes.js";
 import { adminRoutes } from "./modules/admin/admin.routes.js";
 import { settingsRoutes, adminSettingsRoutes } from "./modules/settings/settings.routes.js";
+import {
+  smartBookingRoutes,
+  confirmBookingRoutes,
+} from "./modules/smart-booking/smart-booking.routes.js";
+import { userAvailabilityRoutes } from "./modules/user-availability/user-availability.routes.js";
+import { userRoutes } from "./modules/user/user.routes.js";
+import { providerRequestRoutes } from "./modules/provider-request/provider-request.routes.js";
 import { errorHandler, notFoundHandler } from "./shared/middlewares/errorHandler.js";
 
 export function createApp() {
   const app = express();
 
-  app.use(helmet());
+  app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
   app.use(cors({ origin: env.corsOrigin, credentials: true }));
   app.use(
     rateLimit({
@@ -42,12 +49,17 @@ export function createApp() {
   api.use("/services", serviceRoutes);
   api.use("/providers", providerRoutes);
   api.use("/appointments", appointmentRoutes);
+  api.use("/provider/request", providerRequestRoutes);
   api.use("/provider", providerDashboardRoutes);
   api.use("/admin", adminRoutes);
   api.use("/admin/categories", adminCategoryRoutes);
   api.use("/admin/services", adminServiceRoutes);
   api.use("/settings", settingsRoutes);
   api.use("/admin/settings", adminSettingsRoutes);
+  api.use("/user", userRoutes);
+  api.use("/user/availability", userAvailabilityRoutes);
+  api.use("/smart-booking", smartBookingRoutes);
+  api.use("/confirm-booking", confirmBookingRoutes);
 
   app.use("/api/v1", api);
   app.use(notFoundHandler);

@@ -9,6 +9,15 @@ import { getSmsProvider } from "../../integrations/sms/index.js";
 import { ApiError, parsePagination, paginationMeta } from "../../shared/utils/apiError.js";
 import type { AccessTokenPayload } from "../../shared/utils/jwt.js";
 import { appointmentRepository } from "./appointment.repository.js";
+import { buildAppointmentRequestKey } from "./bookingGuard.js";
+import {
+  createAppointmentRecord,
+  duplicateBookingError,
+  findActiveAppointmentAtStart,
+  findIdempotentAppointment,
+  handleBookingUniqueViolation,
+  recordBookingIdempotency,
+} from "./bookingTransaction.js";
 import type { bookAppointmentSchema, cancelAppointmentSchema } from "./appointment.schema.js";
 import type { z } from "zod";
 
@@ -39,7 +48,28 @@ export class AppointmentService {
       throw ApiError.badRequest("Cannot book appointments in the past");
     }
 
-    const appointment = await prisma.$transaction(async (tx) => {
+    const requestKey = buildAppointmentRequestKey(user?.sub, {
+      providerId: input.providerId,
+      providerServiceId: input.providerServiceId,
+      startAt,
+      guestPhone: input.guestPhone,
+    });
+
+    const result = await prisma.$transaction(async (tx) => {
+      const replay = await findIdempotentAppointment(tx, requestKey);
+      if (replay?.appointment) {
+        return { appointment: replay.appointment, isReplay: true };
+      }
+
+      const existingAtStart = await findActiveAppointmentAtStart(
+        tx,
+        input.providerId,
+        startAt,
+      );
+      if (existingAtStart) {
+        throw duplicateBookingError();
+      }
+
       const overlap = await this.repo.findOverlapping(
         input.providerId,
         startAt,
@@ -47,10 +77,10 @@ export class AppointmentService {
         undefined,
         tx,
       );
-      if (overlap) throw ApiError.conflict("Selected time slot is no longer available");
+      if (overlap) throw duplicateBookingError();
 
-      return this.repo.create(
-        {
+      try {
+        const created = await createAppointmentRecord(tx, {
           providerId: input.providerId,
           providerServiceId: input.providerServiceId,
           userId: user?.sub,
@@ -60,17 +90,25 @@ export class AppointmentService {
           startAt,
           endAt,
           notes: input.notes,
-        },
-        tx,
-      );
+        });
+
+        await recordBookingIdempotency(tx, requestKey, user?.sub, created.id);
+        return { appointment: created, isReplay: false };
+      } catch (error) {
+        const resolved = await handleBookingUniqueViolation(error, tx, requestKey, []);
+        return resolved;
+      }
     });
+
+    const appointment = result.appointment;
+    if (!appointment) throw duplicateBookingError();
 
     const phone =
       user?.sub && appointment.user?.phone
         ? appointment.user.phone
         : input.guestPhone ?? appointment.guestPhone;
 
-    if (phone) {
+    if (!result.isReplay && phone) {
       const sms = getSmsProvider();
       await sms.send({
         phone,
