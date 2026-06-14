@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, computed } from "vue";
 import { useRoute } from "vue-router";
+import axios from "axios";
 import { apiGet, apiPost } from "@/services/api";
 import { useAuthStore } from "@/stores/auth";
 import { useZodForm } from "@/composables/useZodForm";
@@ -89,6 +90,8 @@ watch([selectedServiceId, jalaliDate], async () => {
 });
 
 async function book() {
+  if (booking.value) return;
+
   bookingError.value = "";
   message.value = "";
   if (!selectedSlot.value || !selectedServiceId.value) {
@@ -110,8 +113,12 @@ async function book() {
     });
     message.value = "نوبت با موفقیت ثبت شد";
     selectedSlot.value = null;
-  } catch {
-    bookingError.value = "خطا در ثبت نوبت";
+  } catch (e: unknown) {
+    if (axios.isAxiosError(e) && e.response?.status === 409) {
+      bookingError.value = "این زمان قبلاً رزرو شده است. لطفاً زمان دیگری انتخاب کنید.";
+    } else {
+      bookingError.value = "خطا در ثبت نوبت";
+    }
   } finally {
     booking.value = false;
   }

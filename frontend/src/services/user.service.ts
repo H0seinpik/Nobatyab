@@ -1,9 +1,14 @@
-import { apiGet, apiPost } from "./api";
+import { apiGet, apiPost, apiPatch } from "./api";
 
 export interface UserProfile {
   id: string;
   fullName: string;
+  firstName: string | null;
+  lastName: string | null;
+  nationalCode: string | null;
+  age: number | null;
   phone: string | null;
+  address: string | null;
   avatarUrl: string | null;
   image: string | null;
   email: string;
@@ -24,8 +29,23 @@ export interface UserAppointmentsResponse {
   completed: DashboardAppointment[];
 }
 
+export type UpdateUserProfilePayload = {
+  firstName?: string;
+  lastName?: string;
+  nationalCode?: string;
+  age?: number;
+  phone?: string;
+  address?: string;
+  email?: string;
+};
+
 export async function getUserProfile() {
   const res = await apiGet<UserProfile>("/user/profile", undefined, { skipGlobalLoading: true });
+  return res.data;
+}
+
+export async function updateUserProfile(data: UpdateUserProfilePayload) {
+  const res = await apiPatch<UserProfile>("/user/profile", data);
   return res.data;
 }
 

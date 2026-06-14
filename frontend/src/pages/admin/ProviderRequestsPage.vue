@@ -1,28 +1,32 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
-import { apiGet } from "@/services/api";
 import {
-  getMyProviderRequest,
-  submitProviderRequest,
+  listProviderRequests,
   type ProviderRequest,
 } from "@/services/providerRequest.service";
 import PageHeader from "@/components/layout/PageHeader.vue";
 import UiCard from "@/components/ui/UiCard.vue";
 import UiBadge from "@/components/ui/UiBadge.vue";
+import UiAlert from "@/components/ui/UiAlert.vue";
 import SkeletonCard from "@/components/ui/skeleton/SkeletonCard.vue";
 import ContentFade from "@/components/ui/ContentFade.vue";
 import { formatJalaliDateTime } from "@/utils/datetime";
 
 const requests = ref<ProviderRequest[]>([]);
 const loading = ref(true);
+const error = ref("");
 
 async function load() {
   loading.value = true;
+  error.value = "";
   try {
-    const res = await apiGet<ProviderRequest[]>("/admin/provider-requests", {
-      status: "PENDING",
-    });
-    requests.value = res.data;
+    requests.value = await listProviderRequests("PENDING");
+  } catch (e: unknown) {
+    const msg =
+      (e as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error
+        ?.message ?? "";
+    error.value = msg || "بارگذاری درخواست‌ها ناموفق بود.";
+    requests.value = [];
   } finally {
     loading.value = false;
   }
@@ -41,6 +45,10 @@ onMounted(load);
     <div v-if="loading" class="space-y-3">
       <SkeletonCard v-for="i in 3" :key="i" />
     </div>
+
+    <ContentFade v-else-if="error">
+      <UiAlert variant="error">{{ error }}</UiAlert>
+    </ContentFade>
 
     <ContentFade v-else-if="!requests.length">
       <UiCard class="text-center text-[var(--color-muted)]">

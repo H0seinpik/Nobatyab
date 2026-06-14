@@ -67,7 +67,16 @@ const router = createRouter({
       children: [
         { path: "", name: "provider-dashboard", component: () => import("@/pages/provider/ProviderDashboardPage.vue") },
         { path: "profile", name: "provider-profile", component: () => import("@/pages/provider/ProfilePage.vue") },
-        { path: "schedule", name: "provider-schedule", component: () => import("@/pages/provider/SchedulePage.vue") },
+        {
+          path: "schedule",
+          name: "provider-schedule",
+          component: () => import("@/pages/provider/SchedulePage.vue"),
+        },
+        {
+          path: "services",
+          name: "provider-services",
+          component: () => import("@/pages/provider/ServicesPage.vue"),
+        },
         {
           path: "appointments",
           name: "provider-appointments",

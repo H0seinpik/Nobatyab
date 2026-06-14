@@ -32,7 +32,9 @@ export class SmartBookingRepository {
           },
         },
         include: {
-          provider: { select: { id: true, latitude: true, longitude: true } },
+          provider: {
+            select: { id: true, latitude: true, longitude: true, workingHours: true },
+          },
         },
       });
     }
@@ -49,7 +51,9 @@ export class SmartBookingRepository {
         },
       },
       include: {
-        provider: { select: { id: true, latitude: true, longitude: true } },
+        provider: {
+          select: { id: true, latitude: true, longitude: true, workingHours: true },
+        },
       },
     });
   }

@@ -56,6 +56,11 @@ model User {
   email        String   @unique
   passwordHash String
   fullName     String
+  firstName    String?
+  lastName     String?
+  nationalCode String?  @unique
+  age          Int?
+  address      String?
   phone        String?
   avatarUrl    String?
   latitude     Float?
@@ -129,7 +134,9 @@ model Service {
 model ProviderProfile {
   id                  String   @id @default(cuid())
   userId              String   @unique
+  specialization      String?
   bio                 String?
+  address             String?
   latitude            Float?
   longitude           Float?
   slotDurationMinutes Int      @default(30)
@@ -225,6 +232,7 @@ model CancellationPolicy {
   provider ProviderProfile @relation(fields: [providerId], references: [id], onDelete: Cascade)
 }
 
+// Partial unique index on (providerId, startAt) for non-cancelled rows — migration 20250614000000_booking_duplicate_protection
 model Appointment {
   id                String            @id @default(cuid())
   providerId        String

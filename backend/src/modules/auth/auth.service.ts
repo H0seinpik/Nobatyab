@@ -27,6 +27,11 @@ function sanitizeUser(user: {
   id: string;
   email: string;
   fullName: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  nationalCode?: string | null;
+  age?: number | null;
+  address?: string | null;
   phone: string | null;
   avatarUrl?: string | null;
   role: Role;
@@ -37,6 +42,11 @@ function sanitizeUser(user: {
     id: user.id,
     email: user.email,
     fullName: user.fullName,
+    firstName: user.firstName ?? null,
+    lastName: user.lastName ?? null,
+    nationalCode: user.nationalCode ?? null,
+    age: user.age ?? null,
+    address: user.address ?? null,
     phone: user.phone,
     avatarUrl: user.avatarUrl ?? null,
     role: user.role,

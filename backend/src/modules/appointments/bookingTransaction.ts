@@ -2,6 +2,7 @@ import { AppointmentStatus, PaymentStatus, Prisma } from "@prisma/client";
 import { prisma } from "../../config/database.js";
 import { isUniqueConstraintError } from "../../shared/utils/prismaErrors.js";
 import { ApiError } from "../../shared/utils/apiError.js";
+import { appointmentRepository } from "./appointment.repository.js";
 
 const appointmentInclude = {
   provider: { include: { user: { select: { fullName: true } } } },
@@ -58,6 +59,16 @@ export async function releaseTimeSlots(
   });
 }
 
+export async function releaseAppointmentTimeSlots(
+  tx: Prisma.TransactionClient,
+  appointmentId: string,
+): Promise<void> {
+  await tx.timeSlot.updateMany({
+    where: { appointmentId },
+    data: { isBooked: false, appointmentId: null },
+  });
+}
+
 export async function attachAppointmentToSlots(
   tx: Prisma.TransactionClient,
   timeSlotIds: string[],
@@ -103,6 +114,26 @@ export async function findActiveAppointmentAtStart(
       ...(excludeId ? { id: { not: excludeId } } : {}),
     },
   });
+}
+
+export async function assertNoDuplicateBooking(
+  tx: Prisma.TransactionClient,
+  providerId: string,
+  startAt: Date,
+  endAt: Date,
+  excludeId?: string,
+): Promise<void> {
+  const existingAtStart = await findActiveAppointmentAtStart(tx, providerId, startAt, excludeId);
+  if (existingAtStart) throw duplicateBookingError();
+
+  const overlap = await appointmentRepository.findOverlapping(
+    providerId,
+    startAt,
+    endAt,
+    excludeId,
+    tx,
+  );
+  if (overlap) throw duplicateBookingError();
 }
 
 export async function createAppointmentRecord(

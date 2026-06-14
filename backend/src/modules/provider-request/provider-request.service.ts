@@ -12,7 +12,7 @@ export class ProviderRequestService {
   private repo = providerRequestRepository;
 
   async submit(userId: string, input: SubmitInput) {
-    console.log("[ProviderRequest] submit body:", JSON.stringify(input));
+    console.log("[ProviderRequest] submit userId:", userId, "body:", JSON.stringify(input));
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -34,7 +34,7 @@ export class ProviderRequestService {
         userId,
         note: input.note,
       });
-      console.log("[ProviderRequest] created:", created.id, "userId:", created.userId);
+      console.log("[ProviderRequest] created:", JSON.stringify(created));
       return created;
     } catch (error) {
       if (isUniqueConstraintError(error)) {
@@ -58,11 +58,17 @@ export class ProviderRequestService {
     const limit = Math.min(100, Math.max(1, Number(query.limit) || 20));
     const skip = (page - 1) * limit;
 
+    const status = query.status ?? ProviderRequestStatus.PENDING;
     const [items, total] = await this.repo.findMany({
-      status: query.status ?? ProviderRequestStatus.PENDING,
+      status,
       skip,
       take: limit,
     });
+
+    console.log(
+      "[ProviderRequest] admin list:",
+      JSON.stringify({ status, page, limit, count: items.length, total }),
+    );
 
     return {
       items,

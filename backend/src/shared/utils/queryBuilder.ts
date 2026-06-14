@@ -96,9 +96,12 @@ function buildFilterWhere(
         case "eq":
           setNested(where, prismaPath, value);
           break;
-        case "contains":
-          setNested(where, prismaPath, { contains: String(value), mode: "insensitive" });
+        case "contains": {
+          const term = String(value ?? "").trim();
+          if (!term) break;
+          setNested(where, prismaPath, { contains: term, mode: "insensitive" });
           break;
+        }
         case "in":
           setNested(where, prismaPath, { in: Array.isArray(value) ? value : [value] });
           break;
@@ -217,6 +220,7 @@ export const userListConfig: QueryBuilderConfig = {
   filterableFields: {
     role: { prismaPath: "role", type: "enum" },
     isActive: { prismaPath: "isActive", type: "boolean" },
+    fullName: { prismaPath: "fullName", type: "string" },
   },
   searchFields: [
     { prismaPath: "email" },
@@ -235,6 +239,7 @@ export const serviceListConfig: QueryBuilderConfig = {
   filterableFields: {
     categoryId: { prismaPath: "categoryId", type: "string" },
     isActive: { prismaPath: "isActive", type: "boolean" },
+    name: { prismaPath: "name", type: "string" },
   },
   searchFields: [{ prismaPath: "name" }, { prismaPath: "description" }],
   defaultSort: [{ field: "name", direction: "asc" }],
@@ -248,6 +253,7 @@ export const categoryListConfig: QueryBuilderConfig = {
   },
   filterableFields: {
     isActive: { prismaPath: "isActive", type: "boolean" },
+    name: { prismaPath: "name", type: "string" },
   },
   searchFields: [{ prismaPath: "name" }, { prismaPath: "slug" }],
   defaultSort: [{ field: "name", direction: "asc" }],

@@ -58,6 +58,21 @@ export class ProviderRepository {
     ]);
   }
 
+  createWorkingHour(
+    providerId: string,
+    entry: { dayOfWeek: number; startTime: string; endTime: string; isActive?: boolean },
+  ) {
+    return prisma.workingHours.create({
+      data: {
+        providerId,
+        dayOfWeek: entry.dayOfWeek,
+        startTime: entry.startTime,
+        endTime: entry.endTime,
+        isActive: entry.isActive ?? true,
+      },
+    });
+  }
+
   findWorkingHourById(providerId: string, hourId: string) {
     return prisma.workingHours.findFirst({
       where: { id: hourId, providerId },
@@ -200,6 +215,105 @@ export class ProviderRepository {
         providerService: { include: { service: true } },
         user: { select: { id: true, fullName: true, email: true, phone: true } },
       },
+    });
+  }
+
+  findProviderServices(providerId: string) {
+    return prisma.providerService.findMany({
+      where: { providerId },
+      orderBy: { createdAt: "desc" },
+      include: { service: { include: { category: true } } },
+    });
+  }
+
+  findProviderServiceById(providerId: string, id: string) {
+    return prisma.providerService.findFirst({
+      where: { id, providerId },
+      include: { service: true },
+    });
+  }
+
+  findFirstActiveCategory() {
+    return prisma.category.findFirst({
+      where: { isActive: true },
+      orderBy: { name: "asc" },
+    });
+  }
+
+  findCatalogService(serviceId: string) {
+    return prisma.service.findUnique({ where: { id: serviceId } });
+  }
+
+  createProviderServiceLink(data: {
+    providerId: string;
+    serviceId: string;
+    price: number;
+    duration: number;
+  }) {
+    return prisma.providerService.create({
+      data,
+      include: { service: { include: { category: true } } },
+    });
+  }
+
+  createCatalogService(data: {
+    categoryId: string;
+    name: string;
+    description?: string;
+    defaultDuration: number;
+    basePrice: number;
+  }) {
+    return prisma.service.create({ data });
+  }
+
+  updateProviderServiceRecord(
+    id: string,
+    data: Partial<{ price: number; duration: number; isActive: boolean }>,
+  ) {
+    return prisma.providerService.update({
+      where: { id },
+      data,
+      include: { service: { include: { category: true } } },
+    });
+  }
+
+  updateCatalogServiceName(serviceId: string, name: string) {
+    return prisma.service.update({
+      where: { id: serviceId },
+      data: { name },
+    });
+  }
+
+  countAppointmentsForProviderService(providerServiceId: string) {
+    return prisma.appointment.count({
+      where: {
+        providerServiceId,
+        status: { not: AppointmentStatus.CANCELLED },
+      },
+    });
+  }
+
+  deleteProviderServiceRecord(id: string) {
+    return prisma.$transaction(async (tx) => {
+      const link = await tx.providerService.findUnique({
+        where: { id },
+        select: { serviceId: true },
+      });
+      if (!link) return null;
+
+      await tx.providerService.delete({ where: { id } });
+
+      const remainingLinks = await tx.providerService.count({
+        where: { serviceId: link.serviceId },
+      });
+      if (remainingLinks === 0) {
+        await tx.service.update({
+          where: { id: link.serviceId },
+          data: { isActive: false },
+        });
+      }
+
+      return { deleted: true };
     });
   }
 }

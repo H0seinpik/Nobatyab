@@ -7,7 +7,9 @@ type QueryRequest = AuthRequest & { validatedQuery?: Record<string, string | und
 
 export class AppointmentController {
   book = async (req: AuthRequest, res: Response) => {
-    res.status(201).json(successResponse(await appointmentService.book(req.body, req.user)));
+    const result = await appointmentService.book(req.body, req.user);
+    const status = result.isReplay ? 200 : 201;
+    res.status(status).json(successResponse(result.appointment));
   };
 
   getMy = async (req: QueryRequest, res: Response) => {

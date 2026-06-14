@@ -25,6 +25,7 @@ const links = computed(() => {
     { to: "/provider", label: "داشبورد" },
     { to: "/provider/profile", label: "پروفایل" },
     { to: "/provider/schedule", label: "برنامه کاری" },
+    { to: "/provider/services", label: "خدمات من" },
     { to: "/provider/appointments", label: "نوبت‌ها" },
     { to: "/provider/service-requests", label: "درخواست خدمات" },
   ];

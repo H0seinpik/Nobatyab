@@ -68,4 +68,14 @@ export const appointmentsColumns: DataTableColumn[] = [
 
 export const appointmentsRowActions: RowAction[] = [
   { key: "view", label: "مشاهده جزئیات" },
+  {
+    key: "cancel",
+    label: "لغو نوبت",
+    variant: "danger",
+    hidden: (row) => {
+      const a = row as unknown as AppointmentRow;
+      if (a.status === "CANCELLED" || a.status === "COMPLETED") return true;
+      return new Date(a.startAt) <= new Date();
+    },
+  },
 ];

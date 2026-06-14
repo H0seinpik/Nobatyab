@@ -22,12 +22,27 @@ export class ProviderController {
     res.json(successResponse(await providerService.replaceWorkingHours(req.user!.sub, req.body)));
   };
 
+  createWorkingHour = async (req: AuthRequest, res: Response) => {
+    res
+      .status(201)
+      .json(successResponse(await providerService.createWorkingHour(req.user!.sub, req.body)));
+  };
+
   deleteWorkingHour = async (req: AuthRequest, res: Response) => {
     const hours = await providerService.deleteWorkingHour(req.user!.sub, getParam(req.params.id));
     res.json(successResponse(hours));
   };
 
   toggleWorkingDay = async (req: AuthRequest, res: Response) => {
+    const hours = await providerService.toggleWorkingDay(
+      req.user!.sub,
+      getParam(req.params.id),
+      req.body.isActive,
+    );
+    res.json(successResponse(hours));
+  };
+
+  updateWorkingHourStatus = async (req: AuthRequest, res: Response) => {
     const hours = await providerService.toggleWorkingDay(
       req.user!.sub,
       getParam(req.params.id),
@@ -77,6 +92,30 @@ export class ProviderController {
   completeAppointment = async (req: AuthRequest, res: Response) => {
     res.json(
       successResponse(await providerService.completeAppointment(req.user!.sub, getParam(req.params.id))),
+    );
+  };
+
+  listProviderServices = async (req: AuthRequest, res: Response) => {
+    res.json(successResponse(await providerService.listProviderServices(req.user!.sub)));
+  };
+
+  createProviderService = async (req: AuthRequest, res: Response) => {
+    res
+      .status(201)
+      .json(successResponse(await providerService.createProviderService(req.user!.sub, req.body)));
+  };
+
+  updateProviderService = async (req: AuthRequest, res: Response) => {
+    res.json(
+      successResponse(
+        await providerService.updateProviderService(req.user!.sub, getParam(req.params.id), req.body),
+      ),
+    );
+  };
+
+  deleteProviderService = async (req: AuthRequest, res: Response) => {
+    res.json(
+      successResponse(await providerService.deleteProviderService(req.user!.sub, getParam(req.params.id))),
     );
   };
 }

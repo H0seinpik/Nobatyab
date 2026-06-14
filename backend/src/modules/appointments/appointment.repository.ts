@@ -81,8 +81,8 @@ export class AppointmentRepository {
     ]);
   }
 
-  cancel(id: string, reason?: string) {
-    return prisma.appointment.update({
+  cancel(id: string, reason?: string, tx: Prisma.TransactionClient = prisma) {
+    return tx.appointment.update({
       where: { id },
       data: {
         status: AppointmentStatus.CANCELLED,
@@ -93,6 +93,16 @@ export class AppointmentRepository {
         providerService: { include: { service: true } },
         user: { select: { id: true, fullName: true, email: true, phone: true } },
       },
+    });
+  }
+
+  findTimeSlotIdsByAppointmentId(
+    appointmentId: string,
+    tx: Prisma.TransactionClient = prisma,
+  ) {
+    return tx.timeSlot.findMany({
+      where: { appointmentId },
+      select: { id: true },
     });
   }
 
@@ -138,6 +148,7 @@ export class AppointmentRepository {
         isAcceptingBookings: true,
         user: { isActive: true },
       },
+      include: { workingHours: true },
     });
   }
 

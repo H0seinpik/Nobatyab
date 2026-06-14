@@ -3,13 +3,15 @@ import { getSmsProvider } from "../../integrations/sms/index.js";
 import { ApiError } from "../../shared/utils/apiError.js";
 import { formatLocalDate, getLocalDayOfWeek, localToUtc } from "../../shared/utils/datetime.js";
 import { appointmentRepository } from "../appointments/appointment.repository.js";
+import { appointmentFitsWorkingHours } from "../appointments/appointmentDuration.helpers.js";
+import { getActiveHoursForDay } from "../provider/workingHours.helpers.js";
 import { buildSmartBookingRequestKey } from "../appointments/bookingGuard.js";
 import {
   attachAppointmentToSlots,
+  assertNoDuplicateBooking,
   claimTimeSlots,
   createAppointmentRecord,
   duplicateBookingError,
-  findActiveAppointmentAtStart,
   findIdempotentAppointment,
   handleBookingUniqueViolation,
   lockTimeSlots,
@@ -87,8 +89,13 @@ export class SmartBookingService {
       false,
     );
 
+    const now = new Date();
+    const futureCandidates = candidates.filter(
+      (c) => localToUtc(c.date, c.startTime) > now,
+    );
+
     const suggestions = scoreAndRankCandidates(
-      candidates,
+      futureCandidates,
       user.latitude,
       user.longitude,
       input.preference ?? "time",
@@ -119,6 +126,14 @@ export class SmartBookingService {
       const blocks = findConsecutiveSlots(providerSlots, ps.duration);
 
       for (const block of blocks) {
+        const dayHours = getActiveHoursForDay(
+          ps.provider.workingHours,
+          getDayOfWeek(block.date),
+        );
+        if (!appointmentFitsWorkingHours(dayHours, block.startTime, ps.duration)) {
+          continue;
+        }
+
         if (!blockFitsUserAvailability(block, availabilities, getDayOfWeek)) {
           continue;
         }
@@ -205,6 +220,26 @@ export class SmartBookingService {
         throw ApiError.badRequest("Selected time is outside your availability");
       }
 
+      const provider = await tx.providerProfile.findUnique({
+        where: { id: input.providerId },
+        include: { workingHours: true },
+      });
+      if (!provider) throw ApiError.notFound("Provider not found");
+
+      const dayHours = getActiveHoursForDay(
+        provider.workingHours,
+        getDayOfWeek(matchingBlock.date),
+      );
+      if (
+        !appointmentFitsWorkingHours(
+          dayHours,
+          matchingBlock.startTime,
+          providerService.duration,
+        )
+      ) {
+        throw ApiError.badRequest("Appointment extends beyond provider working hours");
+      }
+
       const startAt = localToUtc(slots[0].date, slots[0].startTime);
       const endAt = localToUtc(slots[slots.length - 1].date, slots[slots.length - 1].endTime);
 
@@ -212,25 +247,7 @@ export class SmartBookingService {
         throw ApiError.badRequest("Cannot book appointments in the past");
       }
 
-      const existingAtStart = await findActiveAppointmentAtStart(
-        tx,
-        input.providerId,
-        startAt,
-      );
-      if (existingAtStart) {
-        throw duplicateBookingError();
-      }
-
-      const overlap = await appointmentRepository.findOverlapping(
-        input.providerId,
-        startAt,
-        endAt,
-        undefined,
-        tx,
-      );
-      if (overlap) {
-        throw duplicateBookingError();
-      }
+      await assertNoDuplicateBooking(tx, input.providerId, startAt, endAt);
 
       const claimed = await claimTimeSlots(tx, input.timeSlotIds);
       if (claimed !== input.timeSlotIds.length) {
@@ -258,6 +275,10 @@ export class SmartBookingService {
 
     const appointment = result.appointment;
     if (!appointment) throw duplicateBookingError();
+
+    console.log(
+      `[Booking] confirm userId=${userId} slots=${input.timeSlotIds.join(",")} result=${result.isReplay ? "replay" : "created"}`,
+    );
 
     if (!result.isReplay && appointment.user?.phone) {
       const sms = getSmsProvider();

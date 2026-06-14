@@ -1,20 +1,27 @@
 import { AppointmentStatus, ServiceRequestStatus } from "@prisma/client";
+import { prisma } from "../../config/database.js";
 import { ApiError, parsePagination, paginationMeta } from "../../shared/utils/apiError.js";
 import { timeToMinutes } from "../../shared/utils/datetime.js";
 import { timeSlotSyncService } from "../smart-booking/timeSlotSync.service.js";
 import { providerRepository } from "./provider.repository.js";
 import type {
+  createProviderServiceSchema,
   createServiceRequestSchema,
+  createWorkingHourSchema,
   replaceWorkingHoursSchema,
   updateCancellationPolicySchema,
   updateProviderProfileSchema,
+  updateProviderServiceSchema,
 } from "./provider.schema.js";
 import type { z } from "zod";
 
 type UpdateProfileInput = z.infer<typeof updateProviderProfileSchema>;
 type ReplaceWorkingHoursInput = z.infer<typeof replaceWorkingHoursSchema>;
+type CreateWorkingHourInput = z.infer<typeof createWorkingHourSchema>;
 type UpdateCancellationPolicyInput = z.infer<typeof updateCancellationPolicySchema>;
 type CreateServiceRequestInput = z.infer<typeof createServiceRequestSchema>;
+type CreateProviderServiceInput = z.infer<typeof createProviderServiceSchema>;
+type UpdateProviderServiceInput = z.infer<typeof updateProviderServiceSchema>;
 
 export class ProviderService {
   private repo = providerRepository;
@@ -45,14 +52,32 @@ export class ProviderService {
     const providerId = await this.getProviderProfileId(userId);
 
     for (const entry of input.hours) {
-      if (timeToMinutes(entry.startTime) >= timeToMinutes(entry.endTime)) {
-        throw ApiError.badRequest("startTime must be before endTime");
-      }
+      this.assertValidTimeRange(entry.startTime, entry.endTime);
     }
 
     await this.repo.replaceWorkingHours(providerId, input.hours);
     await timeSlotSyncService.syncProvider(providerId);
     return this.repo.findWorkingHours(providerId);
+  }
+
+  async createWorkingHour(userId: string, input: CreateWorkingHourInput) {
+    const providerId = await this.getProviderProfileId(userId);
+    this.assertValidTimeRange(input.startTime, input.endTime);
+
+    await this.repo.createWorkingHour(providerId, {
+      dayOfWeek: input.dayOfWeek,
+      startTime: input.startTime,
+      endTime: input.endTime,
+      isActive: input.isActive,
+    });
+    await timeSlotSyncService.syncProvider(providerId);
+    return this.repo.findWorkingHours(providerId);
+  }
+
+  private assertValidTimeRange(startTime: string, endTime: string) {
+    if (timeToMinutes(startTime) >= timeToMinutes(endTime)) {
+      throw ApiError.badRequest("startTime must be before endTime");
+    }
   }
 
   async deleteWorkingHour(userId: string, hourId: string) {
@@ -72,7 +97,11 @@ export class ProviderService {
 
     await this.repo.updateWorkingHour(providerId, hourId, { isActive });
     await timeSlotSyncService.syncProvider(providerId);
-    return this.repo.findWorkingHours(providerId);
+    const hours = await this.repo.findWorkingHours(providerId);
+    console.log(
+      `[Provider] working-hour status id=${hourId} providerId=${providerId} isActive=${isActive}`,
+    );
+    return hours;
   }
 
   async getCancellationPolicy(userId: string) {
@@ -149,6 +178,86 @@ export class ProviderService {
       throw ApiError.badRequest("Only confirmed appointments can be completed");
     }
     return this.repo.updateAppointmentStatus(appointmentId, AppointmentStatus.COMPLETED);
+  }
+
+  async listProviderServices(userId: string) {
+    const providerId = await this.getProviderProfileId(userId);
+    return this.repo.findProviderServices(providerId);
+  }
+
+  async createProviderService(userId: string, input: CreateProviderServiceInput) {
+    const providerId = await this.getProviderProfileId(userId);
+
+    if (input.serviceId) {
+      const catalog = await this.repo.findCatalogService(input.serviceId);
+      if (!catalog || !catalog.isActive) throw ApiError.notFound("Catalog service not found");
+
+      const existing = await prisma.providerService.findUnique({
+        where: {
+          providerId_serviceId: { providerId, serviceId: input.serviceId },
+        },
+      });
+      if (existing) throw ApiError.conflict("You already offer this service");
+
+      return this.repo.createProviderServiceLink({
+        providerId,
+        serviceId: input.serviceId,
+        price: input.price!,
+        duration: input.duration!,
+      });
+    }
+
+    const category =
+      input.categoryId
+        ? await prisma.category.findFirst({ where: { id: input.categoryId, isActive: true } })
+        : await this.repo.findFirstActiveCategory();
+    if (!category) throw ApiError.badRequest("No active category available for new services");
+
+    const service = await this.repo.createCatalogService({
+      categoryId: category.id,
+      name: input.name!,
+      description: input.description,
+      defaultDuration: input.duration!,
+      basePrice: input.price!,
+    });
+
+    return this.repo.createProviderServiceLink({
+      providerId,
+      serviceId: service.id,
+      price: input.price!,
+      duration: input.duration!,
+    });
+  }
+
+  async updateProviderService(userId: string, id: string, input: UpdateProviderServiceInput) {
+    const providerId = await this.getProviderProfileId(userId);
+    const existing = await this.repo.findProviderServiceById(providerId, id);
+    if (!existing) throw ApiError.notFound("Provider service not found");
+
+    if (input.name) {
+      await this.repo.updateCatalogServiceName(existing.serviceId, input.name);
+    }
+
+    const updateData: Partial<{ price: number; duration: number; isActive: boolean }> = {};
+    if (input.price !== undefined) updateData.price = input.price;
+    if (input.duration !== undefined) updateData.duration = input.duration;
+    if (input.isActive !== undefined) updateData.isActive = input.isActive;
+
+    return this.repo.updateProviderServiceRecord(id, updateData);
+  }
+
+  async deleteProviderService(userId: string, id: string) {
+    const providerId = await this.getProviderProfileId(userId);
+    const existing = await this.repo.findProviderServiceById(providerId, id);
+    if (!existing) throw ApiError.notFound("Provider service not found");
+
+    const appointmentCount = await this.repo.countAppointmentsForProviderService(id);
+    if (appointmentCount > 0) {
+      return this.repo.updateProviderServiceRecord(id, { isActive: false });
+    }
+
+    await this.repo.deleteProviderServiceRecord(id);
+    return { deleted: true };
   }
 }
 

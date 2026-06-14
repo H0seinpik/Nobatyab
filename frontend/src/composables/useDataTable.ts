@@ -71,7 +71,15 @@ export function useDataTable<T>(options: UseDataTableOptions) {
   }
 
   function setFilter(key: string, value: unknown) {
-    if (value === "" || value === null || value === undefined) {
+    const isEmptyContains =
+      value &&
+      typeof value === "object" &&
+      !Array.isArray(value) &&
+      "op" in value &&
+      (value as { op: string; value?: unknown }).op === "contains" &&
+      !String((value as { value?: unknown }).value ?? "").trim();
+
+    if (value === "" || value === null || value === undefined || isEmptyContains) {
       const { [key]: _, ...rest } = query.value.filter;
       query.value.filter = rest;
     } else {
@@ -79,7 +87,7 @@ export function useDataTable<T>(options: UseDataTableOptions) {
     }
     query.value.page = 1;
     if (filterTimer) clearTimeout(filterTimer);
-    filterTimer = setTimeout(fetch, 300);
+    filterTimer = setTimeout(fetch, 200);
   }
 
   function setSort(field: string, multi = false) {

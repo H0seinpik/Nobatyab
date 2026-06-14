@@ -43,6 +43,13 @@ appointmentRoutes.post(
   validateBody(cancelAppointmentSchema),
   asyncHandler(appointmentController.cancel),
 );
+appointmentRoutes.patch(
+  "/:id/cancel",
+  requireAuth,
+  validateParams(appointmentIdSchema),
+  validateBody(cancelAppointmentSchema),
+  asyncHandler(appointmentController.cancel),
+);
 appointmentRoutes.post(
   "/:id/pay",
   requireAuth,

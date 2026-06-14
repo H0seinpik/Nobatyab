@@ -18,6 +18,7 @@ import {
   submitProviderRequest,
   type ProviderRequest,
 } from "@/services/providerRequest.service";
+import { getUserProfile, updateUserProfile } from "@/services/user.service";
 
 const auth = useAuthStore();
 const logout = useLogout();
@@ -42,7 +43,15 @@ const {
   isValid: profileValid,
   submitting: profileSubmitting,
   validateAll: validateProfile,
-} = useZodForm(updateProfileFormSchema, { fullName: "", email: "", phone: "" });
+} = useZodForm(updateProfileFormSchema, {
+  firstName: "",
+  lastName: "",
+  nationalCode: "",
+  age: undefined as number | undefined,
+  phone: "",
+  address: "",
+  email: "",
+});
 
 const {
   values: passwordValues,
@@ -60,12 +69,16 @@ const {
 
 onMounted(async () => {
   try {
+    const profile = await getUserProfile();
+    profileValues.firstName = profile.firstName ?? profile.fullName.split(" ")[0] ?? "";
+    profileValues.lastName =
+      profile.lastName ?? profile.fullName.split(" ").slice(1).join(" ") ?? "";
+    profileValues.nationalCode = profile.nationalCode ?? "";
+    profileValues.age = profile.age ?? undefined;
+    profileValues.phone = profile.phone ?? "";
+    profileValues.address = profile.address ?? "";
+    profileValues.email = profile.email;
     await auth.fetchMe();
-    if (auth.user) {
-      profileValues.fullName = auth.user.fullName;
-      profileValues.email = auth.user.email;
-      profileValues.phone = auth.user.phone ?? "";
-    }
     if (auth.user?.role === "USER") {
       providerRequestLoading.value = true;
       try {
@@ -90,13 +103,21 @@ async function submitProviderApplication() {
     providerRequestNote.value = "";
     providerRequestSuccess.value = "درخواست شما با موفقیت ثبت شد و در انتظار بررسی است.";
   } catch (e: unknown) {
-    const msg =
-      (e as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error
-        ?.message ?? "";
+    const err = e as {
+      response?: { status?: number; data?: { error?: { message?: string } } };
+    };
+    const msg = err.response?.data?.error?.message ?? "";
+    const status = err.response?.status;
     if (msg.toLowerCase().includes("pending")) {
       providerRequestError.value = "شما قبلاً یک درخواست در انتظار دارید.";
     } else if (msg.toLowerCase().includes("already a provider")) {
       providerRequestError.value = "شما در حال حاضر ارائه‌دهنده هستید.";
+    } else if (status === 403) {
+      providerRequestError.value = "فقط کاربران عادی می‌توانند درخواست ارسال کنند.";
+    } else if (status === 401) {
+      providerRequestError.value = "لطفاً دوباره وارد حساب کاربری خود شوید.";
+    } else if (msg) {
+      providerRequestError.value = msg;
     } else {
       providerRequestError.value = "ارسال درخواست ناموفق بود. لطفاً دوباره تلاش کنید.";
     }
@@ -112,14 +133,20 @@ async function saveProfile() {
 
   profileSubmitting.value = true;
   try {
-    await auth.updateProfile({
-      fullName: profileValues.fullName,
-      email: profileValues.email,
+    await updateUserProfile({
+      firstName: profileValues.firstName,
+      lastName: profileValues.lastName,
+      nationalCode: profileValues.nationalCode || undefined,
+      age: profileValues.age,
       phone: profileValues.phone || undefined,
+      address: profileValues.address || undefined,
+      email: profileValues.email,
     });
+    await auth.fetchMe();
     profileSuccess.value = "پروفایل با موفقیت به‌روزرسانی شد";
-  } catch {
-    profileError.value = auth.error ?? "خطا در به‌روزرسانی پروفایل";
+  } catch (e: unknown) {
+    const err = e as { response?: { data?: { error?: { message?: string } } } };
+    profileError.value = err.response?.data?.error?.message ?? "خطا در به‌روزرسانی پروفایل";
   } finally {
     profileSubmitting.value = false;
   }
@@ -149,7 +176,7 @@ async function changePassword() {
     <h1 class="mb-6 text-2xl font-bold">پروفایل کاربری</h1>
 
     <div v-if="pageLoading" class="max-w-lg space-y-6">
-      <SkeletonForm :fields="2" />
+      <SkeletonForm :fields="7" />
       <SkeletonForm :fields="3" />
     </div>
 
@@ -163,11 +190,35 @@ async function changePassword() {
         <h2 class="mb-4 font-semibold">اطلاعات حساب</h2>
         <form class="space-y-4" @submit.prevent="saveProfile">
           <UiInput
-            v-model="profileValues.fullName"
-            label="نام کامل"
+            v-model="profileValues.firstName"
+            label="نام"
             required
-            :error="profileFieldError('fullName')"
-            @blur="profileTouch('fullName')"
+            :error="profileFieldError('firstName')"
+            @blur="profileTouch('firstName')"
+          />
+          <UiInput
+            v-model="profileValues.lastName"
+            label="نام خانوادگی"
+            required
+            :error="profileFieldError('lastName')"
+            @blur="profileTouch('lastName')"
+          />
+          <UiInput
+            v-model="profileValues.nationalCode"
+            label="کد ملی"
+            inputmode="numeric"
+            maxlength="10"
+            :error="profileFieldError('nationalCode')"
+            @blur="profileTouch('nationalCode')"
+          />
+          <UiInput
+            v-model.number="profileValues.age"
+            label="سن"
+            type="number"
+            min="1"
+            max="120"
+            :error="profileFieldError('age')"
+            @blur="profileTouch('age')"
           />
           <UiInput
             v-model="profileValues.email"
@@ -181,8 +232,15 @@ async function changePassword() {
             v-model="profileValues.phone"
             label="شماره تماس"
             type="tel"
+            placeholder="09xxxxxxxxx"
             :error="profileFieldError('phone')"
             @blur="profileTouch('phone')"
+          />
+          <UiInput
+            v-model="profileValues.address"
+            label="آدرس"
+            :error="profileFieldError('address')"
+            @blur="profileTouch('address')"
           />
           <UiAlert v-if="profileSuccess" variant="success">{{ profileSuccess }}</UiAlert>
           <UiAlert v-if="profileError" variant="error">{{ profileError }}</UiAlert>

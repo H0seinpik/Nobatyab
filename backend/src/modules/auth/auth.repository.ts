@@ -9,6 +9,13 @@ export class AuthRepository {
     });
   }
 
+  findUserByNationalCode(nationalCode: string) {
+    return prisma.user.findUnique({
+      where: { nationalCode },
+      include: { providerProfile: true },
+    });
+  }
+
   findUserById(id: string) {
     return prisma.user.findUnique({
       where: { id },
@@ -35,7 +42,17 @@ export class AuthRepository {
 
   updateUser(
     userId: string,
-    data: { fullName?: string; email?: string; phone?: string; avatarUrl?: string | null },
+    data: {
+      fullName?: string;
+      firstName?: string | null;
+      lastName?: string | null;
+      nationalCode?: string | null;
+      age?: number | null;
+      address?: string | null;
+      email?: string;
+      phone?: string | null;
+      avatarUrl?: string | null;
+    },
   ) {
     return prisma.user.update({
       where: { id: userId },

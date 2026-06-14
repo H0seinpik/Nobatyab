@@ -42,3 +42,17 @@ export function localToUtc(dateStr: string, time: string, timezone = env.app.tim
 export function formatLocalDate(date: Date, timezone = env.app.timezone): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: timezone, year: "numeric", month: "2-digit", day: "2-digit" }).format(date);
 }
+
+/** Format a UTC Date as HH:mm in APP_TIMEZONE */
+export function formatLocalTime(date: Date, timezone = env.app.timezone): string {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone,
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(date);
+
+  const hour = parts.find((p) => p.type === "hour")?.value ?? "00";
+  const minute = parts.find((p) => p.type === "minute")?.value ?? "00";
+  return `${hour.padStart(2, "0")}:${minute.padStart(2, "0")}`;
+}

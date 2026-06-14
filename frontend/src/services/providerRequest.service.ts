@@ -25,3 +25,8 @@ export async function submitProviderRequest(note?: string) {
   const res = await apiPost<ProviderRequest>("/provider/request", { note: note || undefined });
   return res.data;
 }
+
+export async function listProviderRequests(status: ProviderRequest["status"] = "PENDING") {
+  const res = await apiGet<ProviderRequest[]>("/admin/provider-requests", { status });
+  return res.data;
+}

@@ -132,15 +132,11 @@ async function saveName() {
   nameSubmitting.value = true;
   try {
     const updated = await auth.updateProfile({ fullName: nameValues.fullName });
-    profile.value = profile.value
-      ? { ...profile.value, fullName: updated.fullName }
-      : {
-          id: updated.id,
-          fullName: updated.fullName,
-          phone: updated.phone,
-          avatarUrl: updated.avatarUrl,
-          email: updated.email,
-        };
+    if (profile.value) {
+      profile.value = { ...profile.value, fullName: updated.fullName };
+    } else {
+      profile.value = await getUserProfile();
+    }
     nameSuccess.value = "نام با موفقیت به‌روزرسانی شد";
   } catch {
     nameError.value = auth.error ?? "خطا در به‌روزرسانی نام";

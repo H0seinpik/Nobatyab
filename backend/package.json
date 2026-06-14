@@ -9,7 +9,8 @@
     "start": "node dist/server.js",
     "seed": "tsx prisma/seed.ts",
     "smoke": "tsx scripts/smoke-test.ts",
-    "test": "tsx --test src/modules/smart-booking/helpers/overlap.test.ts src/modules/smart-booking/helpers/availabilityFilter.test.ts src/modules/smart-booking/helpers/expectedSlots.test.ts src/modules/smart-booking/helpers/slotReconcile.test.ts src/modules/appointments/bookingGuard.test.ts src/modules/provider/workingHours.helpers.test.ts src/modules/user/user.changePassword.test.ts",
+    "test:concurrent-booking": "tsx scripts/concurrent-booking-test.ts",
+    "test": "tsx --test src/modules/smart-booking/helpers/overlap.test.ts src/modules/smart-booking/helpers/availabilityFilter.test.ts src/modules/smart-booking/helpers/expectedSlots.test.ts src/modules/smart-booking/helpers/slotReconcile.test.ts src/modules/appointments/bookingGuard.test.ts src/modules/appointments/bookingTransaction.test.ts src/modules/appointments/appointmentDuration.helpers.test.ts src/modules/provider/workingHours.helpers.test.ts src/modules/provider/provider.status.schema.test.ts src/shared/utils/queryBuilder.test.ts src/modules/user/user.changePassword.test.ts src/shared/schemas/iranianIdentity.schema.test.ts",
     "db:migrate": "prisma migrate dev",
     "db:generate": "prisma generate",
     "db:studio": "prisma studio"

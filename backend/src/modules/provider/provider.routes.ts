@@ -2,14 +2,20 @@ import { Router } from "express";
 import { Role } from "@prisma/client";
 import { providerController } from "./provider.controller.js";
 import {
+  createProviderServiceSchema,
   createServiceRequestSchema,
+  createWorkingHourSchema,
   providerAppointmentIdSchema,
   providerAppointmentQuerySchema,
+  providerServiceIdSchema,
+  providerWorkingHourIdSchema,
   replaceWorkingHoursSchema,
   serviceRequestQuerySchema,
   toggleWorkingDaySchema,
   updateCancellationPolicySchema,
   updateProviderProfileSchema,
+  updateProviderServiceSchema,
+  updateProviderStatusSchema,
   workingHoursIdSchema,
 } from "./provider.schema.js";
 import {
@@ -30,8 +36,18 @@ providerDashboardRoutes.put(
   validateBody(updateProviderProfileSchema),
   asyncHandler(providerController.updateProfile),
 );
+providerDashboardRoutes.patch(
+  "/profile",
+  validateBody(updateProviderProfileSchema),
+  asyncHandler(providerController.updateProfile),
+);
 
 providerDashboardRoutes.get("/working-hours", asyncHandler(providerController.getWorkingHours));
+providerDashboardRoutes.post(
+  "/working-hours",
+  validateBody(createWorkingHourSchema),
+  asyncHandler(providerController.createWorkingHour),
+);
 providerDashboardRoutes.put(
   "/working-hours",
   validateBody(replaceWorkingHoursSchema),
@@ -47,6 +63,12 @@ providerDashboardRoutes.patch(
   validateParams(workingHoursIdSchema),
   validateBody(toggleWorkingDaySchema),
   asyncHandler(providerController.toggleWorkingDay),
+);
+providerDashboardRoutes.patch(
+  "/:id/status",
+  validateParams(providerWorkingHourIdSchema),
+  validateBody(updateProviderStatusSchema),
+  asyncHandler(providerController.updateWorkingHourStatus),
 );
 providerDashboardRoutes.delete(
   "/working-day/:id",
@@ -79,6 +101,24 @@ providerDashboardRoutes.get(
   "/service-requests",
   validateQuery(serviceRequestQuerySchema),
   asyncHandler(providerController.listServiceRequests),
+);
+
+providerDashboardRoutes.get("/services", asyncHandler(providerController.listProviderServices));
+providerDashboardRoutes.post(
+  "/services",
+  validateBody(createProviderServiceSchema),
+  asyncHandler(providerController.createProviderService),
+);
+providerDashboardRoutes.patch(
+  "/services/:id",
+  validateParams(providerServiceIdSchema),
+  validateBody(updateProviderServiceSchema),
+  asyncHandler(providerController.updateProviderService),
+);
+providerDashboardRoutes.delete(
+  "/services/:id",
+  validateParams(providerServiceIdSchema),
+  asyncHandler(providerController.deleteProviderService),
 );
 
 providerDashboardRoutes.get(

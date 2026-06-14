@@ -1,6 +1,13 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
-import { apiGet, apiPut, apiDelete, apiPatch } from "@/services/api";
+import { apiGet, apiPut } from "@/services/api";
+import {
+  getWorkingHours,
+  updateWorkingHourStatus,
+  deleteWorkingHour,
+  replaceWorkingHours,
+  type WorkingHour,
+} from "@/services/provider.service";
 import { useZodForm } from "@/composables/useZodForm";
 import { workingHoursFormSchema, cancellationPolicyFormSchema } from "@/schemas/provider.schema";
 import UiCard from "@/components/ui/UiCard.vue";
@@ -11,13 +18,7 @@ import UiSwitch from "@/components/ui/UiSwitch.vue";
 import SkeletonForm from "@/components/ui/skeleton/SkeletonForm.vue";
 import ContentFade from "@/components/ui/ContentFade.vue";
 
-type WorkingHourRow = {
-  id?: string;
-  dayOfWeek: number;
-  startTime: string;
-  endTime: string;
-  isActive?: boolean;
-};
+type WorkingHourRow = WorkingHour | (Omit<WorkingHour, "id"> & { id?: string });
 
 const dayNames = ["یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبه", "جمعه", "شنبه"];
 
@@ -50,12 +51,21 @@ const {
   description: "",
 });
 
+function applyWorkingHours(rows: WorkingHourRow[]) {
+  hoursValues.hours = rows.length
+    ? rows.map((row) => ({ ...row, isActive: row.isActive ?? true }))
+    : [{ dayOfWeek: 0, startTime: "09:00", endTime: "17:00", isActive: true }];
+}
+
+async function loadWorkingHours() {
+  const rows = await getWorkingHours();
+  applyWorkingHours(rows);
+  return rows;
+}
+
 onMounted(async () => {
   try {
-    const wh = await apiGet<WorkingHourRow[]>("/provider/working-hours");
-    hoursValues.hours = wh.data.length
-      ? wh.data.map((row) => ({ ...row, isActive: row.isActive ?? true }))
-      : [{ dayOfWeek: 0, startTime: "09:00", endTime: "17:00", isActive: true }];
+    await loadWorkingHours();
     const cp = await apiGet<{ minHoursBefore: number; description: string | null }>(
       "/provider/cancellation-policy",
     );
@@ -81,8 +91,9 @@ async function removeRow(index: number) {
     if (deletingIds.value.has(row.id)) return;
     deletingIds.value.add(row.id);
     try {
-      const res = await apiDelete<WorkingHourRow[]>("/provider/working-day/" + row.id);
-      hoursValues.hours = res.data.map((r) => ({ ...r, isActive: r.isActive ?? true }));
+      const res = await deleteWorkingHour(row.id);
+      applyWorkingHours(res);
+      await loadWorkingHours();
     } catch {
       hoursError.value = "خطا در حذف روز کاری";
     } finally {
@@ -96,7 +107,9 @@ async function removeRow(index: number) {
 
 async function toggleActive(index: number, isActive: boolean) {
   const row = hoursValues.hours[index] as WorkingHourRow;
-  if (!row?.id) {
+  if (!row) return;
+
+  if (!row.id) {
     row.isActive = isActive;
     return;
   }
@@ -109,12 +122,13 @@ async function toggleActive(index: number, isActive: boolean) {
   row.isActive = isActive;
 
   try {
-    const res = await apiPatch<WorkingHourRow[]>("/provider/working-day/" + row.id, { isActive });
-    hoursValues.hours = res.data.map((r) => ({ ...r, isActive: r.isActive ?? true }));
+    applyWorkingHours(await updateWorkingHourStatus(row.id, isActive));
+    await loadWorkingHours();
     hoursMessage.value = isActive ? "روز کاری فعال شد" : "روز کاری غیرفعال شد";
   } catch {
     row.isActive = previous;
     hoursError.value = "خطا در تغییر وضعیت روز کاری";
+    await loadWorkingHours();
   } finally {
     togglingIds.value.delete(row.id);
   }
@@ -123,15 +137,16 @@ async function toggleActive(index: number, isActive: boolean) {
 async function saveHours() {
   hoursError.value = "";
   await handleHoursSubmit(async (data) => {
-    const res = await apiPut<WorkingHourRow[]>("/provider/working-hours", {
-      hours: data.hours.map((h) => ({
+    const res = await replaceWorkingHours(
+      data.hours.map((h) => ({
         dayOfWeek: h.dayOfWeek,
         startTime: h.startTime,
         endTime: h.endTime,
         isActive: h.isActive ?? true,
       })),
-    });
-    hoursValues.hours = res.data.map((r) => ({ ...r, isActive: r.isActive ?? true }));
+    );
+    applyWorkingHours(res);
+    await loadWorkingHours();
     hoursMessage.value = "برنامه ذخیره شد";
   });
 }
@@ -165,10 +180,10 @@ async function savePolicy() {
             v-for="(h, i) in hoursValues.hours"
             :key="h.id ?? `new-${i}`"
             class="mb-3 grid grid-cols-[auto_1fr_1fr_1fr_auto] items-center gap-2 rounded-lg border border-[var(--color-border)] p-3"
-            :class="h.isActive === false ? 'opacity-60' : ''"
+            :class="!h.isActive ? 'opacity-60' : ''"
           >
             <UiSwitch
-              :model-value="h.isActive !== false"
+              :model-value="h.isActive"
               label="فعال"
               :disabled="h.id ? togglingIds.has(h.id) || deletingIds.has(h.id) : false"
               @update:model-value="toggleActive(i, $event)"

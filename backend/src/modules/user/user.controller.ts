@@ -11,6 +11,11 @@ export class UserController {
     res.json(successResponse(profile));
   };
 
+  updateProfile = async (req: AuthRequest, res: Response) => {
+    const profile = await userService.updateProfile(req.user!.sub, req.body);
+    res.json(successResponse(profile));
+  };
+
   getAppointments = async (req: QueryRequest, res: Response) => {
     const q = req.validatedQuery ?? req.query;
     const result = await userService.getAppointments(
