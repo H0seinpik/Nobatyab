@@ -31,11 +31,6 @@ const optionalAge = z.preprocess(
   z.number().int("سن باید عدد صحیح باشد").min(1).max(120).optional(),
 );
 
-const optionalLatLng = z.preprocess(
-  (val) => (val === "" || val === undefined || Number.isNaN(val) ? undefined : Number(val)),
-  z.number().optional(),
-);
-
 const userFieldsSchema = z.object({
   email: z.string().min(1, "ایمیل الزامی است").email("ایمیل معتبر نیست"),
   fullName: z.string().min(2, "نام کامل باید حداقل ۲ کاراکتر باشد"),
@@ -60,8 +55,6 @@ const userFieldsSchema = z.object({
     .or(z.literal(""))
     .transform((v) => v || undefined),
   phone: optionalPhone,
-  latitude: optionalLatLng,
-  longitude: optionalLatLng,
   role: z.enum(["USER", "PROVIDER", "ADMIN"]),
   isActive: z.boolean(),
 });

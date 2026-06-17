@@ -65,13 +65,29 @@ function closeSidebar() {
             {{ link.label }}
           </RouterLink>
         </nav>
-        <div class="mt-8">
+        <div class="mt-8 space-y-1">
           <RouterLink
             to="/profile"
             class="block rounded-lg px-3 py-2 text-sm hover:bg-[var(--color-bg)]"
             @click="closeSidebar"
           >
             حساب کاربری
+          </RouterLink>
+          <RouterLink
+            v-if="auth.user?.role === 'ADMIN'"
+            to="/admin"
+            class="block rounded-lg px-3 py-2 text-sm hover:bg-[var(--color-bg)]"
+            @click="closeSidebar"
+          >
+            پنل مدیریت
+          </RouterLink>
+          <RouterLink
+            v-else-if="auth.user?.role === 'PROVIDER'"
+            to="/provider"
+            class="block rounded-lg px-3 py-2 text-sm hover:bg-[var(--color-bg)]"
+            @click="closeSidebar"
+          >
+            پنل ارائه‌دهنده
           </RouterLink>
         </div>
       </aside>

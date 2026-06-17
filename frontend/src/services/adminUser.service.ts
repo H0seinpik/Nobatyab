@@ -10,8 +10,6 @@ export interface AdminUser {
   age: number | null;
   address: string | null;
   phone: string | null;
-  latitude: number | null;
-  longitude: number | null;
   role: "USER" | "PROVIDER" | "ADMIN";
   isActive: boolean;
   createdAt: string;
@@ -28,8 +26,6 @@ export type CreateAdminUserPayload = {
   age?: number;
   address?: string;
   phone?: string;
-  latitude?: number;
-  longitude?: number;
   role: "USER" | "PROVIDER" | "ADMIN";
   isActive: boolean;
 };
@@ -64,8 +60,6 @@ export function mapAdminUserToForm(user: AdminUser) {
     age: user.age ?? undefined,
     address: user.address ?? "",
     phone: user.phone ?? "",
-    latitude: user.latitude ?? undefined,
-    longitude: user.longitude ?? undefined,
     role: user.role,
     isActive: user.isActive,
   };

@@ -22,6 +22,7 @@ export default defineConfig(({ command }) => ({
     },
   },
   server: {
+    open: false,
     port: 5173,
     headers:
       command === "serve" ? { "Content-Security-Policy": DEV_CSP } : undefined,

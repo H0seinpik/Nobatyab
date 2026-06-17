@@ -16,6 +16,10 @@ import SkeletonForm from "@/components/ui/skeleton/SkeletonForm.vue";
 import ContentFade from "@/components/ui/ContentFade.vue";
 import CrudFormShell from "@/components/forms/CrudFormShell.vue";
 import ProviderProfileForm from "@/components/forms/provider/ProviderProfileForm.vue";
+import ProfilePageHeader from "@/components/profile/ProfilePageHeader.vue";
+import AvatarUpload from "@/components/profile/AvatarUpload.vue";
+import AccountProfileSection from "@/components/profile/AccountProfileSection.vue";
+import ChangePasswordSection from "@/components/profile/ChangePasswordSection.vue";
 
 const pageLoading = ref(true);
 const profileSummary = ref<ProviderProfile | null>(null);
@@ -77,15 +81,21 @@ async function openProfileModal() {
 </script>
 
 <template>
-  <div>
-    <h1 class="mb-6 text-2xl font-bold">پروفایل</h1>
+  <div class="max-w-lg space-y-6">
+    <ProfilePageHeader title="پروفایل" />
 
-    <div v-if="pageLoading" class="max-w-lg">
+    <UiCard>
+      <h2 class="mb-4 font-semibold">تصویر پروفایل</h2>
+      <AvatarUpload />
+    </UiCard>
+
+    <AccountProfileSection />
+
+    <div v-if="pageLoading">
       <SkeletonForm :fields="6" />
     </div>
-
     <ContentFade v-else>
-      <UiCard class="max-w-lg">
+      <UiCard>
         <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
           <h2 class="font-semibold">اطلاعات ارائه‌دهنده</h2>
           <UiButton type="button" variant="secondary" @click="openProfileModal">ویرایش</UiButton>
@@ -126,9 +136,11 @@ async function openProfileModal() {
       </UiCard>
     </ContentFade>
 
+    <ChangePasswordSection />
+
     <UiModal
       v-model:open="isOpen"
-      title="ویرایش پروفایل"
+      title="ویرایش پروفایل ارائه‌دهنده"
       size="lg"
       :closable="!formLoading && !submitting"
     >

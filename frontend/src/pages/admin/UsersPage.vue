@@ -40,8 +40,6 @@ const initialValues = {
   age: undefined as number | undefined,
   address: "",
   phone: "",
-  latitude: undefined as number | undefined,
-  longitude: undefined as number | undefined,
   role: "USER" as const,
   isActive: true,
 };
