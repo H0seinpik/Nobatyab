@@ -12,6 +12,14 @@ export class AdminController {
     res.json(successResponse(result.items, result.meta));
   };
 
+  getUser = async (req: AuthRequest, res: Response) => {
+    res.json(successResponse(await adminService.getUser(getParam(req.params.id))));
+  };
+
+  createUser = async (req: AuthRequest, res: Response) => {
+    res.status(201).json(successResponse(await adminService.createUser(req.body)));
+  };
+
   updateUser = async (req: AuthRequest, res: Response) => {
     res.json(successResponse(await adminService.updateUser(getParam(req.params.id), req.body)));
   };

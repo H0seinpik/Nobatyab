@@ -63,3 +63,15 @@ export async function changeUserPassword(currentPassword: string, newPassword: s
   });
   return res.data;
 }
+
+export function mapUserProfileToForm(profile: UserProfile) {
+  return {
+    firstName: profile.firstName ?? profile.fullName.split(" ")[0] ?? "",
+    lastName: profile.lastName ?? profile.fullName.split(" ").slice(1).join(" ") ?? "",
+    nationalCode: profile.nationalCode ?? "",
+    age: profile.age ?? undefined,
+    phone: profile.phone ?? "",
+    address: profile.address ?? "",
+    email: profile.email,
+  };
+}

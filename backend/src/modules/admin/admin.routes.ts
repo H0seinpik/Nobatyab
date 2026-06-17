@@ -3,6 +3,7 @@ import { Role } from "@prisma/client";
 import { adminController } from "./admin.controller.js";
 import {
   adminAppointmentQuerySchema,
+  adminCreateUserSchema,
   adminProviderRequestQuerySchema,
   adminReviewServiceRequestSchema,
   adminServiceRequestIdSchema,
@@ -24,6 +25,16 @@ export const adminRoutes = Router();
 adminRoutes.use(requireAuth, requireRole(Role.ADMIN));
 
 adminRoutes.get("/users", validateQuery(adminUserQuerySchema), asyncHandler(adminController.listUsers));
+adminRoutes.get(
+  "/users/:id",
+  validateParams(adminUserIdSchema),
+  asyncHandler(adminController.getUser),
+);
+adminRoutes.post(
+  "/users",
+  validateBody(adminCreateUserSchema),
+  asyncHandler(adminController.createUser),
+);
 adminRoutes.patch(
   "/users/:id",
   validateParams(adminUserIdSchema),

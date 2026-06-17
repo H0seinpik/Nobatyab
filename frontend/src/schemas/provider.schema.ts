@@ -77,6 +77,9 @@ export const providerServiceFormSchema = z.object({
   description: z.string().max(500).optional().or(z.literal("")),
 });
 
+export const createProviderServiceSchema = providerServiceFormSchema;
+export const updateProviderServiceSchema = providerServiceFormSchema.partial();
+
 export const providerProfileFormSchema = z.object({
   specialization: z.string().max(200, "حداکثر ۲۰۰ کاراکتر").optional().or(z.literal("")),
   bio: z.string().max(2000, "بیوگرافی حداکثر ۲۰۰۰ کاراکتر").optional().or(z.literal("")),

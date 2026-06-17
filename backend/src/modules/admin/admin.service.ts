@@ -1,6 +1,7 @@
 import { Role, ServiceRequestStatus, ProviderRequestStatus } from "@prisma/client";
 import { prisma } from "../../config/database.js";
 import { ApiError, parsePagination, paginationMeta } from "../../shared/utils/apiError.js";
+import { hashPassword } from "../../shared/utils/password.js";
 import type { BaseListQuery } from "../../shared/schemas/listQuery.schema.js";
 import {
   appointmentListConfig,
@@ -9,9 +10,14 @@ import {
 } from "../../shared/utils/queryBuilder.js";
 import { providerRequestService } from "../provider-request/provider-request.service.js";
 import { adminRepository } from "./admin.repository.js";
-import type { adminReviewServiceRequestSchema, adminUpdateUserSchema } from "./admin.schema.js";
+import type {
+  adminCreateUserSchema,
+  adminReviewServiceRequestSchema,
+  adminUpdateUserSchema,
+} from "./admin.schema.js";
 import type { z } from "zod";
 
+type CreateUserInput = z.infer<typeof adminCreateUserSchema>;
 type UpdateUserInput = z.infer<typeof adminUpdateUserSchema>;
 type ReviewServiceRequestInput = z.infer<typeof adminReviewServiceRequestSchema>;
 
@@ -29,15 +35,76 @@ export class AdminService {
     return { items, meta: paginationMeta(built.page, built.pageSize, total) };
   }
 
+  async getUser(id: string) {
+    const user = await this.repo.findUserById(id);
+    if (!user) throw ApiError.notFound("User not found");
+    return user;
+  }
+
+  async createUser(input: CreateUserInput) {
+    const existingEmail = await this.repo.findUserByEmail(input.email);
+    if (existingEmail) throw ApiError.conflict("Email already registered");
+
+    if (input.nationalCode) {
+      const existingCode = await this.repo.findUserByNationalCode(input.nationalCode);
+      if (existingCode) throw ApiError.conflict("National code already registered");
+    }
+
+    const passwordHash = await hashPassword(input.password);
+    const role = input.role ?? Role.USER;
+
+    const user = await this.repo.createUser({
+      email: input.email,
+      passwordHash,
+      fullName: input.fullName,
+      firstName: input.firstName,
+      lastName: input.lastName,
+      nationalCode: input.nationalCode,
+      age: input.age,
+      address: input.address,
+      phone: input.phone,
+      latitude: input.latitude,
+      longitude: input.longitude,
+      role,
+      isActive: input.isActive ?? true,
+      ...(role === Role.PROVIDER
+        ? { providerProfile: { create: {} } }
+        : {}),
+    });
+
+    return user;
+  }
+
   async updateUser(id: string, input: UpdateUserInput) {
     const existing = await this.repo.findUserById(id);
     if (!existing) throw ApiError.notFound("User not found");
+
+    if (input.email && input.email !== existing.email) {
+      const emailTaken = await this.repo.findUserByEmail(input.email);
+      if (emailTaken && emailTaken.id !== id) {
+        throw ApiError.conflict("Email already registered");
+      }
+    }
+
+    if (input.nationalCode && input.nationalCode !== existing.nationalCode) {
+      const codeTaken = await this.repo.findUserByNationalCode(input.nationalCode);
+      if (codeTaken && codeTaken.id !== id) {
+        throw ApiError.conflict("National code already registered");
+      }
+    }
 
     if (input.role === Role.PROVIDER && !existing.providerProfile) {
       await prisma.providerProfile.create({ data: { userId: id } });
     }
 
-    return this.repo.updateUser(id, input);
+    const { password, ...rest } = input;
+    const data: Record<string, unknown> = { ...rest };
+
+    if (password) {
+      data.passwordHash = await hashPassword(password);
+    }
+
+    return this.repo.updateUser(id, data);
   }
 
   async listServiceRequests(query: {

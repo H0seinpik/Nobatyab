@@ -2,13 +2,20 @@
 import { ref } from "vue";
 import { apiPatch } from "@/services/api";
 import { useCrudForm } from "@/composables/useCrudForm";
-import { updateUserSchema } from "@/schemas/admin/user.schema";
+import { createUserSchema, updateUserSchema } from "@/schemas/admin/user.schema";
+import {
+  createAdminUser,
+  getAdminUser,
+  mapAdminUserToForm,
+  updateAdminUser,
+} from "@/services/adminUser.service";
 import DataTable from "@/components/ui/data-table/DataTable.vue";
 import PageHeader from "@/components/layout/PageHeader.vue";
 import UiModal from "@/components/ui/UiModal.vue";
 import UiBadge from "@/components/ui/UiBadge.vue";
+import UiButton from "@/components/ui/UiButton.vue";
 import CrudFormShell from "@/components/forms/CrudFormShell.vue";
-import UserEditForm from "@/components/forms/admin/UserEditForm.vue";
+import UserForm from "@/components/forms/admin/UserForm.vue";
 import {
   usersColumns,
   usersRowActions,
@@ -16,7 +23,6 @@ import {
 } from "@/config/tables/users.columns";
 
 const tableRef = ref<{ refresh: () => void } | null>(null);
-const editingUser = ref<UserRow | null>(null);
 
 const roleLabels: Record<string, string> = {
   ADMIN: "مدیر",
@@ -24,32 +30,49 @@ const roleLabels: Record<string, string> = {
   USER: "کاربر",
 };
 
+const initialValues = {
+  email: "",
+  password: "",
+  fullName: "",
+  firstName: "",
+  lastName: "",
+  nationalCode: "",
+  age: undefined as number | undefined,
+  address: "",
+  phone: "",
+  latitude: undefined as number | undefined,
+  longitude: undefined as number | undefined,
+  role: "USER" as const,
+  isActive: true,
+};
+
 const {
   isOpen,
+  mode,
   formError,
+  modalTitle,
+  formLoading,
   values,
   fieldError,
   touch,
   submitting,
+  openCreate,
   openEdit,
   close,
   submit,
 } = useCrudForm({
-  schemas: { create: updateUserSchema, update: updateUserSchema },
-  initialValues: { role: "USER" as const, isActive: true },
-  update: (id, data) => apiPatch(`/admin/users/${id}`, data),
-  mapEditValues: (row) => {
-    const u = row as unknown as UserRow;
-    return { role: u.role as "USER" | "PROVIDER" | "ADMIN", isActive: u.isActive };
-  },
+  schemas: { create: createUserSchema, update: updateUserSchema },
+  initialValues,
+  create: (data) => createAdminUser(data),
+  update: (id, data) => updateAdminUser(id, data),
+  fetchEdit: async (id) => mapAdminUserToForm(await getAdminUser(id)),
   onSuccess: () => tableRef.value?.refresh(),
 });
 
 async function onRowAction({ action, row }: { action: string; row: Record<string, unknown> }) {
   const user = row as unknown as UserRow;
   if (action === "edit") {
-    editingUser.value = user;
-    openEdit(row);
+    await openEdit(row);
     return;
   }
   if (action === "toggle-active") {
@@ -65,7 +88,11 @@ async function onRowAction({ action, row }: { action: string; row: Record<string
 
 <template>
   <div>
-    <PageHeader title="کاربران" description="مدیریت نقش و وضعیت کاربران" />
+    <PageHeader title="کاربران" description="مدیریت کاربران سیستم">
+      <template #actions>
+        <UiButton @click="openCreate()">افزودن کاربر</UiButton>
+      </template>
+    </PageHeader>
 
     <DataTable
       ref="tableRef"
@@ -83,19 +110,23 @@ async function onRowAction({ action, row }: { action: string; row: Record<string
       </template>
     </DataTable>
 
-    <UiModal v-model:open="isOpen" title="ویرایش کاربر">
-      <p v-if="editingUser" class="mb-4 text-sm text-[var(--color-muted)]">
-        {{ editingUser.fullName }} — {{ editingUser.email }}
-      </p>
+    <UiModal
+      v-model:open="isOpen"
+      :title="`${modalTitle} کاربر`"
+      size="lg"
+      :closable="!formLoading && !submitting"
+    >
       <form @submit.prevent="submit">
         <CrudFormShell
+          :loading="formLoading"
           :submitting="submitting"
           :error="formError"
           submit-label="ذخیره"
           @submit="submit"
           @cancel="close"
         >
-          <UserEditForm
+          <UserForm
+            :mode="mode"
             :values="values"
             :field-error="(f) => fieldError(f as keyof typeof values)"
             :touch="(f) => touch(f as keyof typeof values)"

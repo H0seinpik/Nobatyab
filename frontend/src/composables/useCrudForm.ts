@@ -10,6 +10,7 @@ export interface UseCrudFormOptions<T extends Record<string, unknown>> {
   initialValues: T;
   create?: (data: T) => Promise<unknown>;
   update?: (id: string, data: Partial<T>) => Promise<unknown>;
+  fetchEdit?: (id: string) => Promise<T>;
   mapEditValues?: (row: Record<string, unknown>) => T;
   onSuccess?: () => void;
 }
@@ -19,8 +20,11 @@ export function useCrudForm<T extends Record<string, unknown>>(options: UseCrudF
   const mode = ref<CrudMode>("create");
   const editingId = ref<string | null>(null);
   const formError = ref<string | null>(null);
+  const formLoading = ref(false);
 
   const form = useZodForm(options.schemas.create, options.initialValues);
+
+  const isBusy = computed(() => formLoading.value || form.submitting.value);
 
   function validateAll() {
     for (const key of Object.keys(form.values) as Array<keyof T & string>) {
@@ -36,24 +40,42 @@ export function useCrudForm<T extends Record<string, unknown>>(options: UseCrudF
     mode.value = "create";
     editingId.value = null;
     formError.value = null;
+    formLoading.value = false;
     form.reset(structuredClone(options.initialValues));
     isOpen.value = true;
   }
 
-  function openEdit(row: Record<string, unknown>) {
+  async function openEdit(row: Record<string, unknown>) {
     mode.value = "edit";
     editingId.value = String(row.id);
     formError.value = null;
+    isOpen.value = true;
+
+    if (options.fetchEdit) {
+      formLoading.value = true;
+      form.reset(structuredClone(options.initialValues));
+      try {
+        const values = await options.fetchEdit(editingId.value);
+        form.reset(values);
+      } catch {
+        formError.value = "خطا در بارگذاری اطلاعات";
+      } finally {
+        formLoading.value = false;
+      }
+      return;
+    }
+
     const values = options.mapEditValues
       ? options.mapEditValues(row)
       : (structuredClone(row) as T);
     form.reset(values);
-    isOpen.value = true;
   }
 
   function close() {
+    if (formLoading.value || form.submitting.value) return;
     isOpen.value = false;
     formError.value = null;
+    formLoading.value = false;
   }
 
   async function submit() {
@@ -71,7 +93,9 @@ export function useCrudForm<T extends Record<string, unknown>>(options: UseCrudF
         await options.update?.(editingId.value, data);
       }
       options.onSuccess?.();
-      close();
+      isOpen.value = false;
+      formError.value = null;
+      formLoading.value = false;
       return true;
     } catch {
       formError.value = "عملیات ناموفق بود";
@@ -88,6 +112,8 @@ export function useCrudForm<T extends Record<string, unknown>>(options: UseCrudF
     mode,
     editingId,
     formError,
+    formLoading,
+    isBusy,
     modalTitle,
     ...form,
     validateAll,

@@ -1,6 +1,24 @@
 import { Prisma, ServiceRequestStatus } from "@prisma/client";
 import { prisma } from "../../config/database.js";
 
+const adminUserSelect = {
+  id: true,
+  email: true,
+  fullName: true,
+  firstName: true,
+  lastName: true,
+  nationalCode: true,
+  age: true,
+  address: true,
+  phone: true,
+  latitude: true,
+  longitude: true,
+  role: true,
+  isActive: true,
+  createdAt: true,
+  providerProfile: { select: { id: true } },
+} satisfies Prisma.UserSelect;
+
 export class AdminRepository {
   findUsers(filters: {
     where?: Prisma.UserWhereInput;
@@ -34,16 +52,22 @@ export class AdminRepository {
   findUserById(id: string) {
     return prisma.user.findUnique({
       where: { id },
-      select: {
-        id: true,
-        email: true,
-        fullName: true,
-        phone: true,
-        role: true,
-        isActive: true,
-        createdAt: true,
-        providerProfile: { select: { id: true } },
-      },
+      select: adminUserSelect,
+    });
+  }
+
+  findUserByEmail(email: string) {
+    return prisma.user.findUnique({ where: { email }, select: { id: true } });
+  }
+
+  findUserByNationalCode(nationalCode: string) {
+    return prisma.user.findUnique({ where: { nationalCode }, select: { id: true } });
+  }
+
+  createUser(data: Prisma.UserCreateInput) {
+    return prisma.user.create({
+      data,
+      select: adminUserSelect,
     });
   }
 
@@ -51,16 +75,7 @@ export class AdminRepository {
     return prisma.user.update({
       where: { id },
       data,
-      select: {
-        id: true,
-        email: true,
-        fullName: true,
-        phone: true,
-        role: true,
-        isActive: true,
-        createdAt: true,
-        providerProfile: { select: { id: true } },
-      },
+      select: adminUserSelect,
     });
   }
 

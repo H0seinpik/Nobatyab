@@ -1,15 +1,41 @@
 import { z } from "zod";
 import { Role, ServiceRequestStatus, ProviderRequestStatus } from "@prisma/client";
 import { baseListQuerySchema } from "../../shared/schemas/listQuery.schema.js";
+import {
+  iranianPhoneSchema,
+  nationalCodeSchema,
+} from "../../shared/schemas/iranianIdentity.schema.js";
 
 export const adminUserQuerySchema = baseListQuerySchema;
 
 export const adminUserIdSchema = z.object({ id: z.string().cuid() });
 
-export const adminUpdateUserSchema = z.object({
-  isActive: z.boolean().optional(),
+const adminUserFieldsSchema = z.object({
+  email: z.string().email(),
+  fullName: z.string().min(2),
+  firstName: z.string().min(2).optional(),
+  lastName: z.string().min(2).optional(),
+  nationalCode: nationalCodeSchema.optional(),
+  age: z.number().int().min(1).max(120).optional(),
+  address: z.string().max(500).optional(),
+  phone: iranianPhoneSchema.optional(),
+  latitude: z.number().min(-90).max(90).optional(),
+  longitude: z.number().min(-180).max(180).optional(),
   role: z.nativeEnum(Role).optional(),
+  isActive: z.boolean().optional(),
 });
+
+export const adminCreateUserSchema = adminUserFieldsSchema.extend({
+  password: z.string().min(8),
+  role: z.nativeEnum(Role).default(Role.USER),
+  isActive: z.boolean().default(true),
+});
+
+export const adminUpdateUserSchema = adminUserFieldsSchema
+  .partial()
+  .extend({
+    password: z.string().min(8).optional(),
+  });
 
 export const adminServiceRequestQuerySchema = baseListQuerySchema.extend({
   status: z.nativeEnum(ServiceRequestStatus).optional(),

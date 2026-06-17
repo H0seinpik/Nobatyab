@@ -8,8 +8,9 @@ const props = withDefaults(
     title?: string;
     size?: "sm" | "md" | "lg";
     closeOnOverlay?: boolean;
+    closable?: boolean;
   }>(),
-  { size: "md", closeOnOverlay: true },
+  { size: "md", closeOnOverlay: true, closable: true },
 );
 
 const emit = defineEmits<{ close: [] }>();
@@ -21,16 +22,17 @@ const sizeClass = {
 };
 
 function close() {
+  if (!props.closable) return;
   open.value = false;
   emit("close");
 }
 
 function onKeydown(e: KeyboardEvent) {
-  if (e.key === "Escape" && open.value) close();
+  if (e.key === "Escape" && open.value && props.closable) close();
 }
 
 function onOverlayClick() {
-  if (props.closeOnOverlay) close();
+  if (props.closeOnOverlay && props.closable) close();
 }
 
 watch(open, (isOpen) => {
@@ -66,6 +68,7 @@ onUnmounted(() => {
             <h2 class="text-lg font-semibold">{{ title }}</h2>
           </slot>
           <button
+            v-if="closable"
             type="button"
             class="rounded-lg p-1 text-[var(--color-muted)] hover:bg-[var(--color-bg)]"
             aria-label="بستن"

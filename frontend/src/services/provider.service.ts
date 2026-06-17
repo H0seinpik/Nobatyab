@@ -86,6 +86,18 @@ export async function updateProviderProfile(data: UpdateProviderProfilePayload) 
   return res.data;
 }
 
+export function mapProviderProfileToForm(profile: ProviderProfile) {
+  return {
+    specialization: profile.specialization ?? "",
+    bio: profile.bio ?? "",
+    address: profile.address ?? "",
+    latitude: profile.latitude ?? undefined,
+    longitude: profile.longitude ?? undefined,
+    slotDurationMinutes: profile.slotDurationMinutes,
+    isAcceptingBookings: profile.isAcceptingBookings,
+  };
+}
+
 export async function getWorkingHours() {
   const res = await apiGet<WorkingHour[]>("/provider/working-hours");
   return res.data.map((row) => normalizeWorkingHour(row)) as WorkingHour[];

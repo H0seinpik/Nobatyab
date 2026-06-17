@@ -22,7 +22,7 @@ const emit = defineEmits<{ submit: []; cancel: [] }>();
       <slot />
       <UiAlert v-if="error" variant="error" class="mt-4">{{ error }}</UiAlert>
       <div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-        <UiButton variant="secondary" :disabled="submitting" @click="emit('cancel')">
+        <UiButton variant="secondary" :disabled="loading || submitting" @click="emit('cancel')">
           {{ cancelLabel ?? "انصراف" }}
         </UiButton>
         <UiButton

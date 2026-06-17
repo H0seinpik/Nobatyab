@@ -3,14 +3,18 @@ import { onMounted, ref } from "vue";
 import { RouterLink } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import { useLogout } from "@/composables/useLogout";
+import { useCrudForm } from "@/composables/useCrudForm";
 import { useZodForm } from "@/composables/useZodForm";
 import { updateProfileFormSchema, changePasswordFormSchema } from "@/schemas/profile.schema";
 import UiCard from "@/components/ui/UiCard.vue";
 import UiInput from "@/components/ui/UiInput.vue";
 import UiButton from "@/components/ui/UiButton.vue";
 import UiAlert from "@/components/ui/UiAlert.vue";
+import UiModal from "@/components/ui/UiModal.vue";
 import SkeletonForm from "@/components/ui/skeleton/SkeletonForm.vue";
 import ContentFade from "@/components/ui/ContentFade.vue";
+import CrudFormShell from "@/components/forms/CrudFormShell.vue";
+import UserProfileForm from "@/components/forms/user/UserProfileForm.vue";
 import AvatarUpload from "@/components/profile/AvatarUpload.vue";
 import ThemeSettings from "@/components/profile/ThemeSettings.vue";
 import {
@@ -18,14 +22,19 @@ import {
   submitProviderRequest,
   type ProviderRequest,
 } from "@/services/providerRequest.service";
-import { getUserProfile, updateUserProfile } from "@/services/user.service";
+import {
+  getUserProfile,
+  mapUserProfileToForm,
+  updateUserProfile,
+  type UserProfile,
+} from "@/services/user.service";
 
 const auth = useAuthStore();
 const logout = useLogout();
 const pageLoading = ref(true);
-
+const profileSummary = ref<UserProfile | null>(null);
 const profileSuccess = ref("");
-const profileError = ref("");
+
 const passwordSuccess = ref("");
 const passwordError = ref("");
 
@@ -36,14 +45,7 @@ const providerRequestSubmitting = ref(false);
 const providerRequestSuccess = ref("");
 const providerRequestError = ref("");
 
-const {
-  values: profileValues,
-  fieldError: profileFieldError,
-  touch: profileTouch,
-  isValid: profileValid,
-  submitting: profileSubmitting,
-  validateAll: validateProfile,
-} = useZodForm(updateProfileFormSchema, {
+const profileInitialValues = {
   firstName: "",
   lastName: "",
   nationalCode: "",
@@ -51,6 +53,37 @@ const {
   phone: "",
   address: "",
   email: "",
+};
+
+const {
+  isOpen: profileModalOpen,
+  formError: profileFormError,
+  formLoading: profileFormLoading,
+  values: profileValues,
+  fieldError: profileFieldError,
+  touch: profileTouch,
+  submitting: profileSubmitting,
+  openEdit: openProfileEdit,
+  close: closeProfileModal,
+  submit: submitProfile,
+} = useCrudForm({
+  schemas: { create: updateProfileFormSchema, update: updateProfileFormSchema },
+  initialValues: profileInitialValues,
+  fetchEdit: async () => mapUserProfileToForm(await getUserProfile()),
+  update: async (_id, data) => {
+    await updateUserProfile({
+      firstName: data.firstName,
+      lastName: data.lastName,
+      nationalCode: data.nationalCode || undefined,
+      age: data.age,
+      phone: data.phone || undefined,
+      address: data.address || undefined,
+      email: data.email,
+    });
+    await auth.fetchMe();
+    profileSummary.value = await getUserProfile();
+    profileSuccess.value = "پروفایل با موفقیت به‌روزرسانی شد";
+  },
 });
 
 const {
@@ -67,17 +100,9 @@ const {
   confirmPassword: "",
 });
 
-onMounted(async () => {
+async function loadPage() {
   try {
-    const profile = await getUserProfile();
-    profileValues.firstName = profile.firstName ?? profile.fullName.split(" ")[0] ?? "";
-    profileValues.lastName =
-      profile.lastName ?? profile.fullName.split(" ").slice(1).join(" ") ?? "";
-    profileValues.nationalCode = profile.nationalCode ?? "";
-    profileValues.age = profile.age ?? undefined;
-    profileValues.phone = profile.phone ?? "";
-    profileValues.address = profile.address ?? "";
-    profileValues.email = profile.email;
+    profileSummary.value = await getUserProfile();
     await auth.fetchMe();
     if (auth.user?.role === "USER") {
       providerRequestLoading.value = true;
@@ -90,7 +115,14 @@ onMounted(async () => {
   } finally {
     pageLoading.value = false;
   }
-});
+}
+
+onMounted(loadPage);
+
+async function openProfileModal() {
+  profileSuccess.value = "";
+  await openProfileEdit({ id: "profile" });
+}
 
 async function submitProviderApplication() {
   providerRequestSuccess.value = "";
@@ -123,32 +155,6 @@ async function submitProviderApplication() {
     }
   } finally {
     providerRequestSubmitting.value = false;
-  }
-}
-
-async function saveProfile() {
-  profileSuccess.value = "";
-  profileError.value = "";
-  if (!validateProfile()) return;
-
-  profileSubmitting.value = true;
-  try {
-    await updateUserProfile({
-      firstName: profileValues.firstName,
-      lastName: profileValues.lastName,
-      nationalCode: profileValues.nationalCode || undefined,
-      age: profileValues.age,
-      phone: profileValues.phone || undefined,
-      address: profileValues.address || undefined,
-      email: profileValues.email,
-    });
-    await auth.fetchMe();
-    profileSuccess.value = "پروفایل با موفقیت به‌روزرسانی شد";
-  } catch (e: unknown) {
-    const err = e as { response?: { data?: { error?: { message?: string } } } };
-    profileError.value = err.response?.data?.error?.message ?? "خطا در به‌روزرسانی پروفایل";
-  } finally {
-    profileSubmitting.value = false;
   }
 }
 
@@ -187,71 +193,43 @@ async function changePassword() {
       </UiCard>
 
       <UiCard>
-        <h2 class="mb-4 font-semibold">اطلاعات حساب</h2>
-        <form class="space-y-4" @submit.prevent="saveProfile">
-          <UiInput
-            v-model="profileValues.firstName"
-            label="نام"
-            required
-            :error="profileFieldError('firstName')"
-            @blur="profileTouch('firstName')"
-          />
-          <UiInput
-            v-model="profileValues.lastName"
-            label="نام خانوادگی"
-            required
-            :error="profileFieldError('lastName')"
-            @blur="profileTouch('lastName')"
-          />
-          <UiInput
-            v-model="profileValues.nationalCode"
-            label="کد ملی"
-            inputmode="numeric"
-            maxlength="10"
-            :error="profileFieldError('nationalCode')"
-            @blur="profileTouch('nationalCode')"
-          />
-          <UiInput
-            v-model.number="profileValues.age"
-            label="سن"
-            type="number"
-            min="1"
-            max="120"
-            :error="profileFieldError('age')"
-            @blur="profileTouch('age')"
-          />
-          <UiInput
-            v-model="profileValues.email"
-            label="ایمیل"
-            type="email"
-            required
-            :error="profileFieldError('email')"
-            @blur="profileTouch('email')"
-          />
-          <UiInput
-            v-model="profileValues.phone"
-            label="شماره تماس"
-            type="tel"
-            placeholder="09xxxxxxxxx"
-            :error="profileFieldError('phone')"
-            @blur="profileTouch('phone')"
-          />
-          <UiInput
-            v-model="profileValues.address"
-            label="آدرس"
-            :error="profileFieldError('address')"
-            @blur="profileTouch('address')"
-          />
-          <UiAlert v-if="profileSuccess" variant="success">{{ profileSuccess }}</UiAlert>
-          <UiAlert v-if="profileError" variant="error">{{ profileError }}</UiAlert>
-          <UiButton
-            type="submit"
-            :loading="profileSubmitting"
-            :disabled="!profileValid || profileSubmitting"
-          >
-            ذخیره تغییرات
-          </UiButton>
-        </form>
+        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <h2 class="font-semibold">اطلاعات حساب</h2>
+          <UiButton type="button" variant="secondary" @click="openProfileModal">ویرایش پروفایل</UiButton>
+        </div>
+
+        <dl v-if="profileSummary" class="space-y-3 text-sm">
+          <div class="flex justify-between gap-4">
+            <dt class="text-[var(--color-muted)]">نام</dt>
+            <dd>{{ profileSummary.firstName ?? "—" }}</dd>
+          </div>
+          <div class="flex justify-between gap-4">
+            <dt class="text-[var(--color-muted)]">نام خانوادگی</dt>
+            <dd>{{ profileSummary.lastName ?? "—" }}</dd>
+          </div>
+          <div class="flex justify-between gap-4">
+            <dt class="text-[var(--color-muted)]">کد ملی</dt>
+            <dd>{{ profileSummary.nationalCode ?? "—" }}</dd>
+          </div>
+          <div class="flex justify-between gap-4">
+            <dt class="text-[var(--color-muted)]">سن</dt>
+            <dd>{{ profileSummary.age ?? "—" }}</dd>
+          </div>
+          <div class="flex justify-between gap-4">
+            <dt class="text-[var(--color-muted)]">ایمیل</dt>
+            <dd>{{ profileSummary.email }}</dd>
+          </div>
+          <div class="flex justify-between gap-4">
+            <dt class="text-[var(--color-muted)]">شماره تماس</dt>
+            <dd>{{ profileSummary.phone ?? "—" }}</dd>
+          </div>
+          <div class="flex justify-between gap-4">
+            <dt class="text-[var(--color-muted)]">آدرس</dt>
+            <dd class="text-left">{{ profileSummary.address ?? "—" }}</dd>
+          </div>
+        </dl>
+
+        <UiAlert v-if="profileSuccess" variant="success" class="mt-4">{{ profileSuccess }}</UiAlert>
       </UiCard>
 
       <UiCard v-if="auth.user?.role === 'USER'">
@@ -354,5 +332,28 @@ async function changePassword() {
         </form>
       </UiCard>
     </ContentFade>
+
+    <UiModal
+      v-model:open="profileModalOpen"
+      title="ویرایش پروفایل"
+      :closable="!profileFormLoading && !profileSubmitting"
+    >
+      <form @submit.prevent="submitProfile">
+        <CrudFormShell
+          :loading="profileFormLoading"
+          :submitting="profileSubmitting"
+          :error="profileFormError"
+          submit-label="ذخیره"
+          @submit="submitProfile"
+          @cancel="closeProfileModal"
+        >
+          <UserProfileForm
+            :values="profileValues"
+            :field-error="(f) => profileFieldError(f as keyof typeof profileValues)"
+            :touch="(f) => profileTouch(f as keyof typeof profileValues)"
+          />
+        </CrudFormShell>
+      </form>
+    </UiModal>
   </div>
 </template>
