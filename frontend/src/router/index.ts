@@ -66,7 +66,7 @@ const router = createRouter({
       meta: { requiresAuth: true, roles: ["PROVIDER"] as UserRole[] },
       children: [
         { path: "", name: "provider-dashboard", component: () => import("@/pages/provider/ProviderDashboardPage.vue") },
-        { path: "profile", name: "provider-profile", component: () => import("@/pages/provider/ProfilePage.vue") },
+        { path: "profile", redirect: "/profile" },
         {
           path: "schedule",
           name: "provider-schedule",

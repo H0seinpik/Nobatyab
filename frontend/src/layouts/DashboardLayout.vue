@@ -23,7 +23,7 @@ const links = computed(() => {
   }
   return [
     { to: "/provider", label: "داشبورد" },
-    { to: "/provider/profile", label: "پروفایل" },
+    { to: "/profile", label: "پروفایل" },
     { to: "/provider/schedule", label: "برنامه کاری" },
     { to: "/provider/services", label: "خدمات من" },
     { to: "/provider/appointments", label: "نوبت‌ها" },
@@ -69,9 +69,10 @@ function closeSidebar() {
           <RouterLink
             to="/profile"
             class="block rounded-lg px-3 py-2 text-sm hover:bg-[var(--color-bg)]"
+            :class="route.path === '/profile' ? 'bg-[var(--color-primary)] text-white' : ''"
             @click="closeSidebar"
           >
-            حساب کاربری
+            پروفایل
           </RouterLink>
           <RouterLink
             v-if="auth.user?.role === 'ADMIN'"

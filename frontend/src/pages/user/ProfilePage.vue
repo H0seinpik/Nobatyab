@@ -13,6 +13,7 @@ import ThemeSettings from "@/components/profile/ThemeSettings.vue";
 import ProfilePageHeader from "@/components/profile/ProfilePageHeader.vue";
 import AccountProfileSection from "@/components/profile/AccountProfileSection.vue";
 import ChangePasswordSection from "@/components/profile/ChangePasswordSection.vue";
+import ProviderBusinessProfileSection from "@/components/profile/ProviderBusinessProfileSection.vue";
 import {
   getMyProviderRequest,
   submitProviderRequest,
@@ -98,6 +99,8 @@ async function submitProviderApplication() {
       </UiCard>
 
       <AccountProfileSection />
+
+      <ProviderBusinessProfileSection v-if="auth.user?.role === 'PROVIDER'" />
 
       <UiCard v-if="auth.user?.role === 'USER'">
         <h2 class="mb-2 font-semibold">درخواست ارائه‌دهنده شدن</h2>
