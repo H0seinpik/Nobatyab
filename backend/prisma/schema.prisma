@@ -145,7 +145,6 @@ model ProviderProfile {
   updatedAt           DateTime @updatedAt
 
   user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  workingHours       WorkingHours[]
   cancellationPolicy CancellationPolicy?
   providerServices   ProviderService[]
   appointments       Appointment[]
@@ -166,6 +165,8 @@ model ProviderService {
   provider     ProviderProfile @relation(fields: [providerId], references: [id], onDelete: Cascade)
   service      Service         @relation(fields: [serviceId], references: [id], onDelete: Restrict)
   appointments Appointment[]
+  workingHours WorkingHours[]
+  timeSlots    TimeSlot[]
 
   @@unique([providerId, serviceId])
 }
@@ -207,18 +208,18 @@ model ProviderRequest {
 }
 
 model WorkingHours {
-  id         String   @id @default(cuid())
-  providerId String
-  dayOfWeek  Int
-  startTime  String
-  endTime    String
-  isActive   Boolean  @default(true)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id                String   @id @default(cuid())
+  providerServiceId String
+  dayOfWeek         Int
+  startTime         String
+  endTime           String
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
-  provider ProviderProfile @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  providerService ProviderService @relation(fields: [providerServiceId], references: [id], onDelete: Cascade)
 
-  @@index([providerId, dayOfWeek])
+  @@index([providerServiceId, dayOfWeek])
 }
 
 model CancellationPolicy {
@@ -319,23 +320,27 @@ model UserAvailability {
 }
 
 model TimeSlot {
-  id            String   @id @default(cuid())
-  providerId    String
-  date          String
-  startTime     String
-  endTime       String
-  isBooked      Boolean  @default(false)
-  isActive      Boolean  @default(true)
-  appointmentId String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id                String   @id @default(cuid())
+  providerId        String
+  providerServiceId String
+  date              String
+  startTime         String
+  endTime           String
+  isBooked          Boolean  @default(false)
+  isActive          Boolean  @default(true)
+  appointmentId     String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
-  provider    ProviderProfile @relation(fields: [providerId], references: [id], onDelete: Cascade)
-  appointment Appointment?    @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  provider        ProviderProfile @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  providerService ProviderService @relation(fields: [providerServiceId], references: [id], onDelete: Cascade)
+  appointment     Appointment?    @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
 
-  @@unique([providerId, date, startTime])
+  @@unique([providerServiceId, date, startTime])
   @@index([providerId, date, isBooked])
   @@index([providerId, date, isActive])
+  @@index([providerServiceId, date, isBooked])
+  @@index([providerServiceId, date, isActive])
 }
 
 model BookingIdempotency {

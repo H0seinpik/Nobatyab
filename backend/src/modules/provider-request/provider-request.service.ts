@@ -15,8 +15,6 @@ export class ProviderRequestService {
   private repo = providerRequestRepository;
 
   async submit(userId: string, input: SubmitInput) {
-    console.log("[ProviderRequest] submit userId:", userId, "body:", JSON.stringify(input));
-
     const user = await prisma.user.findUnique({
       where: { id: userId },
       include: { providerProfile: true },
@@ -27,23 +25,25 @@ export class ProviderRequestService {
       throw ApiError.badRequest("You are already a provider");
     }
 
+    const approved = await this.repo.findApprovedByUserId(userId);
+    if (approved) {
+      throw ApiError.badRequest("You are already a provider");
+    }
+
     const pending = await this.repo.findPendingByUserId(userId);
     if (pending) {
       throw ApiError.conflict("You already have a pending provider request");
     }
 
     try {
-      const created = await this.repo.create({
+      return await this.repo.create({
         userId,
         note: input.note,
       });
-      console.log("[ProviderRequest] created:", JSON.stringify(created));
-      return created;
     } catch (error) {
       if (isUniqueConstraintError(error)) {
         throw ApiError.conflict("You already have a pending provider request");
       }
-      console.error("[ProviderRequest] create failed:", error);
       throw ApiError.internal("Failed to submit provider request");
     }
   }
@@ -67,11 +67,6 @@ export class ProviderRequestService {
       skip,
       take: limit,
     });
-
-    console.log(
-      "[ProviderRequest] admin list:",
-      JSON.stringify({ status, page, limit, count: items.length, total }),
-    );
 
     return {
       items,

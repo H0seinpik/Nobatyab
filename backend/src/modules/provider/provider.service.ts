@@ -43,35 +43,67 @@ export class ProviderService {
     return this.repo.updateProfile(providerId, input);
   }
 
-  async getWorkingHours(userId: string) {
+  private async resolveProviderServiceId(userId: string, providerServiceId: string) {
     const providerId = await this.getProviderProfileId(userId);
-    return this.repo.findWorkingHours(providerId);
+    try {
+      return {
+        providerId,
+        providerServiceId: await this.repo.assertProviderServiceOwnership(
+          providerId,
+          providerServiceId,
+        ),
+      };
+    } catch {
+      throw ApiError.notFound("Provider service not found");
+    }
   }
 
-  async replaceWorkingHours(userId: string, input: ReplaceWorkingHoursInput) {
-    const providerId = await this.getProviderProfileId(userId);
+  async getWorkingHours(userId: string, providerServiceId: string) {
+    const { providerServiceId: serviceId } = await this.resolveProviderServiceId(
+      userId,
+      providerServiceId,
+    );
+    return this.repo.findWorkingHours(serviceId);
+  }
+
+  async replaceWorkingHours(
+    userId: string,
+    providerServiceId: string,
+    input: ReplaceWorkingHoursInput,
+  ) {
+    const { providerId, providerServiceId: serviceId } = await this.resolveProviderServiceId(
+      userId,
+      providerServiceId,
+    );
 
     for (const entry of input.hours) {
       this.assertValidTimeRange(entry.startTime, entry.endTime);
     }
 
-    await this.repo.replaceWorkingHours(providerId, input.hours);
-    await timeSlotSyncService.syncProvider(providerId);
-    return this.repo.findWorkingHours(providerId);
+    await this.repo.replaceWorkingHours(serviceId, input.hours);
+    await timeSlotSyncService.syncProviderService(serviceId, providerId);
+    return this.repo.findWorkingHours(serviceId);
   }
 
-  async createWorkingHour(userId: string, input: CreateWorkingHourInput) {
-    const providerId = await this.getProviderProfileId(userId);
+  async createWorkingHour(
+    userId: string,
+    providerServiceId: string,
+    input: CreateWorkingHourInput,
+  ) {
+    const { providerId, providerServiceId: serviceId } = await this.resolveProviderServiceId(
+      userId,
+      providerServiceId,
+    );
     this.assertValidTimeRange(input.startTime, input.endTime);
 
-    await this.repo.createWorkingHour(providerId, {
+    await this.repo.createWorkingHour(serviceId, {
       dayOfWeek: input.dayOfWeek,
       startTime: input.startTime,
       endTime: input.endTime,
       isActive: input.isActive,
     });
-    await timeSlotSyncService.syncProvider(providerId);
-    return this.repo.findWorkingHours(providerId);
+    await timeSlotSyncService.syncProviderService(serviceId, providerId);
+    return this.repo.findWorkingHours(serviceId);
   }
 
   private assertValidTimeRange(startTime: string, endTime: string) {
@@ -80,28 +112,35 @@ export class ProviderService {
     }
   }
 
-  async deleteWorkingHour(userId: string, hourId: string) {
-    const providerId = await this.getProviderProfileId(userId);
-    const existing = await this.repo.findWorkingHourById(providerId, hourId);
+  async deleteWorkingHour(userId: string, providerServiceId: string, hourId: string) {
+    const { providerId, providerServiceId: serviceId } = await this.resolveProviderServiceId(
+      userId,
+      providerServiceId,
+    );
+    const existing = await this.repo.findWorkingHourById(serviceId, hourId);
     if (!existing) throw ApiError.notFound("Working day not found");
 
-    await this.repo.deleteWorkingHour(providerId, hourId);
-    await timeSlotSyncService.syncProvider(providerId);
-    return this.repo.findWorkingHours(providerId);
+    await this.repo.deleteWorkingHour(serviceId, hourId);
+    await timeSlotSyncService.syncProviderService(serviceId, providerId);
+    return this.repo.findWorkingHours(serviceId);
   }
 
-  async toggleWorkingDay(userId: string, hourId: string, isActive: boolean) {
-    const providerId = await this.getProviderProfileId(userId);
-    const existing = await this.repo.findWorkingHourById(providerId, hourId);
+  async toggleWorkingDay(
+    userId: string,
+    providerServiceId: string,
+    hourId: string,
+    isActive: boolean,
+  ) {
+    const { providerId, providerServiceId: serviceId } = await this.resolveProviderServiceId(
+      userId,
+      providerServiceId,
+    );
+    const existing = await this.repo.findWorkingHourById(serviceId, hourId);
     if (!existing) throw ApiError.notFound("Working day not found");
 
-    await this.repo.updateWorkingHour(providerId, hourId, { isActive });
-    await timeSlotSyncService.syncProvider(providerId);
-    const hours = await this.repo.findWorkingHours(providerId);
-    console.log(
-      `[Provider] working-hour status id=${hourId} providerId=${providerId} isActive=${isActive}`,
-    );
-    return hours;
+    await this.repo.updateWorkingHour(serviceId, hourId, { isActive });
+    await timeSlotSyncService.syncProviderService(serviceId, providerId);
+    return this.repo.findWorkingHours(serviceId);
   }
 
   async getCancellationPolicy(userId: string) {
@@ -199,12 +238,15 @@ export class ProviderService {
       });
       if (existing) throw ApiError.conflict("You already offer this service");
 
-      return this.repo.createProviderServiceLink({
+      const created = await this.repo.createProviderServiceLink({
         providerId,
         serviceId: input.serviceId,
         price: input.price!,
         duration: input.duration!,
       });
+      await this.repo.copyWorkingHoursFromSibling(providerId, created.id);
+      await timeSlotSyncService.syncProviderService(created.id, providerId);
+      return created;
     }
 
     const category =
@@ -221,12 +263,15 @@ export class ProviderService {
       basePrice: input.price!,
     });
 
-    return this.repo.createProviderServiceLink({
+    const created = await this.repo.createProviderServiceLink({
       providerId,
       serviceId: service.id,
       price: input.price!,
       duration: input.duration!,
     });
+    await this.repo.copyWorkingHoursFromSibling(providerId, created.id);
+    await timeSlotSyncService.syncProviderService(created.id, providerId);
+    return created;
   }
 
   async updateProviderService(userId: string, id: string, input: UpdateProviderServiceInput) {

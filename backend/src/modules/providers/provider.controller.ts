@@ -26,6 +26,17 @@ export class PublicProviderController {
     });
     res.json(successResponse(slots));
   };
+
+  getAvailableDays = async (req: QueryRequest, res: Response) => {
+    const q = req.validatedQuery ?? req.query;
+    const dates = await slotService.getAvailableDays({
+      providerId: getParam(req.params.id),
+      providerServiceId: q.providerServiceId as string,
+      from: q.from as string | undefined,
+      horizonDays: q.horizonDays ? Number(q.horizonDays) : undefined,
+    });
+    res.json(successResponse({ dates }));
+  };
 }
 
 export const publicProviderController = new PublicProviderController();

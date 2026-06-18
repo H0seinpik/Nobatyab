@@ -19,9 +19,21 @@ const providerSlotsQuerySchema = z.object({
   providerServiceId: z.string().cuid(),
 });
 
+const providerAvailableDaysQuerySchema = z.object({
+  providerServiceId: z.string().cuid(),
+  from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  horizonDays: z.coerce.number().int().min(1).max(60).optional(),
+});
+
 export const providerRoutes = Router();
 
 providerRoutes.get("/", validateQuery(providerQuerySchema), asyncHandler(publicProviderController.list));
+providerRoutes.get(
+  "/:id/available-days",
+  validateParams(providerIdSchema),
+  validateQuery(providerAvailableDaysQuerySchema),
+  asyncHandler(publicProviderController.getAvailableDays),
+);
 providerRoutes.get(
   "/:id/slots",
   validateParams(providerIdSchema),

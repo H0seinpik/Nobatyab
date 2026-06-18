@@ -62,7 +62,6 @@ export class PublicProviderRepository {
           where: { isActive: true, service: { isActive: true } },
           include: { service: { include: { category: true } } },
         },
-        workingHours: { orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }] },
         cancellationPolicy: true,
       },
     });

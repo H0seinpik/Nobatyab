@@ -62,6 +62,7 @@ export class SmartBookingService {
       throw ApiError.notFound("No providers found offering this service");
     }
 
+    const providerServiceIds = providerServices.map((ps) => ps.id);
     const providerIds = [...new Set(providerServices.map((ps) => ps.providerId))];
     const horizonDays = input.horizonDays ?? 14;
 
@@ -70,7 +71,7 @@ export class SmartBookingService {
     const today = formatLocalDate(new Date());
     const endDate = addDays(today, horizonDays - 1);
 
-    const allSlots = await this.repo.findAvailableTimeSlots(providerIds, today, endDate);
+    const allSlots = await this.repo.findAvailableTimeSlots(providerServiceIds, today, endDate);
 
     const getDayOfWeek = (dateStr: string) =>
       getLocalDayOfWeek(localToUtc(dateStr, "12:00"));
@@ -105,7 +106,7 @@ export class SmartBookingService {
     if (suggestions.length === 0) {
       return {
         suggestions: [],
-        message: `No available slots in the next ${horizonDays} days`,
+        message: `در ${horizonDays} روز آینده زمان خالی یافت نشد`,
       };
     }
 
@@ -122,12 +123,12 @@ export class SmartBookingService {
     const candidates: Parameters<typeof scoreAndRankCandidates>[0] = [];
 
     for (const ps of providerServices) {
-      const providerSlots = slots.filter((s) => s.providerId === ps.providerId);
+      const providerSlots = slots.filter((s) => s.providerServiceId === ps.id);
       const blocks = findConsecutiveSlots(providerSlots, ps.duration);
 
       for (const block of blocks) {
         const dayHours = getActiveHoursForDay(
-          ps.provider.workingHours,
+          ps.workingHours,
           getDayOfWeek(block.date),
         );
         if (!appointmentFitsWorkingHours(dayHours, block.startTime, ps.duration)) {
@@ -203,6 +204,10 @@ export class SmartBookingService {
         );
       }
 
+      if (slots.some((s) => s.providerServiceId !== input.providerServiceId)) {
+        throw ApiError.badRequest("All time slots must belong to the specified service");
+      }
+
       const matchingBlock = findConsecutiveSlots(slots, providerService.duration).find(
         (b) =>
           b.slotIds.length === input.timeSlotIds.length &&
@@ -220,14 +225,8 @@ export class SmartBookingService {
         throw ApiError.badRequest("Selected time is outside your availability");
       }
 
-      const provider = await tx.providerProfile.findUnique({
-        where: { id: input.providerId },
-        include: { workingHours: true },
-      });
-      if (!provider) throw ApiError.notFound("Provider not found");
-
       const dayHours = getActiveHoursForDay(
-        provider.workingHours,
+        providerService.workingHours,
         getDayOfWeek(matchingBlock.date),
       );
       if (

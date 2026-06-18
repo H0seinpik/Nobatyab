@@ -18,6 +18,7 @@ function slot(
   return {
     id: `slot-${startTime}`,
     providerId: "provider-1",
+    providerServiceId: "ps-1",
     date: "2026-06-14",
     startTime,
     endTime,

@@ -32,8 +32,9 @@ export class SmartBookingRepository {
           },
         },
         include: {
+          workingHours: true,
           provider: {
-            select: { id: true, latitude: true, longitude: true, workingHours: true },
+            select: { id: true, latitude: true, longitude: true },
           },
         },
       });
@@ -51,17 +52,18 @@ export class SmartBookingRepository {
         },
       },
       include: {
+        workingHours: true,
         provider: {
-          select: { id: true, latitude: true, longitude: true, workingHours: true },
+          select: { id: true, latitude: true, longitude: true },
         },
       },
     });
   }
 
-  findAvailableTimeSlots(providerIds: string[], startDate: string, endDate: string) {
+  findAvailableTimeSlots(providerServiceIds: string[], startDate: string, endDate: string) {
     return prisma.timeSlot.findMany({
       where: {
-        providerId: { in: providerIds },
+        providerServiceId: { in: providerServiceIds },
         date: { gte: startDate, lte: endDate },
         isBooked: false,
         isActive: true,

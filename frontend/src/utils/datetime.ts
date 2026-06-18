@@ -5,6 +5,8 @@ import jalaliPlugin from "jalali-plugin-dayjs";
 dayjs.extend(relativeTime);
 dayjs.extend(jalaliPlugin);
 
+const APP_TIMEZONE = import.meta.env.VITE_APP_TIMEZONE || "Asia/Tehran";
+
 export function toJalali(date: string | Date) {
   return dayjs(date).calendar("jalali");
 }
@@ -18,7 +20,12 @@ export function formatJalaliDateTime(date: string | Date) {
 }
 
 export function formatTime(date: string | Date) {
-  return dayjs(date).format("HH:mm");
+  return new Intl.DateTimeFormat("fa-IR", {
+    timeZone: APP_TIMEZONE,
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(new Date(date));
 }
 
 /** Convert Jalali YYYY/MM/DD to Gregorian YYYY-MM-DD for API */
@@ -49,4 +56,8 @@ export function parseJalaliInput(jalaliDate: string): string {
 export function isoToJalali(iso: string | undefined | null): string {
   if (!iso) return "";
   return formatJalaliDate(iso);
+}
+
+export function gregorianToJalaliDate(date: string): string {
+  return formatJalaliDate(date);
 }

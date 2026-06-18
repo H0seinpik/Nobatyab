@@ -8,6 +8,12 @@ export class ProviderRequestRepository {
     });
   }
 
+  findApprovedByUserId(userId: string) {
+    return prisma.providerRequest.findFirst({
+      where: { userId, status: ProviderRequestStatus.APPROVED },
+    });
+  }
+
   findLatestByUserId(userId: string) {
     return prisma.providerRequest.findFirst({
       where: { userId },

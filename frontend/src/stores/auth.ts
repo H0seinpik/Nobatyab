@@ -1,9 +1,12 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
-import { apiGet, apiPost, apiPatch, apiUpload, setTokens } from "@/services/api";
+import { apiGet, apiPost, apiPatch, apiUpload, setTokens, getAccessToken } from "@/services/api";
 import { changeUserPassword } from "@/services/user.service";
+import { decodeAccessTokenRole } from "@/utils/jwt";
 
 export type UserRole = "USER" | "PROVIDER" | "ADMIN";
+
+export type SessionSyncResult = "ok" | "changed" | "invalid";
 
 export interface User {
   id: string;
@@ -19,6 +22,7 @@ export interface User {
   role: UserRole;
   isActive: boolean;
   providerProfileId: string | null;
+  tokenRoleStale?: boolean;
 }
 
 export const useAuthStore = defineStore("auth", () => {
@@ -28,17 +32,36 @@ export const useAuthStore = defineStore("auth", () => {
 
   const isAuthenticated = computed(() => !!user.value);
 
-  async function fetchMe() {
+  function isTokenRoleStale(apiUser: User): boolean {
+    if (apiUser.tokenRoleStale) return true;
+    const jwtRole = decodeAccessTokenRole(getAccessToken());
+    return jwtRole !== null && jwtRole !== apiUser.role;
+  }
+
+  async function fetchMe(): Promise<SessionSyncResult> {
+    if (!getAccessToken()) {
+      user.value = null;
+      return "invalid";
+    }
+
     try {
       const res = await apiGet<User>("/auth/me", undefined, { skipGlobalLoading: true });
-      user.value = res.data;
+      const next = res.data;
+
+      if (!next.isActive || isTokenRoleStale(next)) {
+        return "changed";
+      }
+
+      user.value = next;
+      return "ok";
     } catch {
       user.value = null;
+      return "invalid";
     }
   }
 
-  async function syncSession(): Promise<"ok" | "changed" | "invalid"> {
-    if (!localStorage.getItem("accessToken")) {
+  async function syncSession(): Promise<SessionSyncResult> {
+    if (!getAccessToken()) {
       user.value = null;
       return "invalid";
     }
@@ -50,7 +73,7 @@ export const useAuthStore = defineStore("auth", () => {
       const res = await apiGet<User>("/auth/me", undefined, { skipGlobalLoading: true });
       const next = res.data;
 
-      if (!next.isActive) return "changed";
+      if (!next.isActive || isTokenRoleStale(next)) return "changed";
 
       if (
         previousRole !== undefined &&
@@ -64,6 +87,10 @@ export const useAuthStore = defineStore("auth", () => {
     } catch {
       return "invalid";
     }
+  }
+
+  function applyUserFromAuthResponse(next: User) {
+    user.value = next;
   }
 
   async function login(email: string, password: string) {
@@ -179,6 +206,7 @@ export const useAuthStore = defineStore("auth", () => {
     isAuthenticated,
     fetchMe,
     syncSession,
+    applyUserFromAuthResponse,
     login,
     register,
     logout,

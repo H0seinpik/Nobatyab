@@ -132,10 +132,13 @@ export class AuthService {
     }
   }
 
-  async me(userId: string) {
+  async me(userId: string, tokenRole?: Role) {
     const user = await this.repo.findUserById(userId);
     if (!user) throw ApiError.notFound("User not found");
-    return sanitizeUser(user);
+    return {
+      ...sanitizeUser(user),
+      tokenRoleStale: tokenRole !== undefined && tokenRole !== user.role,
+    };
   }
 
   async updateProfile(userId: string, input: UpdateProfileInput) {

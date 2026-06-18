@@ -1,12 +1,15 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, onMounted, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import { apiGet, apiPut } from "@/services/api";
 import {
   getWorkingHours,
   updateWorkingHourStatus,
   deleteWorkingHour,
   replaceWorkingHours,
+  getProviderServices,
   type WorkingHour,
+  type ProviderServiceItem,
 } from "@/services/provider.service";
 import { useZodForm } from "@/composables/useZodForm";
 import { workingHoursFormSchema, cancellationPolicyFormSchema } from "@/schemas/provider.schema";
@@ -19,11 +22,16 @@ import UiSwitch from "@/components/ui/UiSwitch.vue";
 import SkeletonForm from "@/components/ui/skeleton/SkeletonForm.vue";
 import ContentFade from "@/components/ui/ContentFade.vue";
 
+const route = useRoute();
+const router = useRouter();
+
 type WorkingHourRow = WorkingHour | (Omit<WorkingHour, "id"> & { id?: string });
 
 const dayNames = ["یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبه", "جمعه", "شنبه"];
 
 const pageLoading = ref(true);
+const services = ref<ProviderServiceItem[]>([]);
+const selectedServiceId = ref("");
 const hoursMessage = ref("");
 const hoursError = ref("");
 const policyMessage = ref("");
@@ -59,13 +67,40 @@ function applyWorkingHours(rows: WorkingHourRow[]) {
 }
 
 async function loadWorkingHours() {
-  const rows = await getWorkingHours();
+  if (!selectedServiceId.value) {
+    applyWorkingHours([]);
+    return [];
+  }
+  const rows = await getWorkingHours(selectedServiceId.value);
   applyWorkingHours(rows);
   return rows;
 }
 
+async function loadServices() {
+  services.value = await getProviderServices();
+  const queryService = route.query.service as string | undefined;
+  if (queryService && services.value.some((s) => s.id === queryService)) {
+    selectedServiceId.value = queryService;
+  } else if (!selectedServiceId.value && services.value.length) {
+    selectedServiceId.value = services.value[0].id;
+  }
+}
+
+watch(selectedServiceId, async (serviceId) => {
+  if (!serviceId || pageLoading.value) return;
+  await router.replace({ query: { ...route.query, service: serviceId } });
+  hoursMessage.value = "";
+  hoursError.value = "";
+  try {
+    await loadWorkingHours();
+  } catch {
+    hoursError.value = "بارگذاری برنامه کاری ناموفق بود";
+  }
+});
+
 onMounted(async () => {
   try {
+    await loadServices();
     await loadWorkingHours();
     const cp = await apiGet<{ minHoursBefore: number; description: string | null }>(
       "/provider/cancellation-policy",
@@ -92,7 +127,7 @@ async function removeRow(index: number) {
     if (deletingIds.value.has(row.id)) return;
     deletingIds.value.add(row.id);
     try {
-      const res = await deleteWorkingHour(row.id);
+      const res = await deleteWorkingHour(selectedServiceId.value, row.id);
       applyWorkingHours(res);
       await loadWorkingHours();
     } catch {
@@ -123,7 +158,7 @@ async function toggleActive(index: number, isActive: boolean) {
   row.isActive = isActive;
 
   try {
-    applyWorkingHours(await updateWorkingHourStatus(row.id, isActive));
+    applyWorkingHours(await updateWorkingHourStatus(selectedServiceId.value, row.id, isActive));
     await loadWorkingHours();
     hoursMessage.value = isActive ? "روز کاری فعال شد" : "روز کاری غیرفعال شد";
   } catch {
@@ -139,6 +174,7 @@ async function saveHours() {
   hoursError.value = "";
   await handleHoursSubmit(async (data) => {
     const res = await replaceWorkingHours(
+      selectedServiceId.value,
       data.hours.map((h) => ({
         dayOfWeek: h.dayOfWeek,
         startTime: h.startTime,
@@ -169,7 +205,16 @@ async function savePolicy() {
     <div>
       <h1 class="schedule-page__title">برنامه کاری</h1>
       <UiCard class="schedule-page__card">
-        <form @submit.prevent="saveHours">
+        <label class="schedule-page__service-label">انتخاب خدمت</label>
+        <select v-model="selectedServiceId" class="form-control schedule-page__service-select">
+          <option v-for="service in services" :key="service.id" :value="service.id">
+            {{ service.service.name }}
+          </option>
+        </select>
+        <p v-if="!services.length" class="schedule-page__empty-hint">
+          ابتدا یک خدمت در بخش خدمات ایجاد کنید.
+        </p>
+        <form v-else @submit.prevent="saveHours">
           <p v-if="!hoursValues.hours.length" class="schedule-page__empty-hint">
             بازه کاری تعریف نشده است. با «افزودن بازه» شروع کنید.
           </p>
@@ -282,6 +327,17 @@ async function savePolicy() {
 
 .schedule-page__policy-card {
   max-width: 32rem;
+}
+
+.schedule-page__service-label {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-size: 0.875rem;
+  color: var(--color-muted);
+}
+
+.schedule-page__service-select {
+  margin-bottom: 1rem;
 }
 
 .schedule-page__empty-hint {

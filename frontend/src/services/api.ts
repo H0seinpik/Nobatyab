@@ -1,5 +1,6 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from "axios";
 import { useLoadingStore } from "@/stores/loading";
+import { useAuthStore, type User } from "@/stores/auth";
 
 const API_URL = import.meta.env.VITE_API_URL || "/api/v1";
 const SKIP_LOADING_HEADER = "X-Skip-Global-Loading";
@@ -52,6 +53,18 @@ api.interceptors.response.use(
     stopGlobalLoading(error.config);
     const original = error.config;
     if (!original || error.response?.status !== 401 || original.url?.includes("/auth/refresh")) {
+      if (
+        error.response?.status === 403 &&
+        original?.url?.includes("/provider/") &&
+        typeof window !== "undefined"
+      ) {
+        const auth = useAuthStore();
+        const result = await auth.syncSession();
+        if (result === "changed" && !window.location.pathname.includes("/login")) {
+          await auth.logout();
+          window.location.assign("/login?reason=session-changed");
+        }
+      }
       return Promise.reject(error);
     }
 
@@ -61,9 +74,16 @@ api.interceptors.response.use(
       refreshPromise = api
         .post("/auth/refresh", { refreshToken })
         .then((res) => {
-          const data = res.data.data;
+          const data = res.data.data as {
+            accessToken: string;
+            refreshToken: string;
+            user?: User;
+          };
           setTokens(data.accessToken, data.refreshToken);
-          return data.accessToken as string;
+          if (data.user) {
+            useAuthStore().applyUserFromAuthResponse(data.user);
+          }
+          return data.accessToken;
         })
         .catch(() => {
           setTokens(null, null);

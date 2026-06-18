@@ -8,6 +8,8 @@ import { useZodForm } from "@/composables/useZodForm";
 import { guestBookingFormSchema } from "@/schemas/appointment.schema";
 import { jalaliToGregorianDate } from "@/utils/datetime";
 import { formatPersianNumber } from "@/utils/numbers";
+import type { SlotDto, AvailableDaysDto } from "@/types/booking";
+import { getApiErrorMessage } from "@/utils/apiError";
 import UiCard from "@/components/ui/UiCard.vue";
 import UiButton from "@/components/ui/UiButton.vue";
 import UiInput from "@/components/ui/UiInput.vue";
@@ -37,13 +39,16 @@ interface ProviderDetail {
 const provider = ref<ProviderDetail | null>(null);
 const selectedServiceId = ref("");
 const jalaliDate = ref("");
-const slots = ref<{ startAt: string; endAt: string }[]>([]);
-const selectedSlot = ref<{ startAt: string; endAt: string } | null>(null);
+const slots = ref<SlotDto[]>([]);
+const availableDates = ref<string[]>([]);
+const selectedSlot = ref<SlotDto | null>(null);
 const loading = ref(true);
 const slotsLoading = ref(false);
+const daysLoading = ref(false);
 const booking = ref(false);
 const message = ref("");
 const bookingError = ref("");
+const slotsError = ref("");
 
 const {
   values: guestValues,
@@ -72,19 +77,43 @@ onMounted(async () => {
   loading.value = false;
 });
 
+watch(selectedServiceId, async (serviceId) => {
+  if (!serviceId) return;
+  daysLoading.value = true;
+  slotsError.value = "";
+  try {
+    const res = await apiGet<AvailableDaysDto>(`/providers/${providerId}/available-days`, {
+      providerServiceId: serviceId,
+      horizonDays: 30,
+    });
+    availableDates.value = res.data.dates;
+  } catch (e: unknown) {
+    availableDates.value = [];
+    slotsError.value = getApiErrorMessage(e, "بارگذاری تاریخ‌های قابل رزرو ناموفق بود");
+  } finally {
+    daysLoading.value = false;
+  }
+});
+
 watch([selectedServiceId, jalaliDate], async () => {
-  if (!selectedServiceId.value || !jalaliDate.value) return;
+  if (!selectedServiceId.value || !jalaliDate.value) {
+    slots.value = [];
+    slotsError.value = "";
+    return;
+  }
   slotsLoading.value = true;
   selectedSlot.value = null;
+  slotsError.value = "";
   try {
     const date = jalaliToGregorianDate(jalaliDate.value);
-    const res = await apiGet<{ startAt: string; endAt: string }[]>(`/providers/${providerId}/slots`, {
+    const res = await apiGet<SlotDto[]>(`/providers/${providerId}/slots`, {
       date,
       providerServiceId: selectedServiceId.value,
     });
     slots.value = res.data;
-  } catch {
+  } catch (e: unknown) {
     slots.value = [];
+    slotsError.value = getApiErrorMessage(e, "بارگذاری اسلات‌ها ناموفق بود");
   } finally {
     slotsLoading.value = false;
   }
@@ -141,17 +170,24 @@ async function book() {
         <label class="provider-detail-page__label">انتخاب خدمت</label>
         <select v-model="selectedServiceId" class="form-control provider-detail-page__select">
           <option v-for="ps in provider.providerServices" :key="ps.id" :value="ps.id">
-            {{ ps.service.name }} — {{ formatPersianNumber(Number(ps.price)) }} تومان
+            {{ ps.service.name }} — {{ ps.duration }} دقیقه — {{ formatPersianNumber(Number(ps.price)) }} تومان
           </option>
         </select>
       </UiCard>
 
       <UiCard>
         <h2 class="provider-detail-page__booking-title">رزرو نوبت</h2>
-        <JalaliDatePicker v-model="jalaliDate" class="provider-detail-page__date-picker" />
+        <JalaliDatePicker
+          v-model="jalaliDate"
+          :available-dates="availableDates"
+          class="provider-detail-page__date-picker"
+        />
+        <p v-if="daysLoading" class="provider-detail-page__hint">در حال بارگذاری تاریخ‌های قابل رزرو...</p>
         <TimeSlotGrid
           :slots="slots"
           :loading="slotsLoading"
+          :has-date-selected="!!jalaliDate"
+          :error-message="slotsError || undefined"
           :selected="selectedSlot?.startAt ?? null"
           class="provider-detail-page__slots"
           @select="(s) => (selectedSlot = s)"
@@ -246,6 +282,12 @@ async function book() {
 .provider-detail-page__date-picker,
 .provider-detail-page__slots {
   margin-bottom: 1rem;
+}
+
+.provider-detail-page__hint {
+  margin-bottom: 0.75rem;
+  font-size: 0.75rem;
+  color: var(--color-muted);
 }
 
 .provider-detail-page__form > * + * {

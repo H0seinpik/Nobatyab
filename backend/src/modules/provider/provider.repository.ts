@@ -12,7 +12,6 @@ export class ProviderRepository {
       include: {
         user: { select: { id: true, fullName: true, email: true, phone: true } },
         cancellationPolicy: true,
-        workingHours: { orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }] },
       },
     });
   }
@@ -35,23 +34,32 @@ export class ProviderRepository {
     });
   }
 
-  findWorkingHours(providerId: string) {
+  async assertProviderServiceOwnership(providerId: string, providerServiceId: string) {
+    const service = await prisma.providerService.findFirst({
+      where: { id: providerServiceId, providerId },
+      select: { id: true },
+    });
+    if (!service) throw new Error("PROVIDER_SERVICE_NOT_FOUND");
+    return service.id;
+  }
+
+  findWorkingHours(providerServiceId: string) {
     return prisma.workingHours.findMany({
-      where: { providerId },
+      where: { providerServiceId },
       orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }],
     });
   }
 
   replaceWorkingHours(
-    providerId: string,
+    providerServiceId: string,
     hours: { dayOfWeek: number; startTime: string; endTime: string; isActive?: boolean }[],
   ) {
     return prisma.$transaction([
-      prisma.workingHours.deleteMany({ where: { providerId } }),
+      prisma.workingHours.deleteMany({ where: { providerServiceId } }),
       prisma.workingHours.createMany({
         data: hours.map((h) => ({
           ...h,
-          providerId,
+          providerServiceId,
           isActive: h.isActive ?? true,
         })),
       }),
@@ -59,12 +67,12 @@ export class ProviderRepository {
   }
 
   createWorkingHour(
-    providerId: string,
+    providerServiceId: string,
     entry: { dayOfWeek: number; startTime: string; endTime: string; isActive?: boolean },
   ) {
     return prisma.workingHours.create({
       data: {
-        providerId,
+        providerServiceId,
         dayOfWeek: entry.dayOfWeek,
         startTime: entry.startTime,
         endTime: entry.endTime,
@@ -73,26 +81,54 @@ export class ProviderRepository {
     });
   }
 
-  findWorkingHourById(providerId: string, hourId: string) {
+  findWorkingHourById(providerServiceId: string, hourId: string) {
     return prisma.workingHours.findFirst({
-      where: { id: hourId, providerId },
+      where: { id: hourId, providerServiceId },
     });
   }
 
   updateWorkingHour(
-    providerId: string,
+    providerServiceId: string,
     hourId: string,
     data: { isActive?: boolean },
   ) {
     return prisma.workingHours.updateMany({
-      where: { id: hourId, providerId },
+      where: { id: hourId, providerServiceId },
       data,
     });
   }
 
-  deleteWorkingHour(providerId: string, hourId: string) {
+  deleteWorkingHour(providerServiceId: string, hourId: string) {
     return prisma.workingHours.deleteMany({
-      where: { id: hourId, providerId },
+      where: { id: hourId, providerServiceId },
+    });
+  }
+
+  copyWorkingHoursFromSibling(providerId: string, targetProviderServiceId: string) {
+    return prisma.$transaction(async (tx) => {
+      const sibling = await tx.providerService.findFirst({
+        where: {
+          providerId,
+          id: { not: targetProviderServiceId },
+          workingHours: { some: {} },
+        },
+        include: {
+          workingHours: true,
+        },
+        orderBy: { createdAt: "asc" },
+      });
+
+      if (!sibling || sibling.workingHours.length === 0) return;
+
+      await tx.workingHours.createMany({
+        data: sibling.workingHours.map((hour) => ({
+          providerServiceId: targetProviderServiceId,
+          dayOfWeek: hour.dayOfWeek,
+          startTime: hour.startTime,
+          endTime: hour.endTime,
+          isActive: hour.isActive,
+        })),
+      });
     });
   }
 
@@ -229,7 +265,7 @@ export class ProviderRepository {
   findProviderServiceById(providerId: string, id: string) {
     return prisma.providerService.findFirst({
       where: { id, providerId },
-      include: { service: true },
+      include: { service: true, workingHours: { orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }] } },
     });
   }
 

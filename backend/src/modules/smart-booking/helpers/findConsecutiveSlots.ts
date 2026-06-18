@@ -5,6 +5,7 @@ export const SLOT_STEP_MINUTES = 30;
 export type SlotRecord = {
   id: string;
   providerId: string;
+  providerServiceId: string;
   date: string;
   startTime: string;
   endTime: string;

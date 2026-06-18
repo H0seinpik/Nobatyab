@@ -126,7 +126,14 @@ const router = createRouter({
 router.beforeEach(async (to) => {
   const auth = useAuthStore();
   if (localStorage.getItem("accessToken") && !auth.user) {
-    await auth.fetchMe();
+    const result = await auth.fetchMe();
+    if (result === "changed") {
+      await auth.logout();
+      return { name: "login", query: { reason: "session-changed", redirect: to.fullPath } };
+    }
+    if (result === "invalid" && to.meta.requiresAuth) {
+      return { name: "login", query: { redirect: to.fullPath } };
+    }
   }
 
   if (to.meta.requiresAuth && !auth.isAuthenticated) {

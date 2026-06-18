@@ -15,27 +15,55 @@ export class ProviderController {
   };
 
   getWorkingHours = async (req: AuthRequest, res: Response) => {
-    res.json(successResponse(await providerService.getWorkingHours(req.user!.sub)));
+    res.json(
+      successResponse(
+        await providerService.getWorkingHours(
+          req.user!.sub,
+          getParam(req.params.providerServiceId),
+        ),
+      ),
+    );
   };
 
   replaceWorkingHours = async (req: AuthRequest, res: Response) => {
-    res.json(successResponse(await providerService.replaceWorkingHours(req.user!.sub, req.body)));
+    res.json(
+      successResponse(
+        await providerService.replaceWorkingHours(
+          req.user!.sub,
+          getParam(req.params.providerServiceId),
+          req.body,
+        ),
+      ),
+    );
   };
 
   createWorkingHour = async (req: AuthRequest, res: Response) => {
     res
       .status(201)
-      .json(successResponse(await providerService.createWorkingHour(req.user!.sub, req.body)));
+      .json(
+        successResponse(
+          await providerService.createWorkingHour(
+            req.user!.sub,
+            getParam(req.params.providerServiceId),
+            req.body,
+          ),
+        ),
+      );
   };
 
   deleteWorkingHour = async (req: AuthRequest, res: Response) => {
-    const hours = await providerService.deleteWorkingHour(req.user!.sub, getParam(req.params.id));
+    const hours = await providerService.deleteWorkingHour(
+      req.user!.sub,
+      getParam(req.params.providerServiceId),
+      getParam(req.params.id),
+    );
     res.json(successResponse(hours));
   };
 
   toggleWorkingDay = async (req: AuthRequest, res: Response) => {
     const hours = await providerService.toggleWorkingDay(
       req.user!.sub,
+      getParam(req.params.providerServiceId),
       getParam(req.params.id),
       req.body.isActive,
     );
@@ -45,6 +73,7 @@ export class ProviderController {
   updateWorkingHourStatus = async (req: AuthRequest, res: Response) => {
     const hours = await providerService.toggleWorkingDay(
       req.user!.sub,
+      getParam(req.params.providerServiceId),
       getParam(req.params.id),
       req.body.isActive,
     );

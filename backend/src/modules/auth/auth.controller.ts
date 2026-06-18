@@ -27,7 +27,7 @@ export class AuthController {
   };
 
   me = async (req: AuthRequest, res: Response) => {
-    const user = await authService.me(req.user!.sub);
+    const user = await authService.me(req.user!.sub, req.user!.role);
     res.json(successResponse(user));
   };
 

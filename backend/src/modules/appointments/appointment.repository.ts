@@ -137,7 +137,7 @@ export class AppointmentRepository {
         isActive: true,
         service: { isActive: true },
       },
-      include: { service: true },
+      include: { service: true, workingHours: true },
     });
   }
 
@@ -148,7 +148,6 @@ export class AppointmentRepository {
         isAcceptingBookings: true,
         user: { isActive: true },
       },
-      include: { workingHours: true },
     });
   }
 

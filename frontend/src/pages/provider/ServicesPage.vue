@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
+import { RouterLink } from "vue-router";
 import { useCrudForm } from "@/composables/useCrudForm";
 import { useConfirmDialog } from "@/composables/useConfirmDialog";
 import {
@@ -146,6 +147,9 @@ onMounted(load);
                 <UiButton type="button" variant="secondary" @click="openEdit(item)">
                   ویرایش
                 </UiButton>
+                <RouterLink :to="{ name: 'provider-schedule', query: { service: item.id } }">
+                  <UiButton type="button" variant="secondary">تنظیم برنامه</UiButton>
+                </RouterLink>
                 <UiButton
                   type="button"
                   variant="ghost"

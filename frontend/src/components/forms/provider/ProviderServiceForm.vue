@@ -29,11 +29,13 @@ defineProps<{
       :model-value="values.duration as number | undefined"
       label="مدت (دقیقه)"
       required
-      :min="5"
+      :min="30"
+      :step="30"
       :error="fieldError('duration')"
       @update:model-value="(v) => (values.duration = v)"
       @blur="touch('duration')"
     />
+    <p class="provider-service-form__hint">مدت باید مضرب ۳۰ دقیقه باشد.</p>
     <UiPriceInput
       :model-value="values.price as number | undefined"
       label="قیمت (تومان)"
@@ -54,3 +56,10 @@ defineProps<{
     </div>
   </FormFieldGrid>
 </template>
+
+<style scoped>
+.provider-service-form__hint {
+  font-size: 0.75rem;
+  color: var(--color-muted);
+}
+</style>

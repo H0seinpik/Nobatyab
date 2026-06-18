@@ -57,10 +57,16 @@ export const serviceRequestFormSchema = z
         path: ["proposedPrice"],
       });
     }
-    if (!data.proposedDuration || data.proposedDuration < 5) {
+    if (!data.proposedDuration || data.proposedDuration < 30) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: "مدت الزامی است",
+        path: ["proposedDuration"],
+      });
+    } else if (data.proposedDuration % 30 !== 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "مدت باید مضرب ۳۰ باشد",
         path: ["proposedDuration"],
       });
     }

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
-import { RouterLink } from "vue-router";
+import { RouterLink, useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import UiCard from "@/components/ui/UiCard.vue";
 import UiInput from "@/components/ui/UiInput.vue";
@@ -22,6 +22,7 @@ import {
 } from "@/services/providerRequest.service";
 
 const auth = useAuthStore();
+const router = useRouter();
 const pageLoading = ref(true);
 
 const providerRequest = ref<ProviderRequest | null>(null);
@@ -31,13 +32,26 @@ const providerRequestSubmitting = ref(false);
 const providerRequestSuccess = ref("");
 const providerRequestError = ref("");
 
+async function handleApprovedRequestLogout() {
+  await auth.logout();
+  await router.push({ name: "login", query: { reason: "session-changed" } });
+}
+
 async function loadPage() {
   try {
-    await auth.fetchMe();
+    const sessionResult = await auth.fetchMe();
+    if (sessionResult === "changed") {
+      await handleApprovedRequestLogout();
+      return;
+    }
     if (auth.user?.role === "USER") {
       providerRequestLoading.value = true;
       try {
         providerRequest.value = await getMyProviderRequest();
+        if (providerRequest.value?.status === "APPROVED") {
+          await handleApprovedRequestLogout();
+          return;
+        }
       } finally {
         providerRequestLoading.value = false;
       }
@@ -67,7 +81,7 @@ async function submitProviderApplication() {
     const status = err.response?.status;
     if (msg.toLowerCase().includes("pending")) {
       providerRequestError.value = "شما قبلاً یک درخواست در انتظار دارید.";
-    } else if (msg.toLowerCase().includes("already a provider")) {
+    } else if (msg.toLowerCase().includes("already a provider") || msg.toLowerCase().includes("approved")) {
       providerRequestError.value = "شما در حال حاضر ارائه‌دهنده هستید.";
     } else if (status === 403) {
       providerRequestError.value = "فقط کاربران عادی می‌توانند درخواست ارسال کنند.";
@@ -118,10 +132,6 @@ async function submitProviderApplication() {
             <span>درخواست شما در انتظار بررسی است.</span>
             <StatusBadge kind="review" :value="providerRequest.status" />
           </UiAlert>
-        </template>
-
-        <template v-else-if="providerRequest?.status === 'APPROVED'">
-          <UiAlert variant="success">درخواست شما تأیید شده است.</UiAlert>
         </template>
 
         <template v-else-if="providerRequest?.status === 'REJECTED'">

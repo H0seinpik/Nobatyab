@@ -5,6 +5,8 @@ defineProps<{
   slots: { startAt: string; endAt: string }[];
   selected?: string | null;
   loading?: boolean;
+  hasDateSelected?: boolean;
+  errorMessage?: string;
 }>();
 
 defineEmits<{ select: [slot: { startAt: string; endAt: string }] }>();
@@ -13,6 +15,10 @@ defineEmits<{ select: [slot: { startAt: string; endAt: string }] }>();
 <template>
   <div class="time-slot-grid">
     <p v-if="loading" class="time-slot-grid__message">در حال بارگذاری...</p>
+    <p v-else-if="errorMessage" class="time-slot-grid__message time-slot-grid__message--error">
+      {{ errorMessage }}
+    </p>
+    <p v-else-if="!hasDateSelected" class="time-slot-grid__message">لطفاً تاریخ را انتخاب کنید</p>
     <p v-else-if="!slots.length" class="time-slot-grid__message">اسلاتی برای این تاریخ موجود نیست</p>
     <div v-else class="time-slot-grid__slots">
       <button
@@ -33,6 +39,10 @@ defineEmits<{ select: [slot: { startAt: string; endAt: string }] }>();
 .time-slot-grid__message {
   font-size: 0.875rem;
   color: var(--color-muted);
+}
+
+.time-slot-grid__message--error {
+  color: var(--color-danger);
 }
 
 .time-slot-grid__slots {

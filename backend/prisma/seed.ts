@@ -90,11 +90,6 @@ async function main() {
     { dayOfWeek: 3, startTime: "09:00", endTime: "13:00" },
   ];
 
-  await prisma.workingHours.deleteMany({ where: { providerId: providerProfile.id } });
-  await prisma.workingHours.createMany({
-    data: workingHours.map((wh) => ({ ...wh, providerId: providerProfile.id })),
-  });
-
   const medical = await prisma.category.upsert({
     where: { slug: "medical" },
     update: {},
@@ -147,7 +142,7 @@ async function main() {
   });
 
   for (const svc of [consultation, skinCare, laser]) {
-    await prisma.providerService.upsert({
+    const providerService = await prisma.providerService.upsert({
       where: {
         providerId_serviceId: { providerId: providerProfile.id, serviceId: svc.id },
       },
@@ -161,6 +156,11 @@ async function main() {
         price: svc.basePrice,
         duration: svc.defaultDuration,
       },
+    });
+
+    await prisma.workingHours.deleteMany({ where: { providerServiceId: providerService.id } });
+    await prisma.workingHours.createMany({
+      data: workingHours.map((wh) => ({ ...wh, providerServiceId: providerService.id })),
     });
   }
 

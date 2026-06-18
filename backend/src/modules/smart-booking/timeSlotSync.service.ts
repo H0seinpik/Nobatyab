@@ -42,42 +42,65 @@ export class TimeSlotSyncService {
   async syncForProviders(providerIds: string[], horizonDays = DEFAULT_HORIZON_DAYS): Promise<void> {
     if (providerIds.length === 0) return;
 
-    for (const providerId of providerIds) {
-      await this.syncProvider(providerId, horizonDays);
+    const services = await prisma.providerService.findMany({
+      where: { providerId: { in: providerIds }, isActive: true },
+      select: { id: true, providerId: true },
+    });
+
+    for (const service of services) {
+      await this.syncProviderService(service.id, service.providerId, horizonDays);
     }
   }
 
   async syncProvider(providerId: string, horizonDays = DEFAULT_HORIZON_DAYS): Promise<void> {
+    const services = await prisma.providerService.findMany({
+      where: { providerId, isActive: true },
+      select: { id: true },
+    });
+
+    for (const service of services) {
+      await this.syncProviderService(service.id, providerId, horizonDays);
+    }
+  }
+
+  async syncProviderService(
+    providerServiceId: string,
+    providerId: string,
+    horizonDays = DEFAULT_HORIZON_DAYS,
+  ): Promise<void> {
     const today = formatLocalDate(new Date());
     const dates = dateRange(today, horizonDays);
 
-    const provider = await prisma.providerProfile.findUnique({
-      where: { id: providerId },
-      include: { workingHours: true },
+    const providerService = await prisma.providerService.findFirst({
+      where: { id: providerServiceId, providerId },
+      include: {
+        workingHours: true,
+        provider: { select: { isAcceptingBookings: true } },
+      },
     });
 
-    if (!provider || !provider.isAcceptingBookings) {
-      await this.clearSlotsInRange(providerId, today, dates[dates.length - 1]);
+    if (!providerService || !providerService.provider.isAcceptingBookings) {
+      await this.clearSlotsInRange(providerServiceId, today, dates[dates.length - 1]);
       return;
     }
 
     for (const date of dates) {
       const dayOfWeek = getLocalDayOfWeek(localToUtc(date, "12:00"));
-      const dayHours = getActiveHoursForDay(provider.workingHours, dayOfWeek);
-      await this.reconcileDaySlots(provider.id, date, dayHours);
+      const dayHours = getActiveHoursForDay(providerService.workingHours, dayOfWeek);
+      await this.reconcileDaySlots(providerId, providerServiceId, date, dayHours);
     }
 
-    await this.syncBookedFromAppointments(provider.id, today, dates[dates.length - 1]);
+    await this.syncBookedFromAppointments(
+      providerId,
+      providerServiceId,
+      today,
+      dates[dates.length - 1],
+    );
   }
 
-  /**
-   * Replace slots for one calendar date:
-   * 1. Upsert slots from the current working-hour ranges
-   * 2. Delete unbooked orphans
-   * 3. Deactivate booked orphans (keep history, hide from booking)
-   */
   private async reconcileDaySlots(
     providerId: string,
+    providerServiceId: string,
     date: string,
     dayHours: WorkingHourRange[],
   ): Promise<void> {
@@ -87,10 +110,11 @@ export class TimeSlotSyncService {
       const endTime = minutesToTime(timeToMinutes(startTime) + SLOT_STEP_MINUTES);
       await prisma.timeSlot.upsert({
         where: {
-          providerId_date_startTime: { providerId, date, startTime },
+          providerServiceId_date_startTime: { providerServiceId, date, startTime },
         },
         create: {
           providerId,
+          providerServiceId,
           date,
           startTime,
           endTime,
@@ -105,7 +129,7 @@ export class TimeSlotSyncService {
     }
 
     const existing = await prisma.timeSlot.findMany({
-      where: { providerId, date },
+      where: { providerServiceId, date },
       select: { id: true, startTime: true, isBooked: true, appointmentId: true },
     });
 
@@ -124,13 +148,13 @@ export class TimeSlotSyncService {
   }
 
   private async clearSlotsInRange(
-    providerId: string,
+    providerServiceId: string,
     startDate: string,
     endDate: string,
   ): Promise<void> {
     await prisma.timeSlot.updateMany({
       where: {
-        providerId,
+        providerServiceId,
         date: { gte: startDate, lte: endDate },
         OR: [{ isBooked: true }, { appointmentId: { not: null } }],
       },
@@ -139,7 +163,7 @@ export class TimeSlotSyncService {
 
     await prisma.timeSlot.deleteMany({
       where: {
-        providerId,
+        providerServiceId,
         date: { gte: startDate, lte: endDate },
         isBooked: false,
         appointmentId: null,
@@ -149,6 +173,7 @@ export class TimeSlotSyncService {
 
   private async syncBookedFromAppointments(
     providerId: string,
+    providerServiceId: string,
     startDate: string,
     endDate: string,
   ): Promise<void> {
@@ -158,6 +183,7 @@ export class TimeSlotSyncService {
     const appointments = await prisma.appointment.findMany({
       where: {
         providerId,
+        providerServiceId,
         status: { not: AppointmentStatus.CANCELLED },
         startAt: { lt: rangeEnd },
         endAt: { gt: rangeStart },
@@ -167,7 +193,7 @@ export class TimeSlotSyncService {
 
     const slots = await prisma.timeSlot.findMany({
       where: {
-        providerId,
+        providerServiceId,
         date: { gte: startDate, lte: endDate },
       },
     });

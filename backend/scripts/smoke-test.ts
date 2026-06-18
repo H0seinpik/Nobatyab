@@ -116,49 +116,59 @@ async function main() {
   );
   console.log("OK  GET /api/v1/provider/profile persists fields");
 
-  const workingHours = await request("/api/v1/provider/working-hours", { headers: providerHeaders });
-  assert(workingHours.status === 200 && workingHours.body.data?.length > 0, "GET /api/v1/provider/working-hours");
+  const providerServicesList = await request("/api/v1/provider/services", { headers: providerHeaders });
+  assert(providerServicesList.status === 200 && providerServicesList.body.data?.length > 0, "GET /api/v1/provider/services for schedule");
+  const seedProviderServiceId = providerServicesList.body.data[0].id as string;
+  const workingHoursPath = `/api/v1/provider/services/${seedProviderServiceId}/working-hours`;
+
+  const workingHours = await request(workingHoursPath, { headers: providerHeaders });
+  assert(workingHours.status === 200 && workingHours.body.data?.length > 0, "GET per-service working-hours");
   const hourId = workingHours.body.data[0].id as string;
   assert(workingHours.body.data[0].isActive !== false, "seed working hour starts active");
 
-  const deactivateHour = await request(`/api/v1/provider/${hourId}/status`, {
-    method: "PATCH",
-    headers: providerHeaders,
-    body: JSON.stringify({ isActive: false }),
-  });
-  assert(deactivateHour.status === 200 && deactivateHour.body.success, "PATCH /api/v1/provider/:id/status deactivate");
+  const deactivateHour = await request(
+    `/api/v1/provider/services/${seedProviderServiceId}/working-hours/${hourId}/status`,
+    {
+      method: "PATCH",
+      headers: providerHeaders,
+      body: JSON.stringify({ isActive: false }),
+    },
+  );
+  assert(deactivateHour.status === 200 && deactivateHour.body.success, "PATCH per-service working-hour status deactivate");
   const deactivatedRow = deactivateHour.body.data.find((h: { id: string }) => h.id === hourId);
-  assert(deactivatedRow?.isActive === false, "PATCH /api/v1/provider/:id/status returns inactive row");
+  assert(deactivatedRow?.isActive === false, "PATCH per-service status returns inactive row");
 
-  const refetchHours = await request("/api/v1/provider/working-hours", { headers: providerHeaders });
+  const refetchHours = await request(workingHoursPath, { headers: providerHeaders });
   const refetchedRow = refetchHours.body.data.find((h: { id: string }) => h.id === hourId);
-  assert(refetchedRow?.isActive === false, "GET /api/v1/provider/working-hours persists inactive status");
-  console.log("OK  PATCH /api/v1/provider/:id/status toggle + refetch");
+  assert(refetchedRow?.isActive === false, "GET per-service working-hours persists inactive status");
+  console.log("OK  PATCH per-service working-hour status toggle + refetch");
 
-  const reactivateHour = await request(`/api/v1/provider/${hourId}/status`, {
-    method: "PATCH",
-    headers: providerHeaders,
-    body: JSON.stringify({ isActive: true }),
-  });
-  assert(reactivateHour.status === 200, "PATCH /api/v1/provider/:id/status reactivate");
+  const reactivateHour = await request(
+    `/api/v1/provider/services/${seedProviderServiceId}/working-hours/${hourId}/status`,
+    {
+      method: "PATCH",
+      headers: providerHeaders,
+      body: JSON.stringify({ isActive: true }),
+    },
+  );
+  assert(reactivateHour.status === 200, "PATCH per-service working-hour status reactivate");
   const reactivatedRow = reactivateHour.body.data.find((h: { id: string }) => h.id === hourId);
-  assert(reactivatedRow?.isActive === true, "PATCH /api/v1/provider/:id/status restores active");
-  console.log("OK  PATCH /api/v1/provider/:id/status restore");
+  assert(reactivatedRow?.isActive === true, "PATCH per-service status restores active");
+  console.log("OK  PATCH per-service working-hour status restore");
 
-  const addHour = await request("/api/v1/provider/working-hours", {
+  const addHour = await request(workingHoursPath, {
     method: "POST",
     headers: providerHeaders,
     body: JSON.stringify({ dayOfWeek: 2, startTime: "14:00", endTime: "18:00", isActive: true }),
   });
-  assert(addHour.status === 201 && addHour.body.success, "POST /api/v1/provider/working-hours");
+  assert(addHour.status === 201 && addHour.body.success, "POST per-service working-hours");
   const addedHour = addHour.body.data.find(
     (h: { dayOfWeek: number; startTime: string }) => h.dayOfWeek === 2 && h.startTime === "14:00",
   );
-  assert(addedHour?.id, "POST /api/v1/provider/working-hours returns new row");
-  console.log("OK  POST /api/v1/provider/working-hours");
+  assert(addedHour?.id, "POST per-service working-hours returns new row");
+  console.log("OK  POST per-service working-hours");
 
-  const providerServicesBefore = await request("/api/v1/provider/services", { headers: providerHeaders });
-  assert(providerServicesBefore.status === 200 && providerServicesBefore.body.success, "GET /api/v1/provider/services");
+  const providerServicesBefore = providerServicesList;
   const beforeCount = providerServicesBefore.body.data.length;
   console.log("OK  GET /api/v1/provider/services");
 
@@ -236,13 +246,47 @@ async function main() {
   console.log("OK  DELETE /api/v1/provider/services");
 
   if (addedHour?.id) {
-    const deleteHour = await request(`/api/v1/provider/working-hours/${addedHour.id}`, {
-      method: "DELETE",
-      headers: providerHeaders,
-    });
-    assert(deleteHour.status === 200 && deleteHour.body.success, "DELETE /api/v1/provider/working-hours/:id");
-    console.log("OK  DELETE /api/v1/provider/working-hours/:id");
+    const deleteHour = await request(
+      `/api/v1/provider/services/${seedProviderServiceId}/working-hours/${addedHour.id}`,
+      {
+        method: "DELETE",
+        headers: providerHeaders,
+      },
+    );
+    assert(deleteHour.status === 200 && deleteHour.body.success, "DELETE per-service working-hours/:id");
+    console.log("OK  DELETE per-service working-hours/:id");
   }
+
+  const publicProviderId = providers.body.data[0]?.id as string;
+  const publicProviderServiceId = providers.body.data[0]?.providerServices?.[0]?.id as string;
+  if (publicProviderId && publicProviderServiceId) {
+    const availableDays = await request(
+      `/api/v1/providers/${publicProviderId}/available-days?providerServiceId=${publicProviderServiceId}&horizonDays=14`,
+    );
+    assert(availableDays.status === 200 && Array.isArray(availableDays.body.data?.dates), "GET available-days");
+    console.log("OK  GET /api/v1/providers/:id/available-days");
+
+    if (availableDays.body.data.dates.length > 0) {
+      const bookDate = availableDays.body.data.dates[0] as string;
+      const slots = await request(
+        `/api/v1/providers/${publicProviderId}/slots?date=${bookDate}&providerServiceId=${publicProviderServiceId}`,
+      );
+      assert(slots.status === 200 && Array.isArray(slots.body.data), "GET /api/v1/providers/:id/slots");
+      console.log("OK  GET /api/v1/providers/:id/slots");
+    }
+  }
+
+  const invalidDuration = await request("/api/v1/provider/services", {
+    method: "POST",
+    headers: providerHeaders,
+    body: JSON.stringify({
+      name: `Invalid Duration ${Date.now()}`,
+      duration: 45,
+      price: 100000,
+    }),
+  });
+  assert(invalidDuration.status === 400, "POST provider service rejects duration not multiple of 30");
+  console.log("OK  POST /api/v1/provider/services rejects invalid duration");
 
   const services = await request("/api/v1/services");
   assert(services.status === 200 && Array.isArray(services.body.data), "GET /api/v1/services");

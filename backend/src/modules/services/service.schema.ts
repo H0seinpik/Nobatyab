@@ -1,16 +1,19 @@
 import { z } from "zod";
 import { baseListQuerySchema } from "../../shared/schemas/listQuery.schema.js";
+import { serviceDurationSchema, optionalServiceDurationSchema } from "../../shared/schemas/duration.schema.js";
 
 export const createServiceSchema = z.object({
   categoryId: z.string().cuid(),
   name: z.string().min(2),
   description: z.string().optional(),
-  defaultDuration: z.number().int().min(5),
+  defaultDuration: serviceDurationSchema,
   basePrice: z.number().min(0),
   isActive: z.boolean().optional(),
 });
 
-export const updateServiceSchema = createServiceSchema.partial();
+export const updateServiceSchema = createServiceSchema.partial().extend({
+  defaultDuration: optionalServiceDurationSchema,
+});
 export const serviceQuerySchema = z.object({
   categoryId: z.string().cuid().optional(),
   q: z.string().optional(),

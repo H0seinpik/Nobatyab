@@ -56,7 +56,7 @@ export class AppointmentService {
     }
 
     const dayOfWeek = getLocalDayOfWeek(startAt);
-    const dayHours = getActiveHoursForDay(provider.workingHours, dayOfWeek);
+    const dayHours = getActiveHoursForDay(providerService.workingHours, dayOfWeek);
     if (!appointmentFitsWorkingHoursAt(dayHours, startAt, providerService.duration)) {
       throw ApiError.badRequest("Appointment extends beyond provider working hours");
     }

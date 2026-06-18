@@ -8,7 +8,8 @@ import {
   providerAppointmentIdSchema,
   providerAppointmentQuerySchema,
   providerServiceIdSchema,
-  providerWorkingHourIdSchema,
+  providerServiceScopedSchema,
+  providerServiceWorkingHourIdSchema,
   replaceWorkingHoursSchema,
   serviceRequestQuerySchema,
   toggleWorkingDaySchema,
@@ -16,7 +17,6 @@ import {
   updateProviderProfileSchema,
   updateProviderServiceSchema,
   updateProviderStatusSchema,
-  workingHoursIdSchema,
 } from "./provider.schema.js";
 import {
   validateBody,
@@ -42,43 +42,48 @@ providerDashboardRoutes.patch(
   asyncHandler(providerController.updateProfile),
 );
 
-providerDashboardRoutes.get("/working-hours", asyncHandler(providerController.getWorkingHours));
+providerDashboardRoutes.get(
+  "/services/:providerServiceId/working-hours",
+  validateParams(providerServiceScopedSchema),
+  asyncHandler(providerController.getWorkingHours),
+);
 providerDashboardRoutes.post(
-  "/working-hours",
+  "/services/:providerServiceId/working-hours",
+  validateParams(providerServiceScopedSchema),
   validateBody(createWorkingHourSchema),
   asyncHandler(providerController.createWorkingHour),
 );
 providerDashboardRoutes.put(
-  "/working-hours",
+  "/services/:providerServiceId/working-hours",
+  validateParams(providerServiceScopedSchema),
   validateBody(replaceWorkingHoursSchema),
   asyncHandler(providerController.replaceWorkingHours),
 );
 providerDashboardRoutes.delete(
-  "/working-hours/:id",
-  validateParams(workingHoursIdSchema),
+  "/services/:providerServiceId/working-hours/:id",
+  validateParams(providerServiceWorkingHourIdSchema),
   asyncHandler(providerController.deleteWorkingHour),
 );
 providerDashboardRoutes.patch(
-  "/working-day/:id",
-  validateParams(workingHoursIdSchema),
+  "/services/:providerServiceId/working-day/:id",
+  validateParams(providerServiceWorkingHourIdSchema),
   validateBody(toggleWorkingDaySchema),
   asyncHandler(providerController.toggleWorkingDay),
 );
 providerDashboardRoutes.patch(
-  "/:id/status",
-  validateParams(providerWorkingHourIdSchema),
+  "/services/:providerServiceId/working-hours/:id/status",
+  validateParams(providerServiceWorkingHourIdSchema),
   validateBody(updateProviderStatusSchema),
   asyncHandler(providerController.updateWorkingHourStatus),
 );
 providerDashboardRoutes.delete(
-  "/working-day/:id",
-  validateParams(workingHoursIdSchema),
+  "/services/:providerServiceId/working-day/:id",
+  validateParams(providerServiceWorkingHourIdSchema),
   asyncHandler(providerController.deleteWorkingHour),
 );
-/** Alias for provider availability slot deletion */
 providerDashboardRoutes.delete(
-  "/availability/:id",
-  validateParams(workingHoursIdSchema),
+  "/services/:providerServiceId/availability/:id",
+  validateParams(providerServiceWorkingHourIdSchema),
   asyncHandler(providerController.deleteWorkingHour),
 );
 

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { idSchema } from "../../shared/schemas/id.schema.js";
+import { serviceDurationSchema, optionalServiceDurationSchema } from "../../shared/schemas/duration.schema.js";
 
 export const updateProviderProfileSchema = z.object({
   specialization: z.string().max(200).optional(),
@@ -26,6 +27,15 @@ export const createWorkingHourSchema = workingHoursEntrySchema;
 
 export const workingHoursIdSchema = z.object({ id: idSchema });
 
+export const providerServiceScopedSchema = z.object({
+  providerServiceId: idSchema,
+});
+
+export const providerServiceWorkingHourIdSchema = z.object({
+  providerServiceId: idSchema,
+  id: idSchema,
+});
+
 export const toggleWorkingDaySchema = z.object({
   isActive: z.boolean(),
 });
@@ -45,7 +55,7 @@ export const createServiceRequestSchema = z
     proposedName: z.string().min(2).optional(),
     proposedDescription: z.string().optional(),
     proposedPrice: z.number().min(0).optional(),
-    proposedDuration: z.number().int().min(5).optional(),
+    proposedDuration: serviceDurationSchema.optional(),
   })
   .refine(
     (data) =>
@@ -73,7 +83,7 @@ export const serviceRequestQuerySchema = z.object({
 export const createProviderServiceSchema = z
   .object({
     name: z.string().min(2).optional(),
-    duration: z.number().int().min(5).optional(),
+    duration: optionalServiceDurationSchema,
     price: z.number().min(0).optional(),
     categoryId: z.string().cuid().optional(),
     description: z.string().max(2000).optional(),
@@ -97,21 +107,14 @@ export const createProviderServiceSchema = z
     }
     if (data.duration === undefined) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, message: "duration is required" });
-    } else if (data.duration % 30 !== 0) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "duration must be a multiple of 30 minutes" });
     }
   });
 
-export const updateProviderServiceSchema = z
-  .object({
-    name: z.string().min(2).optional(),
-    duration: z.number().int().min(5).optional(),
-    price: z.number().min(0).optional(),
-    isActive: z.boolean().optional(),
-  })
-  .refine(
-    (data) => data.duration === undefined || data.duration % 30 === 0,
-    { message: "duration must be a multiple of 30 minutes" },
-  );
+export const updateProviderServiceSchema = z.object({
+  name: z.string().min(2).optional(),
+  duration: optionalServiceDurationSchema,
+  price: z.number().min(0).optional(),
+  isActive: z.boolean().optional(),
+});
 
 export const providerServiceIdSchema = z.object({ id: idSchema });

@@ -63,6 +63,10 @@ export type UpdateProviderServicePayload = {
   isActive?: boolean;
 };
 
+function workingHoursBase(providerServiceId: string) {
+  return `/provider/services/${providerServiceId}/working-hours`;
+}
+
 function normalizeWorkingHour(row: {
   id?: string;
   dayOfWeek: number;
@@ -98,17 +102,21 @@ export function mapProviderProfileToForm(profile: ProviderProfile) {
   };
 }
 
-export async function getWorkingHours() {
-  const res = await apiGet<WorkingHour[]>("/provider/working-hours");
+export async function getWorkingHours(providerServiceId: string) {
+  const res = await apiGet<WorkingHour[]>(workingHoursBase(providerServiceId));
   return res.data.map((row) => normalizeWorkingHour(row)) as WorkingHour[];
 }
 
-export async function createWorkingHour(data: CreateWorkingHourPayload) {
-  const res = await apiPost<WorkingHour[]>("/provider/working-hours", data);
+export async function createWorkingHour(
+  providerServiceId: string,
+  data: CreateWorkingHourPayload,
+) {
+  const res = await apiPost<WorkingHour[]>(workingHoursBase(providerServiceId), data);
   return res.data.map((row) => normalizeWorkingHour(row)) as WorkingHour[];
 }
 
 export async function replaceWorkingHours(
+  providerServiceId: string,
   hours: Array<{
     dayOfWeek: number;
     startTime: string;
@@ -116,17 +124,24 @@ export async function replaceWorkingHours(
     isActive?: boolean;
   }>,
 ) {
-  const res = await apiPut<WorkingHour[]>("/provider/working-hours", { hours });
+  const res = await apiPut<WorkingHour[]>(workingHoursBase(providerServiceId), { hours });
   return res.data.map((row) => normalizeWorkingHour(row)) as WorkingHour[];
 }
 
-export async function deleteWorkingHour(id: string) {
-  const res = await apiDelete<WorkingHour[]>(`/provider/working-hours/${id}`);
+export async function deleteWorkingHour(providerServiceId: string, id: string) {
+  const res = await apiDelete<WorkingHour[]>(`${workingHoursBase(providerServiceId)}/${id}`);
   return res.data.map((row) => normalizeWorkingHour(row)) as WorkingHour[];
 }
 
-export async function updateWorkingHourStatus(id: string, isActive: boolean) {
-  const res = await apiPatch<WorkingHour[]>(`/provider/${id}/status`, { isActive });
+export async function updateWorkingHourStatus(
+  providerServiceId: string,
+  id: string,
+  isActive: boolean,
+) {
+  const res = await apiPatch<WorkingHour[]>(
+    `/provider/services/${providerServiceId}/working-hours/${id}/status`,
+    { isActive },
+  );
   return res.data.map((row) => normalizeWorkingHour(row)) as WorkingHour[];
 }
 

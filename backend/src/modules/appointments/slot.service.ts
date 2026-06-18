@@ -15,8 +15,47 @@ function minutesToTime(minutes: number): string {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
+function addDays(dateStr: string, days: number): string {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d + days));
+  return formatLocalDate(dt);
+}
+
 export class SlotService {
   async getAvailableSlots(input: {
+    providerId: string;
+    providerServiceId: string;
+    date: string;
+  }) {
+    return this.computeAvailableSlots(input);
+  }
+
+  async getAvailableDays(input: {
+    providerId: string;
+    providerServiceId: string;
+    from?: string;
+    horizonDays?: number;
+  }) {
+    const horizonDays = Math.min(60, Math.max(1, input.horizonDays ?? 30));
+    const startDate = input.from ?? formatLocalDate(new Date());
+    const dates: string[] = [];
+
+    for (let i = 0; i < horizonDays; i++) {
+      const date = addDays(startDate, i);
+      const slots = await this.computeAvailableSlots({
+        providerId: input.providerId,
+        providerServiceId: input.providerServiceId,
+        date,
+      });
+      if (slots.length > 0) {
+        dates.push(date);
+      }
+    }
+
+    return dates;
+  }
+
+  private async computeAvailableSlots(input: {
     providerId: string;
     providerServiceId: string;
     date: string;
@@ -27,7 +66,6 @@ export class SlotService {
         isAcceptingBookings: true,
         user: { isActive: true },
       },
-      include: { workingHours: true },
     });
 
     if (!provider) throw ApiError.notFound("Provider not found");
@@ -39,13 +77,14 @@ export class SlotService {
         isActive: true,
         service: { isActive: true },
       },
+      include: { workingHours: true },
     });
 
     if (!providerService) throw ApiError.notFound("Provider service not found");
 
     const referenceDate = localToUtc(input.date, "12:00");
     const dayOfWeek = getLocalDayOfWeek(referenceDate);
-    const dayHours = getActiveHoursForDay(provider.workingHours, dayOfWeek);
+    const dayHours = getActiveHoursForDay(providerService.workingHours, dayOfWeek);
 
     if (dayHours.length === 0) return [];
 
@@ -89,10 +128,9 @@ export class SlotService {
       select: { startAt: true, endAt: true },
     });
 
-    return candidateSlots.filter((slot) =>
-      !appointments.some(
-        (appt) => appt.startAt < slot.endAt && appt.endAt > slot.startAt,
-      ),
+    return candidateSlots.filter(
+      (slot) =>
+        !appointments.some((appt) => appt.startAt < slot.endAt && appt.endAt > slot.startAt),
     );
   }
 }

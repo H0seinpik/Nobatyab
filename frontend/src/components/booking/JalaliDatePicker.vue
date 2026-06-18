@@ -1,9 +1,12 @@
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { ref, watch, onMounted } from "vue";
 import UiInput from "@/components/ui/UiInput.vue";
-import { todayJalali } from "@/utils/datetime";
+import { todayJalali, gregorianToJalaliDate } from "@/utils/datetime";
 
-const props = defineProps<{ modelValue?: string }>();
+const props = defineProps<{
+  modelValue?: string;
+  availableDates?: string[];
+}>();
 const emit = defineEmits<{ "update:modelValue": [value: string] }>();
 
 const value = ref(props.modelValue ?? todayJalali());
@@ -15,10 +18,19 @@ watch(
   },
 );
 
+onMounted(() => {
+  if (!props.modelValue) {
+    emit("update:modelValue", value.value);
+  }
+});
+
 function update(v: string) {
   value.value = v;
   emit("update:modelValue", v);
 }
+
+const availableJalaliDates = () =>
+  (props.availableDates ?? []).map((date) => gregorianToJalaliDate(date));
 </script>
 
 <template>
@@ -30,6 +42,9 @@ function update(v: string) {
       @update:model-value="update"
     />
     <p class="jalali-date-picker__hint">امروز: {{ todayJalali() }} — فرمت: YYYY/MM/DD</p>
+    <p v-if="availableJalaliDates().length" class="jalali-date-picker__hint">
+      تاریخ‌های قابل رزرو: {{ availableJalaliDates().join("، ") }}
+    </p>
   </div>
 </template>
 
