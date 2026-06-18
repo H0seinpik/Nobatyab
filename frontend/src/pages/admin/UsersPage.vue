@@ -33,7 +33,6 @@ const roleLabels: Record<string, string> = {
 const initialValues = {
   email: "",
   password: "",
-  fullName: "",
   firstName: "",
   lastName: "",
   nationalCode: "",

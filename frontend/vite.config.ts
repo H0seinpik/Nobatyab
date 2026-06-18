@@ -8,9 +8,9 @@ const DEV_CSP = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-eval'",
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob:",
+  "img-src 'self' data: blob: https://*.tile.openstreetmap.org https://*.openstreetmap.org",
   "font-src 'self' data:",
-  "connect-src 'self' ws: wss: http://localhost:3000 http://127.0.0.1:3000",
+  "connect-src 'self' ws: wss: http://localhost:3000 http://127.0.0.1:3000 https://*.tile.openstreetmap.org",
   "worker-src 'self' blob:",
 ].join("; ");
 

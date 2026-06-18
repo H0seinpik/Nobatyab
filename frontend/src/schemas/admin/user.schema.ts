@@ -33,19 +33,8 @@ const optionalAge = z.preprocess(
 
 const userFieldsSchema = z.object({
   email: z.string().min(1, "ایمیل الزامی است").email("ایمیل معتبر نیست"),
-  fullName: z.string().min(2, "نام کامل باید حداقل ۲ کاراکتر باشد"),
-  firstName: z
-    .string()
-    .min(2, "نام باید حداقل ۲ کاراکتر باشد")
-    .optional()
-    .or(z.literal(""))
-    .transform((v) => v || undefined),
-  lastName: z
-    .string()
-    .min(2, "نام خانوادگی باید حداقل ۲ کاراکتر باشد")
-    .optional()
-    .or(z.literal(""))
-    .transform((v) => v || undefined),
+  firstName: z.string().min(2, "نام باید حداقل ۲ کاراکتر باشد"),
+  lastName: z.string().min(2, "نام خانوادگی باید حداقل ۲ کاراکتر باشد"),
   nationalCode: optionalNationalCode,
   age: optionalAge,
   address: z

@@ -52,11 +52,12 @@ export class AdminService {
 
     const passwordHash = await hashPassword(input.password);
     const role = input.role ?? Role.USER;
+    const fullName = `${input.firstName} ${input.lastName}`.trim();
 
     const user = await this.repo.createUser({
       email: input.email,
       passwordHash,
-      fullName: input.fullName,
+      fullName,
       firstName: input.firstName,
       lastName: input.lastName,
       nationalCode: input.nationalCode,
@@ -99,6 +100,14 @@ export class AdminService {
 
     const { password, ...rest } = input;
     const data: Record<string, unknown> = { ...rest };
+
+    if (input.firstName !== undefined || input.lastName !== undefined) {
+      const firstName = input.firstName ?? existing.firstName ?? "";
+      const lastName = input.lastName ?? existing.lastName ?? "";
+      data.firstName = firstName;
+      data.lastName = lastName;
+      data.fullName = `${firstName} ${lastName}`.trim();
+    }
 
     if (password) {
       data.passwordHash = await hashPassword(password);

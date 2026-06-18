@@ -15,12 +15,20 @@ defineProps<{
 <template>
   <FormFieldGrid>
     <UiInput
-      :model-value="String(values.fullName ?? '')"
-      label="نام کامل"
+      :model-value="String(values.firstName ?? '')"
+      label="نام"
       required
-      :error="fieldError('fullName')"
-      @update:model-value="(v) => (values.fullName = v)"
-      @blur="touch('fullName')"
+      :error="fieldError('firstName')"
+      @update:model-value="(v) => (values.firstName = v)"
+      @blur="touch('firstName')"
+    />
+    <UiInput
+      :model-value="String(values.lastName ?? '')"
+      label="نام خانوادگی"
+      required
+      :error="fieldError('lastName')"
+      @update:model-value="(v) => (values.lastName = v)"
+      @blur="touch('lastName')"
     />
     <UiInput
       :model-value="String(values.email ?? '')"
@@ -30,20 +38,6 @@ defineProps<{
       :error="fieldError('email')"
       @update:model-value="(v) => (values.email = v)"
       @blur="touch('email')"
-    />
-    <UiInput
-      :model-value="String(values.firstName ?? '')"
-      label="نام"
-      :error="fieldError('firstName')"
-      @update:model-value="(v) => (values.firstName = v)"
-      @blur="touch('firstName')"
-    />
-    <UiInput
-      :model-value="String(values.lastName ?? '')"
-      label="نام خانوادگی"
-      :error="fieldError('lastName')"
-      @update:model-value="(v) => (values.lastName = v)"
-      @blur="touch('lastName')"
     />
     <UiInput
       :model-value="String(values.phone ?? '')"

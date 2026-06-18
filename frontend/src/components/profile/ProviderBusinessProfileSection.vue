@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { nextTick, onMounted, ref, watch } from "vue";
 import { useCrudForm } from "@/composables/useCrudForm";
 import { providerProfileFormSchema } from "@/schemas/provider.schema";
 import {
@@ -15,6 +15,10 @@ import UiModal from "@/components/ui/UiModal.vue";
 import SkeletonForm from "@/components/ui/skeleton/SkeletonForm.vue";
 import CrudFormShell from "@/components/forms/CrudFormShell.vue";
 import ProviderProfileForm from "@/components/forms/provider/ProviderProfileForm.vue";
+import MapLocationPicker from "@/components/maps/MapLocationPicker.vue";
+
+const summaryMapRef = ref<{ refreshSize: () => void } | null>(null);
+const formMapRef = ref<{ refreshSize: () => void } | null>(null);
 
 const loading = ref(true);
 const profileSummary = ref<ProviderProfile | null>(null);
@@ -74,6 +78,18 @@ async function openModal() {
   successMessage.value = "";
   await openEdit({ id: "provider-profile" });
 }
+
+watch(loading, async (isLoading) => {
+  if (isLoading) return;
+  await nextTick();
+  window.setTimeout(() => summaryMapRef.value?.refreshSize(), 200);
+});
+
+watch([isOpen, formLoading], async ([open, loadingForm]) => {
+  if (!open || loadingForm) return;
+  await nextTick();
+  window.setTimeout(() => formMapRef.value?.refreshSize(), 200);
+});
 </script>
 
 <template>
@@ -101,14 +117,6 @@ async function openModal() {
           <dd class="text-left">{{ profileSummary.address ?? "—" }}</dd>
         </div>
         <div class="flex justify-between gap-4">
-          <dt class="text-[var(--color-muted)]">عرض جغرافیایی</dt>
-          <dd>{{ profileSummary.latitude ?? "—" }}</dd>
-        </div>
-        <div class="flex justify-between gap-4">
-          <dt class="text-[var(--color-muted)]">طول جغرافیایی</dt>
-          <dd>{{ profileSummary.longitude ?? "—" }}</dd>
-        </div>
-        <div class="flex justify-between gap-4">
           <dt class="text-[var(--color-muted)]">مدت اسلات</dt>
           <dd>{{ profileSummary.slotDurationMinutes }} دقیقه</dd>
         </div>
@@ -117,6 +125,17 @@ async function openModal() {
           <dd>{{ profileSummary.isAcceptingBookings ? "فعال" : "غیرفعال" }}</dd>
         </div>
       </dl>
+
+      <div v-if="profileSummary" class="mt-4">
+        <p class="mb-2 text-sm text-[var(--color-muted)]">موقعیت روی نقشه</p>
+        <MapLocationPicker
+          ref="summaryMapRef"
+          readonly
+          height="12rem"
+          :latitude="profileSummary.latitude"
+          :longitude="profileSummary.longitude"
+        />
+      </div>
 
       <UiAlert v-if="successMessage" variant="success" class="mt-4">{{ successMessage }}</UiAlert>
     </template>
@@ -136,6 +155,7 @@ async function openModal() {
           @cancel="close"
         >
           <ProviderProfileForm
+            ref="formMapRef"
             :values="values"
             :field-error="(f) => fieldError(f as keyof typeof values)"
             :touch="(f) => touch(f as keyof typeof values)"

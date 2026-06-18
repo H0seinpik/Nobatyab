@@ -12,9 +12,8 @@ export const adminUserIdSchema = z.object({ id: z.string().cuid() });
 
 const adminUserFieldsSchema = z.object({
   email: z.string().email(),
-  fullName: z.string().min(2),
-  firstName: z.string().min(2).optional(),
-  lastName: z.string().min(2).optional(),
+  firstName: z.string().min(2),
+  lastName: z.string().min(2),
   nationalCode: nationalCodeSchema.optional(),
   age: z.number().int().min(1).max(120).optional(),
   address: z.string().max(500).optional(),

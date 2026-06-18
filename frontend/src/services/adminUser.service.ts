@@ -16,12 +16,10 @@ export interface AdminUser {
   providerProfile: { id: string } | null;
 }
 
-export type CreateAdminUserPayload = {
+export type AdminUserFormPayload = {
   email: string;
-  password: string;
-  fullName: string;
-  firstName?: string;
-  lastName?: string;
+  firstName: string;
+  lastName: string;
   nationalCode?: string;
   age?: number;
   address?: string;
@@ -30,9 +28,33 @@ export type CreateAdminUserPayload = {
   isActive: boolean;
 };
 
-export type UpdateAdminUserPayload = Partial<Omit<CreateAdminUserPayload, "password">> & {
+export type CreateAdminUserPayload = AdminUserFormPayload & {
+  password: string;
+};
+
+export type UpdateAdminUserPayload = Partial<AdminUserFormPayload> & {
   password?: string;
 };
+
+function splitFullName(fullName: string) {
+  const parts = fullName.trim().split(/\s+/).filter(Boolean);
+  return {
+    firstName: parts[0] ?? "",
+    lastName: parts.length > 1 ? parts.slice(1).join(" ") : "",
+  };
+}
+
+function toApiPayload(data: CreateAdminUserPayload | UpdateAdminUserPayload): Record<string, unknown> {
+  const { password, firstName, lastName, ...rest } = data;
+  const payload: Record<string, unknown> = { ...rest };
+  if (firstName !== undefined) payload.firstName = firstName;
+  if (lastName !== undefined) payload.lastName = lastName;
+  if (firstName !== undefined && lastName !== undefined) {
+    payload.fullName = `${firstName} ${lastName}`.trim();
+  }
+  if (password) payload.password = password;
+  return payload;
+}
 
 export async function getAdminUser(id: string) {
   const res = await apiGet<AdminUser>(`/admin/users/${id}`, undefined, { skipGlobalLoading: true });
@@ -40,22 +62,22 @@ export async function getAdminUser(id: string) {
 }
 
 export async function createAdminUser(data: CreateAdminUserPayload) {
-  const res = await apiPost<AdminUser>("/admin/users", data);
+  const res = await apiPost<AdminUser>("/admin/users", toApiPayload(data));
   return res.data;
 }
 
 export async function updateAdminUser(id: string, data: UpdateAdminUserPayload) {
-  const res = await apiPatch<AdminUser>(`/admin/users/${id}`, data);
+  const res = await apiPatch<AdminUser>(`/admin/users/${id}`, toApiPayload(data));
   return res.data;
 }
 
 export function mapAdminUserToForm(user: AdminUser) {
+  const fromFullName = splitFullName(user.fullName);
   return {
     email: user.email,
     password: "",
-    fullName: user.fullName,
-    firstName: user.firstName ?? "",
-    lastName: user.lastName ?? "",
+    firstName: user.firstName ?? fromFullName.firstName,
+    lastName: user.lastName ?? fromFullName.lastName,
     nationalCode: user.nationalCode ?? "",
     age: user.age ?? undefined,
     address: user.address ?? "",
