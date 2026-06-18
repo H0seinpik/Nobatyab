@@ -67,6 +67,9 @@ api.interceptors.response.use(
         })
         .catch(() => {
           setTokens(null, null);
+          if (typeof window !== "undefined" && !window.location.pathname.includes("/login")) {
+            window.location.assign("/login?reason=session-expired");
+          }
           return null;
         })
         .finally(() => {

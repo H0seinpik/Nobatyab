@@ -37,6 +37,35 @@ export const useAuthStore = defineStore("auth", () => {
     }
   }
 
+  async function syncSession(): Promise<"ok" | "changed" | "invalid"> {
+    if (!localStorage.getItem("accessToken")) {
+      user.value = null;
+      return "invalid";
+    }
+
+    const previousRole = user.value?.role;
+    const previousActive = user.value?.isActive;
+
+    try {
+      const res = await apiGet<User>("/auth/me", undefined, { skipGlobalLoading: true });
+      const next = res.data;
+
+      if (!next.isActive) return "changed";
+
+      if (
+        previousRole !== undefined &&
+        (next.role !== previousRole || next.isActive !== previousActive)
+      ) {
+        return "changed";
+      }
+
+      user.value = next;
+      return "ok";
+    } catch {
+      return "invalid";
+    }
+  }
+
   async function login(email: string, password: string) {
     loading.value = true;
     error.value = null;
@@ -149,6 +178,7 @@ export const useAuthStore = defineStore("auth", () => {
     error,
     isAuthenticated,
     fetchMe,
+    syncSession,
     login,
     register,
     logout,

@@ -2,6 +2,7 @@
 import { computed } from "vue";
 import type { EnrichedSuggestion } from "@/types/smartBooking";
 import { formatJalaliDateTime } from "@/utils/datetime";
+import { formatPersianNumber } from "@/utils/numbers";
 import UiModal from "@/components/ui/UiModal.vue";
 import UiButton from "@/components/ui/UiButton.vue";
 import UiAlert from "@/components/ui/UiAlert.vue";
@@ -17,7 +18,7 @@ const props = defineProps<{
 const emit = defineEmits<{ confirm: []; cancel: [] }>();
 
 const priceLabel = computed(() =>
-  props.suggestion ? Number(props.suggestion.price).toLocaleString("fa-IR") : "",
+  props.suggestion ? formatPersianNumber(props.suggestion.price) : "",
 );
 
 function handleCancel() {

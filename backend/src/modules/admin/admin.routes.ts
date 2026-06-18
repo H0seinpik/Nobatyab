@@ -4,7 +4,9 @@ import { adminController } from "./admin.controller.js";
 import {
   adminAppointmentQuerySchema,
   adminCreateUserSchema,
+  adminProviderRequestIdSchema,
   adminProviderRequestQuerySchema,
+  adminReviewProviderRequestSchema,
   adminReviewServiceRequestSchema,
   adminServiceRequestIdSchema,
   adminServiceRequestQuerySchema,
@@ -58,6 +60,13 @@ adminRoutes.get(
   "/provider-requests",
   validateQuery(adminProviderRequestQuerySchema),
   asyncHandler(adminController.listProviderRequests),
+);
+
+adminRoutes.patch(
+  "/provider-requests/:id",
+  validateParams(adminProviderRequestIdSchema),
+  validateBody(adminReviewProviderRequestSchema),
+  asyncHandler(adminController.reviewProviderRequest),
 );
 
 adminRoutes.get(

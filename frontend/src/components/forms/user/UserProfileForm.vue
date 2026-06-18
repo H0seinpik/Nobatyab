@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import FormFieldGrid from "@/components/forms/FormFieldGrid.vue";
 import UiInput from "@/components/ui/UiInput.vue";
+import UiNumberInput from "@/components/ui/UiNumberInput.vue";
 
 defineProps<{
   values: Record<string, unknown>;
@@ -36,14 +37,13 @@ defineProps<{
       @update:model-value="(v) => (values.nationalCode = v)"
       @blur="touch('nationalCode')"
     />
-    <UiInput
-      :model-value="values.age === undefined || values.age === null ? '' : String(values.age)"
+    <UiNumberInput
+      :model-value="values.age as number | undefined"
       label="سن"
-      type="number"
-      min="1"
-      max="120"
+      :min="1"
+      :max="120"
       :error="fieldError('age')"
-      @update:model-value="(v) => (values.age = v === '' ? undefined : Number(v))"
+      @update:model-value="(v) => (values.age = v)"
       @blur="touch('age')"
     />
     <UiInput

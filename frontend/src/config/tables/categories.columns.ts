@@ -25,7 +25,7 @@ export const categoriesColumns: DataTableColumn[] = [
     label: "وضعیت",
     filterable: true,
     filterType: "boolean",
-    formatter: (r) => ((r as unknown as CategoryRow).isActive ? "فعال" : "غیرفعال"),
+    statusKind: "active",
   },
   jalaliDateColumn("createdAt", "تاریخ ایجاد"),
 ];

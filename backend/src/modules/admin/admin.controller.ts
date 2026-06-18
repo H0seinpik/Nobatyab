@@ -44,6 +44,10 @@ export class AdminController {
     res.json(successResponse(await adminService.reviewServiceRequest(getParam(req.params.id), req.body)));
   };
 
+  reviewProviderRequest = async (req: AuthRequest, res: Response) => {
+    res.json(successResponse(await adminService.reviewProviderRequest(getParam(req.params.id), req.body)));
+  };
+
   listAppointments = async (req: QueryRequest, res: Response) => {
     const q = (req as QueryRequest & { validatedQuery: import("../../shared/schemas/listQuery.schema.js").BaseListQuery }).validatedQuery;
     const result = await adminService.listAppointments(q);

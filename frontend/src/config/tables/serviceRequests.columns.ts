@@ -32,6 +32,7 @@ export const serviceRequestsColumns: DataTableColumn[] = [
     label: "وضعیت",
     filterable: true,
     filterType: "select",
+    statusKind: "review",
     filterOptions: [
       { label: "در انتظار", value: "PENDING" },
       { label: "تأیید شده", value: "APPROVED" },
@@ -47,5 +48,9 @@ export const serviceRequestsColumns: DataTableColumn[] = [
 ];
 
 export const serviceRequestsRowActions: RowAction[] = [
-  { key: "review", label: "بررسی" },
+  {
+    key: "review",
+    label: "بررسی",
+    hidden: (row) => (row as unknown as ServiceRequestRow).status !== "PENDING",
+  },
 ];

@@ -28,6 +28,31 @@ export class ProviderRequestRepository {
     });
   }
 
+  findById(id: string) {
+    return prisma.providerRequest.findUnique({
+      where: { id },
+      include: {
+        user: { select: { id: true, fullName: true, email: true, phone: true, role: true } },
+      },
+    });
+  }
+
+  update(
+    id: string,
+    data: {
+      status?: ProviderRequestStatus;
+      adminNote?: string | null;
+    },
+  ) {
+    return prisma.providerRequest.update({
+      where: { id },
+      data,
+      include: {
+        user: { select: { id: true, fullName: true, email: true, phone: true, role: true } },
+      },
+    });
+  }
+
   findMany(filters: {
     status?: ProviderRequestStatus;
     skip?: number;

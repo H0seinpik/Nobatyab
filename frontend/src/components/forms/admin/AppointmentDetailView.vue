@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { formatJalaliDateTime } from "@/utils/datetime";
+import StatusBadge from "@/components/ui/StatusBadge.vue";
 import type { AppointmentRow } from "@/config/tables/appointments.columns";
 
 defineProps<{ appointment: AppointmentRow }>();
@@ -23,13 +24,13 @@ defineProps<{ appointment: AppointmentRow }>();
       <dt class="text-[var(--color-muted)]">زمان</dt>
       <dd>{{ formatJalaliDateTime(appointment.startAt) }}</dd>
     </div>
-    <div class="flex justify-between gap-4">
+    <div class="flex items-center justify-between gap-4">
       <dt class="text-[var(--color-muted)]">وضعیت</dt>
-      <dd>{{ appointment.status }}</dd>
+      <dd><StatusBadge kind="appointment" :value="appointment.status" /></dd>
     </div>
-    <div class="flex justify-between gap-4">
+    <div class="flex items-center justify-between gap-4">
       <dt class="text-[var(--color-muted)]">پرداخت</dt>
-      <dd>{{ appointment.paymentStatus }}</dd>
+      <dd><StatusBadge kind="payment" :value="appointment.paymentStatus" /></dd>
     </div>
   </dl>
 </template>

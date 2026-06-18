@@ -36,19 +36,29 @@ async function loadCategories() {
 }
 
 function openReview(row: Record<string, unknown>) {
-  reviewingRequest.value = row as unknown as ServiceRequestRow;
+  const request = row as unknown as ServiceRequestRow;
+  if (request.status !== "PENDING") return;
+  reviewingRequest.value = request;
   formError.value = null;
   reset({ status: "APPROVED", adminNote: "", categoryId: "" });
   modalOpen.value = true;
 }
 
 async function submitReview() {
+  if (submitting.value) return;
   formError.value = null;
   if (!validateAll()) return;
   const req = reviewingRequest.value;
+  if (!req) return;
+  if (req.status !== "PENDING") {
+    formError.value = "این درخواست قبلاً بررسی شده است.";
+    modalOpen.value = false;
+    reviewingRequest.value = null;
+    tableRef.value?.refresh();
+    return;
+  }
   if (
     values.status === "APPROVED" &&
-    req &&
     !req.serviceId &&
     !values.categoryId
   ) {
@@ -57,12 +67,13 @@ async function submitReview() {
   }
   submitting.value = true;
   try {
-    await apiPatch(`/admin/service-requests/${req!.id}`, {
+    await apiPatch(`/admin/service-requests/${req.id}`, {
       status: values.status,
       adminNote: values.adminNote || undefined,
       categoryId: values.categoryId || undefined,
     });
     modalOpen.value = false;
+    reviewingRequest.value = null;
     tableRef.value?.refresh();
   } catch {
     formError.value = "خطا در بررسی درخواست";

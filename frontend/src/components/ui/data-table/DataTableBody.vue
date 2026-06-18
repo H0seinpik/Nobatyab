@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import type { DataTableColumn, RowAction } from "@/types/dataTable";
+import StatusBadge from "@/components/ui/StatusBadge.vue";
 import DataTableRowActions from "./DataTableRowActions.vue";
 import DataTableEmpty from "./DataTableEmpty.vue";
+import { getVisibleRowActions } from "@/config/statuses";
 
-defineProps<{
+const props = defineProps<{
   columns: DataTableColumn[];
   rows: Record<string, unknown>[];
   rowKey: string;
@@ -27,6 +29,10 @@ function cellValue(row: Record<string, unknown>, col: DataTableColumn) {
 
 function rowId(row: Record<string, unknown>, rowKey: string) {
   return String(row[rowKey]);
+}
+
+function hasRowActions(row: Record<string, unknown>) {
+  return getVisibleRowActions(props.rowActions, row).length > 0;
 }
 </script>
 
@@ -53,11 +59,17 @@ function rowId(row: Record<string, unknown>, rowKey: string) {
       </td>
       <td v-for="col in columns" :key="col.key" class="px-4 py-3 text-sm">
         <slot :name="`cell-${col.key}`" :row="row" :value="row[col.key]">
-          {{ cellValue(row, col) }}
+          <StatusBadge
+            v-if="col.statusKind"
+            :kind="col.statusKind"
+            :value="row[col.key]"
+          />
+          <template v-else>{{ cellValue(row, col) }}</template>
         </slot>
       </td>
       <td v-if="rowActions?.length" class="px-4 py-3">
         <DataTableRowActions
+          v-if="hasRowActions(row)"
           :row="row"
           :actions="rowActions"
           @action="(key, r) => emit('row-action', key, r)"

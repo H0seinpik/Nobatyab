@@ -1,4 +1,5 @@
 import type { DataTableColumn, RowAction } from "@/types/dataTable";
+import { formatPersianNumber } from "@/utils/numbers";
 import { jalaliDateColumn } from "./_formatters";
 import { crudRowActions } from "./_rowActions";
 
@@ -24,7 +25,7 @@ export const servicesColumns: DataTableColumn[] = [
     key: "basePrice",
     label: "قیمت پایه",
     sortable: true,
-    formatter: (r) => Number((r as unknown as ServiceRow).basePrice).toLocaleString("fa-IR"),
+    formatter: (r) => formatPersianNumber(Number((r as unknown as ServiceRow).basePrice)),
   },
   {
     key: "defaultDuration",
@@ -36,7 +37,7 @@ export const servicesColumns: DataTableColumn[] = [
     label: "وضعیت",
     filterable: true,
     filterType: "boolean",
-    formatter: (r) => ((r as unknown as ServiceRow).isActive ? "فعال" : "غیرفعال"),
+    statusKind: "active",
   },
   jalaliDateColumn("createdAt", "تاریخ ایجاد"),
 ];

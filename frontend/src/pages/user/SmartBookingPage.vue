@@ -15,7 +15,7 @@ import ServiceSelector from "@/components/smart-booking/ServiceSelector.vue";
 import SuggestionList from "@/components/smart-booking/SuggestionList.vue";
 import BookingConfirmationModal from "@/components/smart-booking/BookingConfirmationModal.vue";
 import UiButton from "@/components/ui/UiButton.vue";
-import UiInput from "@/components/ui/UiInput.vue";
+import UiPriceInput from "@/components/ui/UiPriceInput.vue";
 import UiAlert from "@/components/ui/UiAlert.vue";
 import UiCard from "@/components/ui/UiCard.vue";
 import SkeletonForm from "@/components/ui/skeleton/SkeletonForm.vue";
@@ -148,19 +148,19 @@ function onCancelConfirm() {
           </fieldset>
 
           <div class="grid gap-4 sm:grid-cols-2">
-            <UiInput
-              :model-value="store.priceMin != null ? String(store.priceMin) : ''"
+            <UiPriceInput
+              :model-value="store.priceMin ?? undefined"
               label="حداقل قیمت (تومان)"
-              type="number"
               placeholder="اختیاری"
-              @update:model-value="store.priceMin = $event ? Number($event) : null"
+              :min="0"
+              @update:model-value="store.priceMin = $event ?? null"
             />
-            <UiInput
-              :model-value="store.priceMax != null ? String(store.priceMax) : ''"
+            <UiPriceInput
+              :model-value="store.priceMax ?? undefined"
               label="حداکثر قیمت (تومان)"
-              type="number"
               placeholder="اختیاری"
-              @update:model-value="store.priceMax = $event ? Number($event) : null"
+              :min="0"
+              @update:model-value="store.priceMax = $event ?? null"
             />
           </div>
         </UiCard>

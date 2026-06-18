@@ -2,6 +2,7 @@
 import { ref, onMounted, watch } from "vue";
 import { useRoute, RouterLink } from "vue-router";
 import { apiGet } from "@/services/api";
+import { formatPersianNumber } from "@/utils/numbers";
 import UiCard from "@/components/ui/UiCard.vue";
 import UiInput from "@/components/ui/UiInput.vue";
 import SkeletonCard from "@/components/ui/skeleton/SkeletonCard.vue";
@@ -56,7 +57,7 @@ watch([search, categoryId], load);
         <h2 class="font-semibold">{{ svc.name }}</h2>
         <p class="mt-1 text-sm text-[var(--color-muted)]">{{ svc.category.name }}</p>
         <p class="mt-2 text-sm">{{ svc.description }}</p>
-        <p class="mt-2 text-sm">{{ Number(svc.basePrice).toLocaleString("fa-IR") }} تومان · {{ svc.defaultDuration }} دقیقه</p>
+        <p class="mt-2 text-sm tabular-nums">{{ formatPersianNumber(Number(svc.basePrice)) }} تومان · {{ svc.defaultDuration }} دقیقه</p>
         <RouterLink :to="`/providers?serviceId=${svc.id}`" class="mt-3 inline-block text-sm text-[var(--color-primary)]">
           مشاهده ارائه‌دهندگان ←
         </RouterLink>

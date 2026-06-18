@@ -7,6 +7,7 @@ import { useAuthStore } from "@/stores/auth";
 import { useZodForm } from "@/composables/useZodForm";
 import { guestBookingFormSchema } from "@/schemas/appointment.schema";
 import { jalaliToGregorianDate } from "@/utils/datetime";
+import { formatPersianNumber } from "@/utils/numbers";
 import UiCard from "@/components/ui/UiCard.vue";
 import UiButton from "@/components/ui/UiButton.vue";
 import UiInput from "@/components/ui/UiInput.vue";
@@ -143,7 +144,7 @@ async function book() {
           class="form-control mt-1"
         >
           <option v-for="ps in provider.providerServices" :key="ps.id" :value="ps.id">
-            {{ ps.service.name }} — {{ Number(ps.price).toLocaleString("fa-IR") }} تومان
+            {{ ps.service.name }} — {{ formatPersianNumber(Number(ps.price)) }} تومان
           </option>
         </select>
       </UiCard>

@@ -13,6 +13,7 @@ import { workingHoursFormSchema, cancellationPolicyFormSchema } from "@/schemas/
 import UiCard from "@/components/ui/UiCard.vue";
 import UiButton from "@/components/ui/UiButton.vue";
 import UiInput from "@/components/ui/UiInput.vue";
+import UiNumberInput from "@/components/ui/UiNumberInput.vue";
 import UiAlert from "@/components/ui/UiAlert.vue";
 import UiSwitch from "@/components/ui/UiSwitch.vue";
 import SkeletonForm from "@/components/ui/skeleton/SkeletonForm.vue";
@@ -234,12 +235,14 @@ async function savePolicy() {
       <h2 class="mb-4 text-xl font-bold">قوانین لغو</h2>
       <UiCard class="max-w-lg space-y-4">
         <form class="space-y-4" @submit.prevent="savePolicy">
-          <UiInput
-            v-model="policyValues.minHoursBefore"
+          <UiNumberInput
+            :model-value="policyValues.minHoursBefore"
             label="حداقل ساعت قبل از نوبت"
-            type="number"
             required
+            :min="0"
+            :max="168"
             :error="policyFieldError('minHoursBefore')"
+            @update:model-value="(v) => (policyValues.minHoursBefore = v ?? 0)"
             @blur="policyTouch('minHoursBefore')"
           />
           <UiInput

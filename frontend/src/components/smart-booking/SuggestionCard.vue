@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { EnrichedSuggestion } from "@/types/smartBooking";
 import { formatJalaliDateTime } from "@/utils/datetime";
+import { formatPersianNumber } from "@/utils/numbers";
 import UiCard from "@/components/ui/UiCard.vue";
 import UiButton from "@/components/ui/UiButton.vue";
 import UiBadge from "@/components/ui/UiBadge.vue";
@@ -12,7 +13,7 @@ defineProps<{
 const emit = defineEmits<{ select: [] }>();
 
 function formatPrice(price: number) {
-  return price.toLocaleString("fa-IR");
+  return formatPersianNumber(price);
 }
 </script>
 

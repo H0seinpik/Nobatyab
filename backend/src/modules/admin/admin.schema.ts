@@ -58,3 +58,10 @@ export const adminAppointmentQuerySchema = baseListQuerySchema;
 export const adminProviderRequestQuerySchema = baseListQuerySchema.extend({
   status: z.nativeEnum(ProviderRequestStatus).optional(),
 });
+
+export const adminProviderRequestIdSchema = z.object({ id: z.string().cuid() });
+
+export const adminReviewProviderRequestSchema = z.object({
+  status: z.enum([ProviderRequestStatus.APPROVED, ProviderRequestStatus.REJECTED]),
+  adminNote: z.string().max(1000).optional(),
+});

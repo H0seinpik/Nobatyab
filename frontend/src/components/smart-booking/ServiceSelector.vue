@@ -2,6 +2,7 @@
 import { ref, onMounted, computed } from "vue";
 import { apiGet } from "@/services/api";
 import type { CatalogService } from "@/types/smartBooking";
+import { formatPersianNumber } from "@/utils/numbers";
 import UiCard from "@/components/ui/UiCard.vue";
 import SkeletonCard from "@/components/ui/skeleton/SkeletonCard.vue";
 import ContentFade from "@/components/ui/ContentFade.vue";
@@ -25,7 +26,7 @@ onMounted(async () => {
 });
 
 function formatPrice(price: string) {
-  return Number(price).toLocaleString("fa-IR");
+  return formatPersianNumber(Number(price));
 }
 </script>
 

@@ -1,17 +1,13 @@
 <script setup lang="ts">
-import UiBadge from "@/components/ui/UiBadge.vue";
+import StatusBadge from "@/components/ui/StatusBadge.vue";
+import type { StatusKind } from "@/config/statuses";
 
-defineProps<{ status: string }>();
-
-const map: Record<string, { label: string; tone: "default" | "success" | "warning" | "danger" | "info" }> = {
-  PENDING: { label: "در انتظار", tone: "warning" },
-  CONFIRMED: { label: "تایید شده", tone: "info" },
-  COMPLETED: { label: "انجام شده", tone: "success" },
-  CANCELLED: { label: "لغو شده", tone: "danger" },
-  PAID: { label: "پرداخت شده", tone: "success" },
-};
+defineProps<{
+  status: string;
+  kind?: StatusKind;
+}>();
 </script>
 
 <template>
-  <UiBadge :tone="map[status]?.tone ?? 'default'">{{ map[status]?.label ?? status }}</UiBadge>
+  <StatusBadge :kind="kind ?? 'appointment'" :value="status" />
 </template>

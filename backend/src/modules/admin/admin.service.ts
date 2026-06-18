@@ -9,9 +9,11 @@ import {
   userListConfig,
 } from "../../shared/utils/queryBuilder.js";
 import { providerRequestService } from "../provider-request/provider-request.service.js";
+import { authRepository } from "../auth/auth.repository.js";
 import { adminRepository } from "./admin.repository.js";
 import type {
   adminCreateUserSchema,
+  adminReviewProviderRequestSchema,
   adminReviewServiceRequestSchema,
   adminUpdateUserSchema,
 } from "./admin.schema.js";
@@ -20,6 +22,7 @@ import type { z } from "zod";
 type CreateUserInput = z.infer<typeof adminCreateUserSchema>;
 type UpdateUserInput = z.infer<typeof adminUpdateUserSchema>;
 type ReviewServiceRequestInput = z.infer<typeof adminReviewServiceRequestSchema>;
+type ReviewProviderRequestInput = z.infer<typeof adminReviewProviderRequestSchema>;
 
 export class AdminService {
   private repo = adminRepository;
@@ -113,7 +116,15 @@ export class AdminService {
       data.passwordHash = await hashPassword(password);
     }
 
-    return this.repo.updateUser(id, data);
+    const updated = await this.repo.updateUser(id, data);
+
+    const roleChanged = input.role !== undefined && input.role !== existing.role;
+    const activeChanged = input.isActive !== undefined && input.isActive !== existing.isActive;
+    if (roleChanged || activeChanged || password) {
+      await authRepository.revokeAllUserTokens(id);
+    }
+
+    return updated;
   }
 
   async listServiceRequests(query: {
@@ -136,6 +147,10 @@ export class AdminService {
     limit?: string;
   }) {
     return providerRequestService.listForAdmin(query);
+  }
+
+  async reviewProviderRequest(id: string, input: ReviewProviderRequestInput) {
+    return providerRequestService.reviewProviderRequest(id, input);
   }
 
   async reviewServiceRequest(id: string, input: ReviewServiceRequestInput) {

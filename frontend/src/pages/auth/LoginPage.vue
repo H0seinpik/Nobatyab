@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from "vue";
 import { useRoute, useRouter, RouterLink } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import { useZodForm } from "@/composables/useZodForm";
@@ -6,10 +7,22 @@ import { loginFormSchema } from "@/schemas/auth.schema";
 import UiCard from "@/components/ui/UiCard.vue";
 import UiInput from "@/components/ui/UiInput.vue";
 import UiButton from "@/components/ui/UiButton.vue";
+import UiAlert from "@/components/ui/UiAlert.vue";
 
 const auth = useAuthStore();
 const router = useRouter();
 const route = useRoute();
+
+const sessionMessage = computed(() => {
+  const reason = route.query.reason as string | undefined;
+  if (reason === "session-changed") {
+    return "نقش یا وضعیت حساب شما تغییر کرده است. لطفاً دوباره وارد شوید.";
+  }
+  if (reason === "session-expired") {
+    return "نشست شما منقضی شده است. لطفاً دوباره وارد شوید.";
+  }
+  return null;
+});
 
 const { values, fieldError, touch, isValid, submitting, validateAll } = useZodForm(loginFormSchema, {
   email: "",
@@ -38,6 +51,7 @@ async function submit() {
   <div class="mx-auto max-w-md">
     <UiCard>
       <h1 class="mb-6 text-xl font-bold">ورود</h1>
+      <UiAlert v-if="sessionMessage" variant="info" class="mb-4">{{ sessionMessage }}</UiAlert>
       <form class="space-y-4" @submit.prevent="submit">
         <UiInput
           v-model="values.email"

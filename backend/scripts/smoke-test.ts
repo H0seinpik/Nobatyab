@@ -469,6 +469,110 @@ async function main() {
   );
   console.log("OK  GET /api/v1/admin/provider-requests");
 
+  const rejectUserEmail = `provider-reject-smoke-${Date.now()}@nobatyab.com`;
+  const rejectUserReg = await request("/api/v1/auth/register", {
+    method: "POST",
+    body: JSON.stringify({
+      email: rejectUserEmail,
+      password: "User123!",
+      fullName: "Provider Reject Smoke",
+      phone: "09120000998",
+    }),
+  });
+  assert(rejectUserReg.status === 201 && rejectUserReg.body.data?.accessToken, "POST register reject-flow user");
+  const rejectUserHeaders = { Authorization: `Bearer ${rejectUserReg.body.data.accessToken}` };
+  const rejectUserSubmit = await request("/api/v1/provider/request", {
+    method: "POST",
+    headers: rejectUserHeaders,
+    body: JSON.stringify({ note: "reject smoke test" }),
+  });
+  assert(rejectUserSubmit.status === 201, "POST provider request for reject flow");
+  const rejectRequestId = rejectUserSubmit.body.data?.id as string;
+  assert(rejectRequestId, "reject flow request id");
+
+  const rejectReview = await request(`/api/v1/admin/provider-requests/${rejectRequestId}`, {
+    method: "PATCH",
+    headers: adminHeaders,
+    body: JSON.stringify({ status: "REJECTED", adminNote: "smoke reject" }),
+  });
+  assert(
+    rejectReview.status === 200 &&
+      rejectReview.body.success &&
+      rejectReview.body.data?.status === "REJECTED",
+    "PATCH /api/v1/admin/provider-requests/:id reject",
+  );
+  console.log("OK  PATCH /api/v1/admin/provider-requests/:id reject");
+
+  const rejectMe = await request("/api/v1/provider/request/me", { headers: rejectUserHeaders });
+  assert(
+    rejectMe.status === 200 && rejectMe.body.data?.status === "REJECTED",
+    "GET /api/v1/provider/request/me shows REJECTED",
+  );
+  console.log("OK  GET /api/v1/provider/request/me shows REJECTED");
+
+  const approveUserEmail = `provider-approve-smoke-${Date.now()}@nobatyab.com`;
+  const approveUserReg = await request("/api/v1/auth/register", {
+    method: "POST",
+    body: JSON.stringify({
+      email: approveUserEmail,
+      password: "User123!",
+      fullName: "Provider Approve Smoke",
+      phone: "09120000997",
+    }),
+  });
+  assert(approveUserReg.status === 201 && approveUserReg.body.data?.accessToken, "POST register approve-flow user");
+  const approveAccessToken = approveUserReg.body.data.accessToken as string;
+  const approveRefreshToken = approveUserReg.body.data.refreshToken as string;
+  const approveUserHeaders = { Authorization: `Bearer ${approveAccessToken}` };
+
+  const approveUserSubmit = await request("/api/v1/provider/request", {
+    method: "POST",
+    headers: approveUserHeaders,
+    body: JSON.stringify({ note: "approve smoke test" }),
+  });
+  assert(approveUserSubmit.status === 201, "POST provider request for approve flow");
+  const approveRequestId = approveUserSubmit.body.data?.id as string;
+  assert(approveRequestId, "approve flow request id");
+
+  const approveReview = await request(`/api/v1/admin/provider-requests/${approveRequestId}`, {
+    method: "PATCH",
+    headers: adminHeaders,
+    body: JSON.stringify({ status: "APPROVED", adminNote: "smoke approve" }),
+  });
+  assert(
+    approveReview.status === 200 &&
+      approveReview.body.success &&
+      approveReview.body.data?.status === "APPROVED" &&
+      approveReview.body.data?.user?.role === "PROVIDER",
+    "PATCH /api/v1/admin/provider-requests/:id approve",
+  );
+  console.log("OK  PATCH /api/v1/admin/provider-requests/:id approve");
+
+  const refreshAfterApprove = await request("/api/v1/auth/refresh", {
+    method: "POST",
+    body: JSON.stringify({ refreshToken: approveRefreshToken }),
+  });
+  assert(refreshAfterApprove.status === 401, "POST /api/v1/auth/refresh revoked after approve");
+  console.log("OK  POST /api/v1/auth/refresh revoked after approve");
+
+  const approveUserLogin = await request("/api/v1/auth/login", {
+    method: "POST",
+    body: JSON.stringify({ email: approveUserEmail, password: "User123!" }),
+  });
+  assert(
+    approveUserLogin.status === 200 && approveUserLogin.body.data?.user?.role === "PROVIDER",
+    "POST login after approve has PROVIDER role",
+  );
+  console.log("OK  POST login after approve has PROVIDER role");
+
+  const reviewPendingAgain = await request(`/api/v1/admin/provider-requests/${approveRequestId}`, {
+    method: "PATCH",
+    headers: adminHeaders,
+    body: JSON.stringify({ status: "REJECTED" }),
+  });
+  assert(reviewPendingAgain.status === 400, "PATCH already-reviewed provider request (400)");
+  console.log("OK  PATCH already-reviewed provider request (400)");
+
   console.log("\nAll smoke tests passed.");
 }
 

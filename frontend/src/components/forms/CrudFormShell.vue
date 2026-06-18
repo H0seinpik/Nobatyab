@@ -26,7 +26,7 @@ const emit = defineEmits<{ submit: []; cancel: [] }>();
           {{ cancelLabel ?? "انصراف" }}
         </UiButton>
         <UiButton
-          type="submit"
+          type="button"
           :loading="submitting"
           :disabled="disabled || submitting"
           @click="emit('submit')"

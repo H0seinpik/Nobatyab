@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import FormFieldGrid from "@/components/forms/FormFieldGrid.vue";
 import UiInput from "@/components/ui/UiInput.vue";
+import UiNumberInput from "@/components/ui/UiNumberInput.vue";
+import UiPriceInput from "@/components/ui/UiPriceInput.vue";
 import UiSelect from "@/components/ui/UiSelect.vue";
 import type { CrudMode } from "@/composables/useCrudForm";
 
@@ -35,20 +37,20 @@ defineProps<{
       @update:model-value="(v) => (values.name = v)"
       @blur="touch('name')"
     />
-    <UiInput
-      :model-value="String(values.defaultDuration ?? '')"
+    <UiNumberInput
+      :model-value="values.defaultDuration as number | undefined"
       label="مدت (دقیقه)"
-      type="number"
       required
+      :min="5"
       :error="fieldError('defaultDuration')"
       @update:model-value="(v) => (values.defaultDuration = v)"
       @blur="touch('defaultDuration')"
     />
-    <UiInput
-      :model-value="String(values.basePrice ?? '')"
+    <UiPriceInput
+      :model-value="values.basePrice as number | undefined"
       label="قیمت پایه"
-      type="number"
       required
+      :min="0"
       :error="fieldError('basePrice')"
       @update:model-value="(v) => (values.basePrice = v)"
       @blur="touch('basePrice')"

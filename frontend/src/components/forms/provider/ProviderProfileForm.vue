@@ -2,6 +2,7 @@
 import { ref } from "vue";
 import FormFieldGrid from "@/components/forms/FormFieldGrid.vue";
 import UiInput from "@/components/ui/UiInput.vue";
+import UiNumberInput from "@/components/ui/UiNumberInput.vue";
 import MapLocationPicker from "@/components/maps/MapLocationPicker.vue";
 
 defineProps<{
@@ -56,13 +57,14 @@ defineExpose({
         @update:longitude="(v) => (values.longitude = v)"
       />
     </div>
-    <UiInput
-      :model-value="values.slotDurationMinutes === undefined || values.slotDurationMinutes === null ? '' : String(values.slotDurationMinutes)"
+    <UiNumberInput
+      :model-value="values.slotDurationMinutes as number | undefined"
       label="مدت اسلات (دقیقه)"
-      type="number"
       required
+      :min="5"
+      :max="240"
       :error="fieldError('slotDurationMinutes')"
-      @update:model-value="(v) => (values.slotDurationMinutes = v === '' ? undefined : Number(v))"
+      @update:model-value="(v) => (values.slotDurationMinutes = v)"
       @blur="touch('slotDurationMinutes')"
     />
     <div class="flex items-center md:col-span-2">

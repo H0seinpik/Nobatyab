@@ -14,6 +14,7 @@ import ProfilePageHeader from "@/components/profile/ProfilePageHeader.vue";
 import AccountProfileSection from "@/components/profile/AccountProfileSection.vue";
 import ChangePasswordSection from "@/components/profile/ChangePasswordSection.vue";
 import ProviderBusinessProfileSection from "@/components/profile/ProviderBusinessProfileSection.vue";
+import StatusBadge from "@/components/ui/StatusBadge.vue";
 import {
   getMyProviderRequest,
   submitProviderRequest,
@@ -113,8 +114,9 @@ async function submitProviderApplication() {
         </div>
 
         <template v-else-if="providerRequest?.status === 'PENDING'">
-          <UiAlert variant="info">
-            درخواست شما در انتظار بررسی است ({{ providerRequest.status }}).
+          <UiAlert variant="info" class="flex flex-wrap items-center gap-2">
+            <span>درخواست شما در انتظار بررسی است.</span>
+            <StatusBadge kind="review" :value="providerRequest.status" />
           </UiAlert>
         </template>
 

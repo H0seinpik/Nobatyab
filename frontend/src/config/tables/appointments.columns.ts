@@ -45,6 +45,7 @@ export const appointmentsColumns: DataTableColumn[] = [
     sortable: true,
     filterable: true,
     filterType: "select",
+    statusKind: "appointment",
     filterOptions: [
       { label: "در انتظار", value: "PENDING" },
       { label: "تأیید شده", value: "CONFIRMED" },
@@ -57,6 +58,7 @@ export const appointmentsColumns: DataTableColumn[] = [
     label: "پرداخت",
     filterable: true,
     filterType: "select",
+    statusKind: "payment",
     filterOptions: [
       { label: "در انتظار", value: "PENDING" },
       { label: "پرداخت شده", value: "PAID" },

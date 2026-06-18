@@ -21,6 +21,7 @@ export const usersColumns: DataTableColumn[] = [
     sortable: true,
     filterable: true,
     filterType: "select",
+    statusKind: "role",
     filterOptions: [
       { label: "مدیر", value: "ADMIN" },
       { label: "ارائه‌دهنده", value: "PROVIDER" },
@@ -32,7 +33,7 @@ export const usersColumns: DataTableColumn[] = [
     label: "وضعیت",
     filterable: true,
     filterType: "boolean",
-    formatter: (r) => ((r as unknown as UserRow).isActive ? "فعال" : "غیرفعال"),
+    statusKind: "active",
   },
   jalaliDateColumn("createdAt", "تاریخ ثبت"),
 ];

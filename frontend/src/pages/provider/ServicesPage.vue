@@ -15,13 +15,14 @@ import {
 } from "@/services/provider.service";
 import UiCard from "@/components/ui/UiCard.vue";
 import UiButton from "@/components/ui/UiButton.vue";
-import UiBadge from "@/components/ui/UiBadge.vue";
+import StatusBadge from "@/components/ui/StatusBadge.vue";
 import UiModal from "@/components/ui/UiModal.vue";
 import UiConfirmDialog from "@/components/ui/UiConfirmDialog.vue";
 import CrudFormShell from "@/components/forms/CrudFormShell.vue";
 import ProviderServiceForm from "@/components/forms/provider/ProviderServiceForm.vue";
 import SkeletonCard from "@/components/ui/skeleton/SkeletonCard.vue";
 import ContentFade from "@/components/ui/ContentFade.vue";
+import { formatPersianNumber } from "@/utils/numbers";
 
 const services = ref<ProviderServiceItem[]>([]);
 const listLoading = ref(true);
@@ -134,12 +135,12 @@ onMounted(load);
               <div>
                 <p class="font-semibold">{{ item.service.name }}</p>
                 <p class="mt-1 text-sm text-[var(--color-muted)]">
-                  {{ item.duration }} دقیقه · {{ Number(item.price).toLocaleString("fa-IR") }} تومان
+                  {{ item.duration }} دقیقه · {{ formatPersianNumber(Number(item.price)) }} تومان
                 </p>
                 <p v-if="item.service.description" class="mt-1 text-sm">{{ item.service.description }}</p>
               </div>
               <div class="flex items-center gap-2">
-                <UiBadge>{{ item.isActive ? "فعال" : "غیرفعال" }}</UiBadge>
+                <StatusBadge kind="active" :value="item.isActive" />
                 <UiButton type="button" variant="secondary" @click="openEdit(item)">
                   ویرایش
                 </UiButton>

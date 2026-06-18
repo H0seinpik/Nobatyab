@@ -1,3 +1,5 @@
+import type { StatusKind } from "@/config/statuses";
+
 export type FilterType = "text" | "select" | "boolean" | "date";
 
 export interface FilterOption {
@@ -13,6 +15,7 @@ export interface DataTableColumn<T = Record<string, unknown>> {
   filterType?: FilterType;
   filterOptions?: FilterOption[];
   formatter?: (row: T) => string;
+  statusKind?: StatusKind;
   width?: string;
 }
 

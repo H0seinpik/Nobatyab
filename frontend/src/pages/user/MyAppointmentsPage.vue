@@ -87,7 +87,7 @@ onMounted(load);
               <p class="mt-2 text-sm">{{ formatJalaliDateTime(apt.startAt) }}</p>
               <div class="mt-2 flex gap-2">
                 <AppointmentStatusBadge :status="apt.status" />
-                <AppointmentStatusBadge :status="apt.paymentStatus" />
+                <AppointmentStatusBadge kind="payment" :status="apt.paymentStatus" />
               </div>
             </div>
             <div class="flex gap-2">

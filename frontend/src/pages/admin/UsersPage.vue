@@ -12,7 +12,6 @@ import {
 import DataTable from "@/components/ui/data-table/DataTable.vue";
 import PageHeader from "@/components/layout/PageHeader.vue";
 import UiModal from "@/components/ui/UiModal.vue";
-import UiBadge from "@/components/ui/UiBadge.vue";
 import UiButton from "@/components/ui/UiButton.vue";
 import CrudFormShell from "@/components/forms/CrudFormShell.vue";
 import UserForm from "@/components/forms/admin/UserForm.vue";
@@ -23,12 +22,6 @@ import {
 } from "@/config/tables/users.columns";
 
 const tableRef = ref<{ refresh: () => void } | null>(null);
-
-const roleLabels: Record<string, string> = {
-  ADMIN: "مدیر",
-  PROVIDER: "ارائه‌دهنده",
-  USER: "کاربر",
-};
 
 const initialValues = {
   email: "",
@@ -101,11 +94,7 @@ async function onRowAction({ action, row }: { action: string; row: Record<string
       advanced-filters
       default-sort="createdAt:desc"
       @row-action="onRowAction"
-    >
-      <template #cell-role="{ row }">
-        <UiBadge>{{ roleLabels[String(row.role)] ?? row.role }}</UiBadge>
-      </template>
-    </DataTable>
+    />
 
     <UiModal
       v-model:open="isOpen"

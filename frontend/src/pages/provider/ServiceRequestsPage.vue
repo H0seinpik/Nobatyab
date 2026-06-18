@@ -5,8 +5,11 @@ import { useZodForm } from "@/composables/useZodForm";
 import { serviceRequestFormSchema } from "@/schemas/provider.schema";
 import UiCard from "@/components/ui/UiCard.vue";
 import UiInput from "@/components/ui/UiInput.vue";
+import UiPriceInput from "@/components/ui/UiPriceInput.vue";
+import UiNumberInput from "@/components/ui/UiNumberInput.vue";
 import UiButton from "@/components/ui/UiButton.vue";
-import UiBadge from "@/components/ui/UiBadge.vue";
+import StatusBadge from "@/components/ui/StatusBadge.vue";
+import { getApiErrorMessage } from "@/utils/apiError";
 import SkeletonCard from "@/components/ui/skeleton/SkeletonCard.vue";
 import ContentFade from "@/components/ui/ContentFade.vue";
 
@@ -54,12 +57,13 @@ async function submit() {
   submitting.value = true;
   submitError.value = null;
   try {
+    const data = serviceRequestFormSchema.parse(values);
     await apiPost("/provider/service-requests", {
-      serviceId: values.serviceId || undefined,
-      proposedName: values.serviceId ? undefined : values.proposedName,
-      proposedDescription: values.serviceId ? undefined : values.proposedDescription || undefined,
-      proposedPrice: values.serviceId ? undefined : values.proposedPrice,
-      proposedDuration: values.serviceId ? undefined : values.proposedDuration,
+      serviceId: data.serviceId || undefined,
+      proposedName: data.serviceId ? undefined : data.proposedName,
+      proposedDescription: data.serviceId ? undefined : data.proposedDescription || undefined,
+      proposedPrice: data.serviceId ? undefined : data.proposedPrice,
+      proposedDuration: data.serviceId ? undefined : data.proposedDuration,
     });
     reset({
       serviceId: "",
@@ -69,8 +73,8 @@ async function submit() {
       proposedDuration: 30,
     });
     await load();
-  } catch {
-    submitError.value = "ارسال ناموفق بود";
+  } catch (e) {
+    submitError.value = getApiErrorMessage(e, "ارسال ناموفق بود");
   } finally {
     submitting.value = false;
   }
@@ -98,20 +102,22 @@ onMounted(load);
             @blur="touch('proposedName')"
           />
           <UiInput v-model="values.proposedDescription" label="توضیحات" />
-          <UiInput
-            v-model="values.proposedPrice"
+          <UiPriceInput
+            :model-value="values.proposedPrice"
             label="قیمت (تومان)"
-            type="number"
             required
+            :min="0"
             :error="fieldError('proposedPrice')"
+            @update:model-value="(v) => (values.proposedPrice = v)"
             @blur="touch('proposedPrice')"
           />
-          <UiInput
-            v-model="values.proposedDuration"
+          <UiNumberInput
+            :model-value="values.proposedDuration"
             label="مدت (دقیقه)"
-            type="number"
             required
+            :min="5"
             :error="fieldError('proposedDuration')"
+            @update:model-value="(v) => (values.proposedDuration = v ?? 30)"
             @blur="touch('proposedDuration')"
           />
         </template>
@@ -132,7 +138,7 @@ onMounted(load);
           <UiCard v-for="r in requests" :key="r.id">
             <div class="flex items-center justify-between">
               <span>{{ r.service?.name ?? r.proposedName }}</span>
-              <UiBadge>{{ r.status }}</UiBadge>
+              <StatusBadge kind="review" :value="r.status" />
             </div>
             <p v-if="r.adminNote" class="mt-2 text-sm text-[var(--color-muted)]">{{ r.adminNote }}</p>
           </UiCard>

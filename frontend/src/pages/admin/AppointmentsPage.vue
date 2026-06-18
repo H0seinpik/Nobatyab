@@ -5,7 +5,6 @@ import PageHeader from "@/components/layout/PageHeader.vue";
 import UiModal from "@/components/ui/UiModal.vue";
 import UiButton from "@/components/ui/UiButton.vue";
 import UiConfirmDialog from "@/components/ui/UiConfirmDialog.vue";
-import AppointmentStatusBadge from "@/components/booking/AppointmentStatusBadge.vue";
 import AppointmentDetailView from "@/components/forms/admin/AppointmentDetailView.vue";
 import { formatJalaliDateTime } from "@/utils/datetime";
 import { cancelAppointment } from "@/services/appointment.service";
@@ -80,12 +79,6 @@ function onCancelDialog() {
     >
       <template #cell-startAt="{ row }">
         {{ formatJalaliDateTime(String(row.startAt)) }}
-      </template>
-      <template #cell-status="{ row }">
-        <AppointmentStatusBadge :status="String(row.status)" />
-      </template>
-      <template #cell-paymentStatus="{ row }">
-        <AppointmentStatusBadge :status="String(row.paymentStatus)" />
       </template>
     </DataTable>
 
