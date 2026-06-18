@@ -5,11 +5,25 @@ withDefaults(defineProps<{ fields?: number }>(), { fields: 4 });
 </script>
 
 <template>
-  <div class="space-y-4">
-    <div v-for="i in fields" :key="i" class="space-y-2">
-      <SkeletonBase class="h-3 w-24" />
-      <SkeletonBase class="h-10 w-full" />
+  <div class="skeleton-form">
+    <div v-for="i in fields" :key="i" class="skeleton-form__field">
+      <SkeletonBase class="skeleton--label" />
+      <SkeletonBase class="skeleton--field" />
     </div>
-    <SkeletonBase class="mt-2 h-10 w-full" />
+    <SkeletonBase class="skeleton--submit" />
   </div>
 </template>
+
+<style scoped>
+.skeleton-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.skeleton-form__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+</style>

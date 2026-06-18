@@ -115,31 +115,33 @@ onMounted(load);
 </script>
 
 <template>
-  <div class="space-y-8">
-    <div class="flex flex-wrap items-center justify-between gap-3">
-      <h1 class="text-2xl font-bold">خدمات من</h1>
+  <div class="provider-services-page">
+    <div class="provider-services-page__header">
+      <h1 class="provider-services-page__title">خدمات من</h1>
       <UiButton @click="openCreate()">افزودن خدمت</UiButton>
     </div>
 
     <div>
-      <p v-if="listError" class="mb-3 text-sm text-red-600">{{ listError }}</p>
+      <p v-if="listError" class="provider-services-page__error">{{ listError }}</p>
 
-      <div v-if="listLoading" class="space-y-3">
+      <div v-if="listLoading" class="provider-services-page__list">
         <SkeletonCard v-for="i in 3" :key="i" />
       </div>
       <ContentFade v-else>
-        <p v-if="!services.length" class="text-sm text-[var(--color-muted)]">هنوز خدمتی ثبت نشده است.</p>
-        <div v-else class="space-y-3">
+        <p v-if="!services.length" class="provider-services-page__empty">هنوز خدمتی ثبت نشده است.</p>
+        <div v-else class="provider-services-page__list">
           <UiCard v-for="item in services" :key="item.id">
-            <div class="flex flex-wrap items-start justify-between gap-3">
+            <div class="provider-services-page__item">
               <div>
-                <p class="font-semibold">{{ item.service.name }}</p>
-                <p class="mt-1 text-sm text-[var(--color-muted)]">
+                <p class="provider-services-page__item-name">{{ item.service.name }}</p>
+                <p class="provider-services-page__item-meta">
                   {{ item.duration }} دقیقه · {{ formatPersianNumber(Number(item.price)) }} تومان
                 </p>
-                <p v-if="item.service.description" class="mt-1 text-sm">{{ item.service.description }}</p>
+                <p v-if="item.service.description" class="provider-services-page__item-description">
+                  {{ item.service.description }}
+                </p>
               </div>
-              <div class="flex items-center gap-2">
+              <div class="provider-services-page__item-actions">
                 <StatusBadge kind="active" :value="item.isActive" />
                 <UiButton type="button" variant="secondary" @click="openEdit(item)">
                   ویرایش
@@ -193,3 +195,66 @@ onMounted(load);
     />
   </div>
 </template>
+
+<style scoped>
+.provider-services-page > * + * {
+  margin-top: 2rem;
+}
+
+.provider-services-page__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.provider-services-page__title {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.provider-services-page__error {
+  margin-bottom: 0.75rem;
+  font-size: 0.875rem;
+  color: var(--color-danger);
+}
+
+.provider-services-page__list > * + * {
+  margin-top: 0.75rem;
+}
+
+.provider-services-page__empty {
+  font-size: 0.875rem;
+  color: var(--color-muted);
+}
+
+.provider-services-page__item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.provider-services-page__item-name {
+  font-weight: 600;
+}
+
+.provider-services-page__item-meta {
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
+  color: var(--color-muted);
+}
+
+.provider-services-page__item-description {
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
+}
+
+.provider-services-page__item-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+</style>

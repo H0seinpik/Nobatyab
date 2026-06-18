@@ -5,8 +5,18 @@ import AppShell from "@/components/layout/AppShell.vue";
 
 <template>
   <AppShell>
-    <div class="mx-auto w-full max-w-6xl flex-1 px-4 py-8">
+    <div class="default-layout">
       <RouterView />
     </div>
   </AppShell>
 </template>
+
+<style scoped>
+.default-layout {
+  width: 100%;
+  max-width: 72rem;
+  flex: 1;
+  margin-inline: auto;
+  padding: 2rem 1rem;
+}
+</style>

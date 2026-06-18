@@ -95,17 +95,15 @@ onUnmounted(revokePreview);
 </script>
 
 <template>
-  <div class="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
-    <div
-      class="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[var(--color-border)] bg-[var(--color-bg)] text-2xl font-semibold text-[var(--color-muted)]"
-    >
-      <img v-if="displayUrl" :src="displayUrl" alt="تصویر پروفایل" class="h-full w-full object-cover" />
+  <div class="avatar-upload">
+    <div class="avatar-upload__preview">
+      <img v-if="displayUrl" :src="displayUrl" alt="تصویر پروفایل" class="avatar-upload__image" />
       <span v-else>{{ initials }}</span>
     </div>
 
-    <div class="flex-1 space-y-3">
-      <label class="block">
-        <span class="mb-1 block text-sm text-[var(--color-muted)]">انتخاب تصویر</span>
+    <div class="avatar-upload__controls">
+      <label class="avatar-upload__field">
+        <span class="avatar-upload__label">انتخاب تصویر</span>
         <input
           type="file"
           accept="image/jpeg,image/png,image/webp"
@@ -115,7 +113,7 @@ onUnmounted(revokePreview);
         />
       </label>
 
-      <div v-if="selectedFile" class="flex gap-2">
+      <div v-if="selectedFile" class="avatar-upload__actions">
         <UiButton :loading="uploading" :disabled="uploading" @click="upload">ذخیره تصویر</UiButton>
         <UiButton variant="secondary" :disabled="uploading" @click="cancelSelection">انصراف</UiButton>
       </div>
@@ -125,3 +123,65 @@ onUnmounted(revokePreview);
     </div>
   </div>
 </template>
+
+<style scoped>
+.avatar-upload {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+@media (min-width: 640px) {
+  .avatar-upload {
+    flex-direction: row;
+    align-items: center;
+  }
+}
+
+.avatar-upload__preview {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 6rem;
+  height: 6rem;
+  overflow: hidden;
+  border-radius: 9999px;
+  border: 1px solid var(--color-border);
+  background-color: var(--color-bg);
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--color-muted);
+}
+
+.avatar-upload__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-upload__controls {
+  flex: 1;
+}
+
+.avatar-upload__controls > * + * {
+  margin-top: 0.75rem;
+}
+
+.avatar-upload__field {
+  display: block;
+}
+
+.avatar-upload__label {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-size: 0.875rem;
+  color: var(--color-muted);
+}
+
+.avatar-upload__actions {
+  display: flex;
+  gap: 0.5rem;
+}
+</style>

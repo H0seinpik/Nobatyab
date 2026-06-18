@@ -29,20 +29,20 @@ function handleCancel() {
 
 <template>
   <UiModal v-model:open="open" title="تأیید رزرو" size="md" :close-on-overlay="!loading">
-    <div v-if="suggestion" class="space-y-4">
-      <div class="space-y-2 text-sm">
-        <p><span class="text-[var(--color-muted)]">خدمت:</span> {{ suggestion.serviceName }}</p>
-        <p><span class="text-[var(--color-muted)]">ارائه‌دهنده:</span> {{ suggestion.providerName }}</p>
+    <div v-if="suggestion" class="booking-confirmation">
+      <div class="booking-confirmation__details">
+        <p><span class="booking-confirmation__label">خدمت:</span> {{ suggestion.serviceName }}</p>
+        <p><span class="booking-confirmation__label">ارائه‌دهنده:</span> {{ suggestion.providerName }}</p>
         <p>
-          <span class="text-[var(--color-muted)]">زمان:</span>
+          <span class="booking-confirmation__label">زمان:</span>
           {{ formatJalaliDateTime(suggestion.startTime) }}
         </p>
-        <p><span class="text-[var(--color-muted)]">هزینه:</span> {{ priceLabel }} تومان</p>
+        <p><span class="booking-confirmation__label">هزینه:</span> {{ priceLabel }} تومان</p>
       </div>
 
       <UiAlert v-if="error" variant="error">{{ error }}</UiAlert>
 
-      <div class="flex flex-wrap gap-2">
+      <div class="booking-confirmation__actions">
         <UiButton :loading="loading" :disabled="loading" @click="emit('confirm')">
           تأیید رزرو
         </UiButton>
@@ -51,3 +51,27 @@ function handleCancel() {
     </div>
   </UiModal>
 </template>
+
+<style scoped>
+.booking-confirmation > * + * {
+  margin-top: 1rem;
+}
+
+.booking-confirmation__details {
+  font-size: 0.875rem;
+}
+
+.booking-confirmation__details > * + * {
+  margin-top: 0.5rem;
+}
+
+.booking-confirmation__label {
+  color: var(--color-muted);
+}
+
+.booking-confirmation__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+</style>

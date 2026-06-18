@@ -21,8 +21,8 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <div class="space-y-4">
-    <div v-if="loading" class="space-y-3">
+  <div class="suggestion-list">
+    <div v-if="loading" class="suggestion-list__loading">
       <SkeletonCard v-for="i in 3" :key="i" />
     </div>
 
@@ -31,12 +31,12 @@ const emit = defineEmits<{
 
       <div
         v-if="!suggestions.length && (emptyMessage || priceFilterEmpty)"
-        class="rounded-xl border border-dashed border-[var(--color-border)] p-8 text-center"
+        class="suggestion-list__empty"
       >
-        <p class="mb-4 text-[var(--color-muted)]">
+        <p class="suggestion-list__empty-text">
           {{ priceFilterEmpty ? "پیشنهادی در این بازه قیمت یافت نشد" : (emptyMessage ?? "زمان مناسبی پیدا نشد") }}
         </p>
-        <div class="flex flex-wrap justify-center gap-2">
+        <div class="suggestion-list__empty-actions">
           <RouterLink to="/availability">
             <UiButton variant="secondary" type="button">تنظیم زمان‌های آزاد</UiButton>
           </RouterLink>
@@ -46,7 +46,7 @@ const emit = defineEmits<{
         </div>
       </div>
 
-      <div v-else class="space-y-3">
+      <div v-else class="suggestion-list__items">
         <SuggestionCard
           v-for="(suggestion, index) in suggestions"
           :key="`${suggestion.providerServiceId}-${suggestion.startTime}-${index}`"
@@ -57,3 +57,36 @@ const emit = defineEmits<{
     </template>
   </div>
 </template>
+
+<style scoped>
+.suggestion-list > * + * {
+  margin-top: 1rem;
+}
+
+.suggestion-list__loading > * + * {
+  margin-top: 0.75rem;
+}
+
+.suggestion-list__empty {
+  border-radius: 0.75rem;
+  border: 1px dashed var(--color-border);
+  padding: 2rem;
+  text-align: center;
+}
+
+.suggestion-list__empty-text {
+  margin-bottom: 1rem;
+  color: var(--color-muted);
+}
+
+.suggestion-list__empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.suggestion-list__items > * + * {
+  margin-top: 0.75rem;
+}
+</style>

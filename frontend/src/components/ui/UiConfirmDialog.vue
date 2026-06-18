@@ -27,9 +27,9 @@ function onCancel() {
 
 <template>
   <UiModal v-model:open="open" :title="title ?? 'تأیید'" size="sm" :close-on-overlay="!loading">
-    <p class="text-sm text-[var(--color-muted)]">{{ message }}</p>
+    <p class="confirm-dialog__message">{{ message }}</p>
     <template #footer>
-      <div class="flex justify-end gap-2">
+      <div class="confirm-dialog__actions">
         <UiButton variant="secondary" :disabled="loading" @click="onCancel">
           {{ cancelLabel ?? "انصراف" }}
         </UiButton>
@@ -44,3 +44,16 @@ function onCancel() {
     </template>
   </UiModal>
 </template>
+
+<style scoped>
+.confirm-dialog__message {
+  font-size: 0.875rem;
+  color: var(--color-muted);
+}
+
+.confirm-dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+</style>

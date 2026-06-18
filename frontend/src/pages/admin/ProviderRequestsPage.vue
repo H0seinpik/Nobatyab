@@ -88,13 +88,13 @@ onMounted(load);
 </script>
 
 <template>
-  <div>
+  <div class="provider-requests-page">
     <PageHeader
       title="درخواست‌های ارائه‌دهنده"
       description="کاربرانی که درخواست فعالیت به عنوان ارائه‌دهنده داده‌اند"
     />
 
-    <div v-if="loading" class="space-y-3">
+    <div v-if="loading" class="provider-requests-page__list">
       <SkeletonCard v-for="i in 3" :key="i" />
     </div>
 
@@ -103,27 +103,27 @@ onMounted(load);
     </ContentFade>
 
     <ContentFade v-else-if="!requests.length">
-      <UiCard class="text-center text-[var(--color-muted)]">
+      <UiCard class="provider-requests-page__empty">
         درخواست در انتظاری وجود ندارد
       </UiCard>
     </ContentFade>
 
     <ContentFade v-else>
-      <div class="space-y-3">
+      <div class="provider-requests-page__list">
         <UiCard v-for="request in requests" :key="request.id">
-          <div class="flex flex-wrap items-start justify-between gap-3">
+          <div class="provider-requests-page__item">
             <div>
-              <h2 class="font-semibold">{{ request.user?.fullName ?? "کاربر" }}</h2>
-              <p class="text-sm text-[var(--color-muted)]">{{ request.user?.email }}</p>
-              <p v-if="request.user?.phone" class="text-sm text-[var(--color-muted)]">
+              <h2 class="provider-requests-page__item-name">{{ request.user?.fullName ?? "کاربر" }}</h2>
+              <p class="provider-requests-page__item-meta">{{ request.user?.email }}</p>
+              <p v-if="request.user?.phone" class="provider-requests-page__item-meta">
                 {{ request.user.phone }}
               </p>
-              <p v-if="request.note" class="mt-2 text-sm">{{ request.note }}</p>
-              <p class="mt-2 text-xs text-[var(--color-muted)]">
+              <p v-if="request.note" class="provider-requests-page__item-note">{{ request.note }}</p>
+              <p class="provider-requests-page__item-date">
                 {{ formatJalaliDateTime(request.createdAt) }}
               </p>
             </div>
-            <div class="flex flex-col items-end gap-2">
+            <div class="provider-requests-page__item-actions">
               <StatusBadge kind="review" :value="request.status" />
               <UiButton v-if="request.status === 'PENDING'" @click="openReview(request)">
                 بررسی
@@ -154,3 +154,49 @@ onMounted(load);
     </UiModal>
   </div>
 </template>
+
+<style scoped>
+.provider-requests-page__list > * + * {
+  margin-top: 0.75rem;
+}
+
+.provider-requests-page__empty {
+  text-align: center;
+  color: var(--color-muted);
+}
+
+.provider-requests-page__item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.provider-requests-page__item-name {
+  font-weight: 600;
+}
+
+.provider-requests-page__item-meta {
+  font-size: 0.875rem;
+  color: var(--color-muted);
+}
+
+.provider-requests-page__item-note {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.provider-requests-page__item-date {
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--color-muted);
+}
+
+.provider-requests-page__item-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+</style>

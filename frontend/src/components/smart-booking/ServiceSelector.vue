@@ -31,33 +31,33 @@ function formatPrice(price: string) {
 </script>
 
 <template>
-  <div>
-    <div v-if="loading" class="grid gap-4 sm:grid-cols-2">
+  <div class="service-selector">
+    <div v-if="loading" class="service-selector__grid">
       <SkeletonCard v-for="i in 4" :key="i" />
     </div>
 
     <ContentFade v-else>
-      <p v-if="!bookableServices.length" class="text-sm text-[var(--color-muted)]">
+      <p v-if="!bookableServices.length" class="service-selector__empty">
         خدمتی برای رزرو هوشمند یافت نشد
       </p>
-      <div v-else class="grid gap-4 sm:grid-cols-2">
+      <div v-else class="service-selector__grid">
         <button
           v-for="service in bookableServices"
           :key="service.id"
           type="button"
-          class="text-right"
+          class="service-selector__item"
           @click="emit('select', service)"
         >
-          <UiCard class="h-full transition hover:border-[var(--color-primary)]">
-            <h3 class="mb-1 font-semibold">{{ service.name }}</h3>
-            <p v-if="service.description" class="mb-2 text-sm text-[var(--color-muted)]">
+          <UiCard>
+            <h3 class="service-selector__name">{{ service.name }}</h3>
+            <p v-if="service.description" class="service-selector__description">
               {{ service.description }}
             </p>
-            <p class="text-sm">
-              <span class="text-[var(--color-muted)]">مدت:</span>
+            <p class="service-selector__duration">
+              <span class="service-selector__label">مدت:</span>
               {{ service.defaultDuration }} دقیقه
             </p>
-            <p class="text-sm text-[var(--color-primary)]">
+            <p class="service-selector__price">
               از {{ formatPrice(service.basePrice) }} تومان
             </p>
           </UiCard>
@@ -66,3 +66,63 @@ function formatPrice(price: string) {
     </ContentFade>
   </div>
 </template>
+
+<style scoped>
+.service-selector__grid {
+  display: grid;
+  gap: 1rem;
+}
+
+@media (min-width: 640px) {
+  .service-selector__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.service-selector__empty {
+  font-size: 0.875rem;
+  color: var(--color-muted);
+}
+
+.service-selector__item {
+  text-align: right;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  width: 100%;
+}
+
+.service-selector__item :deep(.card) {
+  height: 100%;
+  transition: border-color 0.2s ease;
+}
+
+.service-selector__item:hover :deep(.card) {
+  border-color: var(--color-primary);
+}
+
+.service-selector__name {
+  margin-bottom: 0.25rem;
+  font-weight: 600;
+}
+
+.service-selector__description {
+  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--color-muted);
+}
+
+.service-selector__duration {
+  font-size: 0.875rem;
+}
+
+.service-selector__label {
+  color: var(--color-muted);
+}
+
+.service-selector__price {
+  font-size: 0.875rem;
+  color: var(--color-primary);
+}
+</style>

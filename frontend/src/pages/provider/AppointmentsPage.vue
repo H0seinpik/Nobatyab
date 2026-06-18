@@ -88,20 +88,20 @@ onMounted(load);
 </script>
 
 <template>
-  <div>
-    <h1 class="mb-6 text-2xl font-bold">نوبت‌ها</h1>
+  <div class="provider-appointments-page">
+    <h1 class="provider-appointments-page__title">نوبت‌ها</h1>
     <SkeletonTable v-if="loading" :columns="4" :rows="6" :show-actions="true" />
     <ContentFade v-else>
-      <div class="space-y-4">
+      <div class="provider-appointments-page__list">
         <UiCard v-for="apt in appointments" :key="apt.id">
-          <div class="flex flex-wrap items-center justify-between gap-4">
+          <div class="provider-appointments-page__item">
             <div>
-              <p class="font-semibold">{{ apt.providerService.service.name }}</p>
-              <p class="text-sm">{{ apt.user?.fullName ?? apt.guestFullName }}</p>
-              <p class="text-sm text-[var(--color-muted)]">{{ formatJalaliDateTime(apt.startAt) }}</p>
-              <AppointmentStatusBadge :status="apt.status" class="mt-2" />
+              <p class="provider-appointments-page__item-name">{{ apt.providerService.service.name }}</p>
+              <p class="provider-appointments-page__item-guest">{{ apt.user?.fullName ?? apt.guestFullName }}</p>
+              <p class="provider-appointments-page__item-date">{{ formatJalaliDateTime(apt.startAt) }}</p>
+              <AppointmentStatusBadge :status="apt.status" class="provider-appointments-page__badge" />
             </div>
-            <div class="flex gap-2">
+            <div class="provider-appointments-page__item-actions">
               <UiButton v-if="apt.status === 'PENDING'" @click="confirm(apt.id)">تایید</UiButton>
               <UiButton v-if="apt.status === 'CONFIRMED'" @click="complete(apt.id)">تکمیل</UiButton>
               <UiButton
@@ -128,6 +128,54 @@ onMounted(load);
       @confirm="onConfirmCancel"
       @cancel="onCancelDialog"
     />
-    <p v-if="cancelError" class="mt-2 text-sm text-red-600">{{ cancelError }}</p>
+    <p v-if="cancelError" class="provider-appointments-page__error">{{ cancelError }}</p>
   </div>
 </template>
+
+<style scoped>
+.provider-appointments-page__title {
+  margin-bottom: 1.5rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.provider-appointments-page__list > * + * {
+  margin-top: 1rem;
+}
+
+.provider-appointments-page__item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.provider-appointments-page__item-name {
+  font-weight: 600;
+}
+
+.provider-appointments-page__item-guest {
+  font-size: 0.875rem;
+}
+
+.provider-appointments-page__item-date {
+  font-size: 0.875rem;
+  color: var(--color-muted);
+}
+
+.provider-appointments-page__badge {
+  margin-top: 0.5rem;
+}
+
+.provider-appointments-page__item-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.provider-appointments-page__error {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--color-danger);
+}
+</style>

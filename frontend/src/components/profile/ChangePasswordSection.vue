@@ -50,8 +50,8 @@ async function changePassword() {
 
 <template>
   <UiCard>
-    <h2 class="mb-4 font-semibold">تغییر رمز عبور</h2>
-    <form class="space-y-4" @submit.prevent="changePassword">
+    <h2 class="change-password__title">تغییر رمز عبور</h2>
+    <form class="change-password__form" @submit.prevent="changePassword">
       <UiInput
         v-model="values.currentPassword"
         label="رمز عبور فعلی"
@@ -89,3 +89,14 @@ async function changePassword() {
     </form>
   </UiCard>
 </template>
+
+<style scoped>
+.change-password__title {
+  margin-bottom: 1rem;
+  font-weight: 600;
+}
+
+.change-password__form > * + * {
+  margin-top: 1rem;
+}
+</style>

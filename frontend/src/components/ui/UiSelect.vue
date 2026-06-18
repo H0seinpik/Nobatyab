@@ -14,10 +14,10 @@ defineEmits<{
 </script>
 
 <template>
-  <label class="block space-y-1">
-    <span v-if="label" class="text-sm text-[var(--color-muted)]">
+  <label class="field">
+    <span v-if="label" class="field__label">
       {{ label }}
-      <span v-if="required" class="text-red-500">*</span>
+      <span v-if="required" class="field__required">*</span>
     </span>
     <select
       :value="modelValue"
@@ -29,6 +29,6 @@ defineEmits<{
     >
       <slot />
     </select>
-    <p v-if="error" class="text-xs text-red-600">{{ error }}</p>
+    <p v-if="error" class="field__error">{{ error }}</p>
   </label>
 </template>

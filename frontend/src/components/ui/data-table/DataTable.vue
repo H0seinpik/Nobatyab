@@ -94,7 +94,7 @@ defineExpose({ refresh, clearSelection });
 </script>
 
 <template>
-  <div class="overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]">
+  <div class="data-table">
     <DataTableToolbar
       :title="title"
       :searchable="searchable"
@@ -126,9 +126,9 @@ defineExpose({ refresh, clearSelection });
     />
 
     <ContentFade v-else>
-      <div v-if="error" class="px-4 py-6 text-center text-red-600">{{ error }}</div>
-      <div v-else class="overflow-x-auto">
-        <table class="min-w-[640px] w-full text-sm">
+      <div v-if="error" class="data-table__error">{{ error }}</div>
+      <div v-else class="data-table__scroll">
+        <table class="data-table__table">
           <DataTableHead
             :columns="columns"
             :selectable="selectable"
@@ -166,3 +166,28 @@ defineExpose({ refresh, clearSelection });
     </ContentFade>
   </div>
 </template>
+
+<style scoped>
+.data-table {
+  overflow: hidden;
+  border-radius: 0.75rem;
+  border: 1px solid var(--color-border);
+  background-color: var(--color-surface);
+}
+
+.data-table__error {
+  padding: 1.5rem 1rem;
+  text-align: center;
+  color: var(--color-danger);
+}
+
+.data-table__scroll {
+  overflow-x: auto;
+}
+
+.data-table__table {
+  min-width: 640px;
+  width: 100%;
+  font-size: 0.875rem;
+}
+</style>

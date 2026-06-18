@@ -35,14 +35,29 @@ async function handleLogin() {
 
 <template>
   <UiModal v-model:open="open" title="ورود به حساب" size="sm">
-    <form class="space-y-4" @submit.prevent="handleLogin">
-      <p class="text-sm text-[var(--color-muted)]">
+    <form class="login-modal__form" @submit.prevent="handleLogin">
+      <p class="login-modal__hint">
         برای استفاده از رزرو هوشمند، وارد حساب کاربری خود شوید.
       </p>
       <UiInput v-model="email" label="ایمیل" type="email" required />
       <UiInput v-model="password" label="رمز عبور" type="password" required />
       <UiAlert v-if="error" variant="error">{{ error }}</UiAlert>
-      <UiButton type="submit" class="w-full" :loading="loading">ورود</UiButton>
+      <UiButton type="submit" class="login-modal__submit" :loading="loading">ورود</UiButton>
     </form>
   </UiModal>
 </template>
+
+<style scoped>
+.login-modal__form > * + * {
+  margin-top: 1rem;
+}
+
+.login-modal__hint {
+  font-size: 0.875rem;
+  color: var(--color-muted);
+}
+
+.login-modal__submit {
+  width: 100%;
+}
+</style>

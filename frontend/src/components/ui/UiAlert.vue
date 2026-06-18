@@ -6,13 +6,39 @@ defineProps<{
 
 <template>
   <p
-    class="rounded-lg px-3 py-2 text-sm"
+    class="alert"
     :class="{
-      'bg-green-50 text-green-700 dark:bg-green-950/30 dark:text-green-400': variant === 'success',
-      'bg-red-50 text-red-600 dark:bg-red-950/30': variant === 'error',
-      'bg-[var(--color-bg)] text-[var(--color-muted)]': variant === 'info' || !variant,
+      'alert--success': variant === 'success',
+      'alert--error': variant === 'error',
+      'alert--info': variant === 'info' || !variant,
     }"
   >
     <slot />
   </p>
 </template>
+
+<style scoped>
+.alert {
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+}
+
+.alert--success {
+  background-color: var(--color-alert-success-bg);
+  color: var(--color-alert-success-text);
+  border: 1px solid var(--color-alert-success-border);
+}
+
+.alert--error {
+  background-color: var(--color-alert-error-bg);
+  color: var(--color-alert-error-text);
+  border: 1px solid var(--color-alert-error-border);
+}
+
+.alert--info {
+  background-color: var(--color-alert-info-bg);
+  color: var(--color-alert-info-text);
+  border: 1px solid var(--color-alert-info-border);
+}
+</style>

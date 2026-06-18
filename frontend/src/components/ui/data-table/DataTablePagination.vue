@@ -14,13 +14,13 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <div class="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--color-border)] px-4 py-3 text-sm">
-    <p class="text-[var(--color-muted)]">
+  <div class="data-table-pagination">
+    <p class="data-table-pagination__meta">
       {{ meta.total }} مورد — صفحه {{ meta.page }} از {{ meta.totalPages }}
     </p>
-    <div class="flex flex-wrap items-center gap-2">
+    <div class="data-table-pagination__controls">
       <select
-        class="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1"
+        class="form-control form-control--compact"
         :value="meta.pageSize"
         @change="emit('page-size-change', Number(($event.target as HTMLSelectElement).value))"
       >
@@ -45,3 +45,27 @@ const emit = defineEmits<{
     </div>
   </div>
 </template>
+
+<style scoped>
+.data-table-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border-top: 1px solid var(--color-border);
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+}
+
+.data-table-pagination__meta {
+  color: var(--color-muted);
+}
+
+.data-table-pagination__controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+</style>

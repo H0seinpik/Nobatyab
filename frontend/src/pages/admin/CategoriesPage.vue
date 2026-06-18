@@ -75,7 +75,7 @@ async function onRowAction({ action, row }: { action: string; row: Record<string
 </script>
 
 <template>
-  <div>
+  <div class="categories-page">
     <PageHeader title="دسته‌بندی‌ها" description="مدیریت دسته‌بندی خدمات">
       <template #actions>
         <UiButton @click="openCreate()">افزودن دسته</UiButton>

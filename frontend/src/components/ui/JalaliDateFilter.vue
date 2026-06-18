@@ -33,7 +33,7 @@ function onInput(e: Event) {
 <template>
   <input
     type="text"
-    class="form-control text-xs"
+    class="form-control form-control--xs"
     placeholder="1404/03/15"
     :value="display"
     @input="onInput"

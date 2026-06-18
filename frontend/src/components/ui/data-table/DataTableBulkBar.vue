@@ -13,7 +13,7 @@ const emit = defineEmits<{ action: [key: string]; clear: [] }>();
 <template>
   <div
     v-if="count > 0"
-    class="flex flex-wrap items-center gap-3 rounded-lg border border-[var(--color-primary)] bg-[var(--color-bg)] px-4 py-2 text-sm"
+    class="data-table-bulk-bar"
   >
     <span>{{ count }} مورد انتخاب شده</span>
     <UiButton
@@ -27,3 +27,17 @@ const emit = defineEmits<{ action: [key: string]; clear: [] }>();
     <UiButton variant="ghost" @click="emit('clear')">لغو انتخاب</UiButton>
   </div>
 </template>
+
+<style scoped>
+.data-table-bulk-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--color-primary);
+  background-color: var(--color-bg);
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+}
+</style>

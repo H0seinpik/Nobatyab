@@ -4,15 +4,50 @@ defineProps<{ tone?: "default" | "success" | "warning" | "danger" | "info" }>();
 
 <template>
   <span
-    class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium"
+    class="badge"
     :class="{
-      'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200': !tone || tone === 'default',
-      'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200': tone === 'success',
-      'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200': tone === 'warning',
-      'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200': tone === 'danger',
-      'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200': tone === 'info',
+      'badge--default': !tone || tone === 'default',
+      'badge--success': tone === 'success',
+      'badge--warning': tone === 'warning',
+      'badge--danger': tone === 'danger',
+      'badge--info': tone === 'info',
     }"
   >
     <slot />
   </span>
 </template>
+
+<style scoped>
+.badge {
+  display: inline-flex;
+  border-radius: 9999px;
+  padding: 0.125rem 0.625rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.badge--default {
+  background-color: var(--color-badge-default-bg);
+  color: var(--color-badge-default-text);
+}
+
+.badge--success {
+  background-color: var(--color-badge-success-bg);
+  color: var(--color-badge-success-text);
+}
+
+.badge--warning {
+  background-color: var(--color-badge-warning-bg);
+  color: var(--color-badge-warning-text);
+}
+
+.badge--danger {
+  background-color: var(--color-badge-danger-bg);
+  color: var(--color-badge-danger-text);
+}
+
+.badge--info {
+  background-color: var(--color-badge-info-bg);
+  color: var(--color-badge-info-text);
+}
+</style>

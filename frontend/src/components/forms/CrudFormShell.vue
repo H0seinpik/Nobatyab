@@ -16,12 +16,12 @@ const emit = defineEmits<{ submit: []; cancel: [] }>();
 </script>
 
 <template>
-  <div>
+  <div class="crud-form-shell">
     <SkeletonForm v-if="loading" :fields="4" />
     <template v-else>
       <slot />
-      <UiAlert v-if="error" variant="error" class="mt-4">{{ error }}</UiAlert>
-      <div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+      <UiAlert v-if="error" variant="error" class="crud-form-shell__alert">{{ error }}</UiAlert>
+      <div class="crud-form-shell__actions">
         <UiButton variant="secondary" :disabled="loading || submitting" @click="emit('cancel')">
           {{ cancelLabel ?? "انصراف" }}
         </UiButton>
@@ -37,3 +37,23 @@ const emit = defineEmits<{ submit: []; cancel: [] }>();
     </template>
   </div>
 </template>
+
+<style scoped>
+.crud-form-shell__alert {
+  margin-top: 1rem;
+}
+
+.crud-form-shell__actions {
+  margin-top: 1.5rem;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 0.5rem;
+}
+
+@media (min-width: 640px) {
+  .crud-form-shell__actions {
+    flex-direction: row;
+    justify-content: flex-end;
+  }
+}
+</style>

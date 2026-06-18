@@ -147,29 +147,53 @@ defineExpose({ refreshSize });
 </script>
 
 <template>
-  <div>
-    <p v-if="!readonly" class="mb-2 text-sm text-[var(--color-muted)]">
+  <div class="map-picker">
+    <p v-if="!readonly" class="map-picker__hint">
       روی نقشه کلیک کنید تا موقعیت کسب‌وکار مشخص شود.
     </p>
     <div
       ref="mapEl"
-      class="overflow-hidden rounded-lg border border-[var(--color-border)]"
+      class="map-picker__map"
       :style="{ height }"
     />
     <p
       v-if="!readonly && mapReady && hasCoords(latitude, longitude)"
-      class="mt-2 text-xs text-[var(--color-muted)]"
+      class="map-picker__status map-picker__status--small"
     >
       موقعیت انتخاب شد
     </p>
     <p
       v-else-if="readonly && !hasCoords(latitude, longitude)"
-      class="mt-2 text-sm text-[var(--color-muted)]"
+      class="map-picker__status"
     >
       موقعیت روی نقشه ثبت نشده است
     </p>
   </div>
 </template>
+
+<style scoped>
+.map-picker__hint {
+  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--color-muted);
+}
+
+.map-picker__map {
+  overflow: hidden;
+  border-radius: 0.5rem;
+  border: 1px solid var(--color-border);
+}
+
+.map-picker__status {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--color-muted);
+}
+
+.map-picker__status--small {
+  font-size: 0.75rem;
+}
+</style>
 
 <style>
 .leaflet-container {

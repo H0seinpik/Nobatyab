@@ -103,14 +103,14 @@ function handleSave() {
 </script>
 
 <template>
-  <div class="space-y-4">
+  <div class="availability-scheduler">
     <div
       v-for="day in WEEKDAYS_FA"
       :key="day.dayOfWeek"
-      class="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4"
+      class="availability-scheduler__day"
     >
-      <div class="mb-3 flex items-center justify-between">
-        <h3 class="font-semibold">{{ day.label }}</h3>
+      <div class="availability-scheduler__day-header">
+        <h3 class="availability-scheduler__day-title">{{ day.label }}</h3>
         <UiButton variant="secondary" type="button" @click="addRange(day.dayOfWeek)">
           + افزودن بازه
         </UiButton>
@@ -118,12 +118,12 @@ function handleSave() {
 
       <p
         v-if="!(weekly[day.dayOfWeek]?.length)"
-        class="text-sm text-[var(--color-muted)]"
+        class="availability-scheduler__empty"
       >
         بازه‌ای تعریف نشده
       </p>
 
-      <div v-else class="space-y-2">
+      <div v-else class="availability-scheduler__ranges">
         <TimeSlotInput
           v-for="(range, index) in weekly[day.dayOfWeek]"
           :key="range.id ?? `${day.dayOfWeek}-${index}`"
@@ -139,8 +139,51 @@ function handleSave() {
 
     <UiAlert v-if="validationError" variant="error">{{ validationError }}</UiAlert>
 
-    <UiButton type="button" class="w-full sm:w-auto" @click="handleSave">
+    <UiButton type="button" class="availability-scheduler__save" @click="handleSave">
       ذخیره و ادامه
     </UiButton>
   </div>
 </template>
+
+<style scoped>
+.availability-scheduler > * + * {
+  margin-top: 1rem;
+}
+
+.availability-scheduler__day {
+  border-radius: 0.75rem;
+  border: 1px solid var(--color-border);
+  background-color: var(--color-surface);
+  padding: 1rem;
+}
+
+.availability-scheduler__day-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.availability-scheduler__day-title {
+  font-weight: 600;
+}
+
+.availability-scheduler__empty {
+  font-size: 0.875rem;
+  color: var(--color-muted);
+}
+
+.availability-scheduler__ranges > * + * {
+  margin-top: 0.5rem;
+}
+
+.availability-scheduler__save {
+  width: 100%;
+}
+
+@media (min-width: 640px) {
+  .availability-scheduler__save {
+    width: auto;
+  }
+}
+</style>

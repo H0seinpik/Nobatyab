@@ -20,7 +20,7 @@ defineExpose({
 
 <template>
   <FormFieldGrid>
-    <div class="md:col-span-2">
+    <div class="form-field-grid__item--full">
       <UiInput
         :model-value="String(values.specialization ?? '')"
         label="تخصص"
@@ -29,7 +29,7 @@ defineExpose({
         @blur="touch('specialization')"
       />
     </div>
-    <div class="md:col-span-2">
+    <div class="form-field-grid__item--full">
       <UiInput
         :model-value="String(values.bio ?? '')"
         label="بیوگرافی"
@@ -38,7 +38,7 @@ defineExpose({
         @blur="touch('bio')"
       />
     </div>
-    <div class="md:col-span-2">
+    <div class="form-field-grid__item--full">
       <UiInput
         :model-value="String(values.address ?? '')"
         label="آدرس"
@@ -47,8 +47,8 @@ defineExpose({
         @blur="touch('address')"
       />
     </div>
-    <div class="md:col-span-2">
-      <label class="mb-2 block text-sm font-medium">موقعیت روی نقشه</label>
+    <div class="field form-field-grid__item--full">
+      <label class="field__label">موقعیت روی نقشه</label>
       <MapLocationPicker
         ref="mapRef"
         :latitude="values.latitude as number | undefined"
@@ -67,8 +67,8 @@ defineExpose({
       @update:model-value="(v) => (values.slotDurationMinutes = v)"
       @blur="touch('slotDurationMinutes')"
     />
-    <div class="flex items-center md:col-span-2">
-      <label class="flex items-center gap-2 text-sm">
+    <div class="form-field-grid__item--full checkbox-field">
+      <label class="checkbox-field__label">
         <input
           type="checkbox"
           :checked="Boolean(values.isAcceptingBookings)"
@@ -79,3 +79,12 @@ defineExpose({
     </div>
   </FormFieldGrid>
 </template>
+
+<style scoped>
+.checkbox-field__label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+}
+</style>

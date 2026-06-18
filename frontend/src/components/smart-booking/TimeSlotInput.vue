@@ -15,20 +15,20 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <div class="flex flex-wrap items-center gap-2">
+  <div class="time-slot-input">
     <input
       type="time"
+      class="time-slot-input__field"
       :value="props.startTime"
       :disabled="props.disabled"
-      class="rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm disabled:opacity-50"
       @input="emit('update:startTime', ($event.target as HTMLInputElement).value)"
     />
-    <span class="text-[var(--color-muted)]">تا</span>
+    <span class="time-slot-input__separator">تا</span>
     <input
       type="time"
+      class="time-slot-input__field"
       :value="props.endTime"
       :disabled="props.disabled"
-      class="rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm disabled:opacity-50"
       @input="emit('update:endTime', ($event.target as HTMLInputElement).value)"
     />
     <UiButton variant="ghost" type="button" :disabled="props.disabled" @click="emit('remove')">
@@ -36,3 +36,29 @@ const emit = defineEmits<{
     </UiButton>
   </div>
 </template>
+
+<style scoped>
+.time-slot-input {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.time-slot-input__field {
+  border-radius: 0.5rem;
+  border: 1px solid var(--color-border);
+  background-color: var(--color-bg);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  color: var(--color-text);
+}
+
+.time-slot-input__field:disabled {
+  opacity: 0.5;
+}
+
+.time-slot-input__separator {
+  color: var(--color-muted);
+}
+</style>

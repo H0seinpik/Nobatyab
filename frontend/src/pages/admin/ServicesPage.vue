@@ -100,7 +100,7 @@ onMounted(loadCategories);
 </script>
 
 <template>
-  <div>
+  <div class="admin-services-page">
     <PageHeader title="خدمات" description="مدیریت خدمات و قیمت‌گذاری">
       <template #actions>
         <UiButton @click="openCreate()">افزودن خدمت</UiButton>

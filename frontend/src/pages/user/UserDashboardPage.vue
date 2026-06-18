@@ -165,46 +165,40 @@ async function changePassword() {
 </script>
 
 <template>
-  <div>
-    <h1 class="mb-6 text-2xl font-bold">داشبورد کاربری</h1>
+  <div class="user-dashboard-page">
+    <h1 class="user-dashboard-page__title">داشبورد کاربری</h1>
 
-    <UiAlert v-if="loadError" variant="error" class="mb-4">{{ loadError }}</UiAlert>
+    <UiAlert v-if="loadError" variant="error" class="user-dashboard-page__alert">{{ loadError }}</UiAlert>
 
-    <div v-if="pageLoading" class="space-y-6">
+    <div v-if="pageLoading" class="user-dashboard-page__stack">
       <SkeletonCard />
       <SkeletonCard />
       <SkeletonForm :fields="2" />
     </div>
 
-    <ContentFade v-else class="space-y-6">
+    <ContentFade v-else class="user-dashboard-page__stack">
       <section>
-        <h2 class="mb-3 text-lg font-semibold">اطلاعات پروفایل</h2>
+        <h2 class="user-dashboard-page__section-title">اطلاعات پروفایل</h2>
         <UiCard>
-          <div class="flex flex-col gap-6 sm:flex-row sm:items-start">
-            <div class="flex shrink-0 flex-col items-center gap-3">
-              <div
-                v-if="displayAvatarUrl"
-                class="h-24 w-24 overflow-hidden rounded-full border border-[var(--color-border)]"
-              >
-                <img :src="displayAvatarUrl" alt="تصویر پروفایل" class="h-full w-full object-cover" />
+          <div class="user-dashboard-page__profile">
+            <div class="user-dashboard-page__avatar-block">
+              <div v-if="displayAvatarUrl" class="user-dashboard-page__avatar">
+                <img :src="displayAvatarUrl" alt="تصویر پروفایل" class="user-dashboard-page__avatar-img" />
               </div>
-              <div
-                v-else
-                class="flex h-24 w-24 items-center justify-center rounded-full bg-[var(--color-primary)] text-2xl font-bold text-white"
-              >
+              <div v-else class="user-dashboard-page__avatar user-dashboard-page__avatar--initials">
                 {{ initials }}
               </div>
               <AvatarUpload @uploaded="syncProfileAvatar" />
             </div>
 
-            <dl class="grid flex-1 gap-3 text-sm sm:grid-cols-2">
+            <dl class="user-dashboard-page__details">
               <div>
-                <dt class="text-[var(--color-muted)]">نام</dt>
-                <dd class="mt-1 font-medium">{{ profile?.fullName ?? "—" }}</dd>
+                <dt class="user-dashboard-page__detail-label">نام</dt>
+                <dd class="user-dashboard-page__detail-value">{{ profile?.fullName ?? "—" }}</dd>
               </div>
               <div>
-                <dt class="text-[var(--color-muted)]">شماره تماس</dt>
-                <dd class="mt-1 font-medium">{{ profile?.phone ?? "—" }}</dd>
+                <dt class="user-dashboard-page__detail-label">شماره تماس</dt>
+                <dd class="user-dashboard-page__detail-value">{{ profile?.phone ?? "—" }}</dd>
               </div>
             </dl>
           </div>
@@ -212,9 +206,9 @@ async function changePassword() {
       </section>
 
       <section>
-        <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
-          <h2 class="text-lg font-semibold">نوبت‌ها</h2>
-          <div class="flex flex-wrap gap-2">
+        <div class="user-dashboard-page__appointments-header">
+          <h2 class="user-dashboard-page__section-title user-dashboard-page__section-title--inline">نوبت‌ها</h2>
+          <div class="user-dashboard-page__tabs">
             <UiButton
               type="button"
               :variant="appointmentTab === 'upcoming' ? 'primary' : 'secondary'"
@@ -236,11 +230,11 @@ async function changePassword() {
           v-model="search"
           label="جستجو بر اساس نام"
           placeholder="نام خدمت یا ارائه‌دهنده..."
-          class="mb-3"
+          class="user-dashboard-page__search"
         />
 
-        <div v-if="!activeAppointments.length" class="space-y-3">
-          <UiCard class="text-center text-[var(--color-muted)]">
+        <div v-if="!activeAppointments.length" class="user-dashboard-page__list">
+          <UiCard class="user-dashboard-page__empty">
             <p>
               {{
                 appointmentTab === "upcoming"
@@ -249,32 +243,32 @@ async function changePassword() {
               }}
             </p>
           </UiCard>
-          <div v-if="appointmentTab === 'upcoming'" class="text-center">
+          <div v-if="appointmentTab === 'upcoming'" class="user-dashboard-page__center">
             <RouterLink to="/smart-booking">
               <UiButton type="button">رزرو هوشمند</UiButton>
             </RouterLink>
           </div>
         </div>
 
-        <div v-else-if="!filteredAppointments.length" class="space-y-3">
-          <UiCard class="text-center text-[var(--color-muted)]">
+        <div v-else-if="!filteredAppointments.length" class="user-dashboard-page__list">
+          <UiCard class="user-dashboard-page__empty">
             <p>نوبتی با این نام یافت نشد.</p>
           </UiCard>
         </div>
 
-        <div v-else class="space-y-3">
+        <div v-else class="user-dashboard-page__list">
           <UiCard v-for="apt in filteredAppointments" :key="apt.id">
-            <div class="flex flex-wrap items-start justify-between gap-3">
+            <div class="user-dashboard-page__appointment">
               <div>
-                <p class="font-medium">{{ apt.providerService.service.name }}</p>
-                <p class="text-sm text-[var(--color-muted)]">{{ apt.provider.user.fullName }}</p>
-                <p class="mt-1 text-sm">{{ formatJalaliDateTime(apt.startAt) }}</p>
+                <p class="user-dashboard-page__appointment-name">{{ apt.providerService.service.name }}</p>
+                <p class="user-dashboard-page__appointment-provider">{{ apt.provider.user.fullName }}</p>
+                <p class="user-dashboard-page__appointment-date">{{ formatJalaliDateTime(apt.startAt) }}</p>
               </div>
               <AppointmentStatusBadge :status="apt.status" />
             </div>
           </UiCard>
-          <div class="text-center">
-            <RouterLink to="/appointments" class="text-sm text-[var(--color-primary)] hover:underline">
+          <div class="user-dashboard-page__center">
+            <RouterLink to="/appointments" class="user-dashboard-page__view-all">
               مشاهده همه نوبت‌ها
             </RouterLink>
           </div>
@@ -282,11 +276,11 @@ async function changePassword() {
       </section>
 
       <section>
-        <h2 class="mb-3 text-lg font-semibold">تنظیمات</h2>
-        <div class="grid gap-6 lg:grid-cols-2">
+        <h2 class="user-dashboard-page__section-title">تنظیمات</h2>
+        <div class="user-dashboard-page__settings-grid">
           <UiCard>
-            <h3 class="mb-4 font-medium">ویرایش نام</h3>
-            <form class="space-y-4" @submit.prevent="saveName">
+            <h3 class="user-dashboard-page__card-title">ویرایش نام</h3>
+            <form class="user-dashboard-page__form" @submit.prevent="saveName">
               <UiInput
                 v-model="nameValues.fullName"
                 label="نام کامل"
@@ -307,8 +301,8 @@ async function changePassword() {
           </UiCard>
 
           <UiCard>
-            <h3 class="mb-4 font-medium">تغییر رمز عبور</h3>
-            <form class="space-y-4" @submit.prevent="changePassword">
+            <h3 class="user-dashboard-page__card-title">تغییر رمز عبور</h3>
+            <form class="user-dashboard-page__form" @submit.prevent="changePassword">
               <UiInput
                 v-model="passwordValues.currentPassword"
                 label="رمز عبور فعلی"
@@ -350,3 +344,179 @@ async function changePassword() {
     </ContentFade>
   </div>
 </template>
+
+<style scoped>
+.user-dashboard-page__title {
+  margin-bottom: 1.5rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.user-dashboard-page__alert {
+  margin-bottom: 1rem;
+}
+
+.user-dashboard-page__stack > * + * {
+  margin-top: 1.5rem;
+}
+
+.user-dashboard-page__section-title {
+  margin-bottom: 0.75rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.user-dashboard-page__section-title--inline {
+  margin-bottom: 0;
+}
+
+.user-dashboard-page__profile {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+@media (min-width: 640px) {
+  .user-dashboard-page__profile {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+}
+
+.user-dashboard-page__avatar-block {
+  display: flex;
+  flex-shrink: 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.user-dashboard-page__avatar {
+  width: 6rem;
+  height: 6rem;
+  overflow: hidden;
+  border-radius: 9999px;
+  border: 1px solid var(--color-border);
+}
+
+.user-dashboard-page__avatar--initials {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-primary);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.user-dashboard-page__avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.user-dashboard-page__details {
+  display: grid;
+  flex: 1;
+  gap: 0.75rem;
+  font-size: 0.875rem;
+}
+
+@media (min-width: 640px) {
+  .user-dashboard-page__details {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.user-dashboard-page__detail-label {
+  color: var(--color-muted);
+}
+
+.user-dashboard-page__detail-value {
+  margin-top: 0.25rem;
+  font-weight: 500;
+}
+
+.user-dashboard-page__appointments-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.user-dashboard-page__tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.user-dashboard-page__search {
+  margin-bottom: 0.75rem;
+}
+
+.user-dashboard-page__list > * + * {
+  margin-top: 0.75rem;
+}
+
+.user-dashboard-page__empty {
+  text-align: center;
+  color: var(--color-muted);
+}
+
+.user-dashboard-page__center {
+  text-align: center;
+}
+
+.user-dashboard-page__appointment {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.user-dashboard-page__appointment-name {
+  font-weight: 500;
+}
+
+.user-dashboard-page__appointment-provider {
+  font-size: 0.875rem;
+  color: var(--color-muted);
+}
+
+.user-dashboard-page__appointment-date {
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
+}
+
+.user-dashboard-page__view-all {
+  font-size: 0.875rem;
+  color: var(--color-primary);
+}
+
+.user-dashboard-page__view-all:hover {
+  text-decoration: underline;
+}
+
+.user-dashboard-page__settings-grid {
+  display: grid;
+  gap: 1.5rem;
+}
+
+@media (min-width: 1024px) {
+  .user-dashboard-page__settings-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.user-dashboard-page__card-title {
+  margin-bottom: 1rem;
+  font-weight: 500;
+}
+
+.user-dashboard-page__form > * + * {
+  margin-top: 1rem;
+}
+</style>

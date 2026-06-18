@@ -22,13 +22,21 @@ function update(v: string) {
 </script>
 
 <template>
-  <div>
+  <div class="jalali-date-picker">
     <UiInput
       :model-value="value"
       label="تاریخ (شمسی)"
       placeholder="1404/03/15"
       @update:model-value="update"
     />
-    <p class="mt-1 text-xs text-[var(--color-muted)]">امروز: {{ todayJalali() }} — فرمت: YYYY/MM/DD</p>
+    <p class="jalali-date-picker__hint">امروز: {{ todayJalali() }} — فرمت: YYYY/MM/DD</p>
   </div>
 </template>
+
+<style scoped>
+.jalali-date-picker__hint {
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  color: var(--color-muted);
+}
+</style>

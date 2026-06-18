@@ -4,9 +4,9 @@ import UiCard from "@/components/ui/UiCard.vue";
 </script>
 
 <template>
-  <div>
-    <h1 class="mb-6 text-2xl font-bold">پنل مدیریت</h1>
-    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+  <div class="admin-dashboard-page">
+    <h1 class="admin-dashboard-page__title">پنل مدیریت</h1>
+    <div class="admin-dashboard-page__grid">
       <RouterLink to="/admin/categories"><UiCard>دسته‌بندی‌ها</UiCard></RouterLink>
       <RouterLink to="/admin/services"><UiCard>خدمات</UiCard></RouterLink>
       <RouterLink to="/admin/users"><UiCard>کاربران</UiCard></RouterLink>
@@ -16,3 +16,28 @@ import UiCard from "@/components/ui/UiCard.vue";
     </div>
   </div>
 </template>
+
+<style scoped>
+.admin-dashboard-page__title {
+  margin-bottom: 1.5rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.admin-dashboard-page__grid {
+  display: grid;
+  gap: 1rem;
+}
+
+@media (min-width: 640px) {
+  .admin-dashboard-page__grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .admin-dashboard-page__grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+</style>

@@ -38,10 +38,10 @@ async function submit() {
 </script>
 
 <template>
-  <div class="mx-auto max-w-md">
+  <div class="register-page">
     <UiCard>
-      <h1 class="mb-6 text-xl font-bold">ثبت‌نام</h1>
-      <form class="space-y-4" @submit.prevent="submit">
+      <h1 class="register-page__title">ثبت‌نام</h1>
+      <form class="register-page__form" @submit.prevent="submit">
         <UiInput
           v-model="values.fullName"
           label="نام کامل"
@@ -71,18 +71,58 @@ async function submit() {
           :error="fieldError('password')"
           @blur="touch('password')"
         />
-        <p v-if="auth.error" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-950/30">
+        <p v-if="auth.error" class="register-page__error">
           {{ auth.error }}
         </p>
-        <UiButton type="submit" :loading="submitting || auth.loading" :disabled="!isValid || submitting" class="w-full">
+        <UiButton type="submit" :loading="submitting || auth.loading" :disabled="!isValid || submitting" class="register-page__submit">
           ثبت‌نام
         </UiButton>
       </form>
-      <div class="mt-4 text-center">
-               <RouterLink to="/login" class="mt-4 block text-center text-sm text-[var(--color-primary)]">
-        ورود
-      </RouterLink>
+      <div class="register-page__footer">
+        <RouterLink to="/login" class="register-page__link">
+          ورود
+        </RouterLink>
       </div>
     </UiCard>
   </div>
 </template>
+
+<style scoped>
+.register-page {
+  max-width: 28rem;
+  margin-inline: auto;
+}
+
+.register-page__title {
+  margin-bottom: 1.5rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.register-page__form > * + * {
+  margin-top: 1rem;
+}
+
+.register-page__error {
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  background-color: var(--color-alert-error-bg);
+  color: var(--color-alert-error-text);
+}
+
+.register-page__submit {
+  width: 100%;
+}
+
+.register-page__footer {
+  margin-top: 1rem;
+  text-align: center;
+}
+
+.register-page__link {
+  display: block;
+  font-size: 0.875rem;
+  color: var(--color-primary);
+}
+</style>

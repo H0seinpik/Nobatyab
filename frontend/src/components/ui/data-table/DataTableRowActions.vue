@@ -68,11 +68,11 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div v-if="hasActions" ref="rootRef" class="inline-block">
+  <div v-if="hasActions" ref="rootRef" class="data-table-row-actions">
     <button
       ref="triggerRef"
       type="button"
-      class="rounded-lg p-1 text-[var(--color-muted)] hover:bg-[var(--color-bg)]"
+      class="data-table-row-actions__trigger"
       @click.stop="toggle"
     >
       ⋮
@@ -81,15 +81,15 @@ onUnmounted(() => {
       <div
         v-if="open"
         ref="menuRef"
-        class="fixed z-[9999] min-w-[10rem] rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] py-1 shadow-lg"
+        class="data-table-row-actions__menu"
         :style="menuStyle"
       >
         <button
           v-for="action in visibleActions"
           :key="action.key"
           type="button"
-          class="block w-full px-3 py-2 text-right text-sm hover:bg-[var(--color-bg)]"
-          :class="action.variant === 'danger' ? 'text-red-600' : ''"
+          class="data-table-row-actions__item"
+          :class="{ 'data-table-row-actions__item--danger': action.variant === 'danger' }"
           @click="onAction(action.key)"
         >
           {{ action.label }}
@@ -98,3 +98,53 @@ onUnmounted(() => {
     </Teleport>
   </div>
 </template>
+
+<style scoped>
+.data-table-row-actions {
+  display: inline-block;
+}
+
+.data-table-row-actions__trigger {
+  border-radius: 0.5rem;
+  padding: 0.25rem;
+  color: var(--color-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.data-table-row-actions__trigger:hover {
+  background-color: var(--color-bg);
+}
+
+.data-table-row-actions__menu {
+  position: fixed;
+  z-index: 9999;
+  min-width: 10rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--color-border);
+  background-color: var(--color-surface);
+  padding-block: 0.25rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+}
+
+.data-table-row-actions__item {
+  display: block;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  text-align: right;
+  font-size: 0.875rem;
+  color: var(--color-text);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.data-table-row-actions__item:hover {
+  background-color: var(--color-bg);
+}
+
+.data-table-row-actions__item--danger {
+  color: var(--color-danger);
+}
+</style>

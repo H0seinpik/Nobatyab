@@ -91,43 +91,43 @@ defineExpose({ reload: load });
       <SkeletonForm :fields="4" />
     </div>
     <template v-else>
-      <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h2 class="font-semibold">اطلاعات حساب</h2>
+      <div class="account-profile__header">
+        <h2 class="account-profile__title">اطلاعات حساب</h2>
         <UiButton type="button" variant="secondary" @click="openModal">ویرایش پروفایل</UiButton>
       </div>
 
-      <dl v-if="profileSummary" class="space-y-3 text-sm">
-        <div class="flex justify-between gap-4">
-          <dt class="text-[var(--color-muted)]">نام</dt>
+      <dl v-if="profileSummary" class="account-profile__details">
+        <div class="account-profile__row">
+          <dt class="account-profile__term">نام</dt>
           <dd>{{ profileSummary.firstName ?? "—" }}</dd>
         </div>
-        <div class="flex justify-between gap-4">
-          <dt class="text-[var(--color-muted)]">نام خانوادگی</dt>
+        <div class="account-profile__row">
+          <dt class="account-profile__term">نام خانوادگی</dt>
           <dd>{{ profileSummary.lastName ?? "—" }}</dd>
         </div>
-        <div class="flex justify-between gap-4">
-          <dt class="text-[var(--color-muted)]">کد ملی</dt>
+        <div class="account-profile__row">
+          <dt class="account-profile__term">کد ملی</dt>
           <dd>{{ profileSummary.nationalCode ?? "—" }}</dd>
         </div>
-        <div class="flex justify-between gap-4">
-          <dt class="text-[var(--color-muted)]">سن</dt>
+        <div class="account-profile__row">
+          <dt class="account-profile__term">سن</dt>
           <dd>{{ profileSummary.age ?? "—" }}</dd>
         </div>
-        <div class="flex justify-between gap-4">
-          <dt class="text-[var(--color-muted)]">ایمیل</dt>
+        <div class="account-profile__row">
+          <dt class="account-profile__term">ایمیل</dt>
           <dd>{{ profileSummary.email }}</dd>
         </div>
-        <div class="flex justify-between gap-4">
-          <dt class="text-[var(--color-muted)]">شماره تماس</dt>
+        <div class="account-profile__row">
+          <dt class="account-profile__term">شماره تماس</dt>
           <dd>{{ profileSummary.phone ?? "—" }}</dd>
         </div>
-        <div class="flex justify-between gap-4">
-          <dt class="text-[var(--color-muted)]">آدرس</dt>
-          <dd class="text-left">{{ profileSummary.address ?? "—" }}</dd>
+        <div class="account-profile__row">
+          <dt class="account-profile__term">آدرس</dt>
+          <dd class="account-profile__value--left">{{ profileSummary.address ?? "—" }}</dd>
         </div>
       </dl>
 
-      <UiAlert v-if="successMessage" variant="success" class="mt-4">{{ successMessage }}</UiAlert>
+      <UiAlert v-if="successMessage" variant="success" class="account-profile__alert">{{ successMessage }}</UiAlert>
     </template>
 
     <UiModal
@@ -154,3 +154,44 @@ defineExpose({ reload: load });
     </UiModal>
   </UiCard>
 </template>
+
+<style scoped>
+.account-profile__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.account-profile__title {
+  font-weight: 600;
+}
+
+.account-profile__details {
+  font-size: 0.875rem;
+}
+
+.account-profile__details > * + * {
+  margin-top: 0.75rem;
+}
+
+.account-profile__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.account-profile__term {
+  color: var(--color-muted);
+}
+
+.account-profile__value--left {
+  text-align: left;
+}
+
+.account-profile__alert {
+  margin-top: 1rem;
+}
+</style>

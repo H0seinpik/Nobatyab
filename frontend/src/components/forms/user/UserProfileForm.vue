@@ -64,7 +64,7 @@ defineProps<{
       @update:model-value="(v) => (values.phone = v)"
       @blur="touch('phone')"
     />
-    <div class="md:col-span-2">
+    <div class="form-field-grid__item--full">
       <UiInput
         :model-value="String(values.address ?? '')"
         label="آدرس"

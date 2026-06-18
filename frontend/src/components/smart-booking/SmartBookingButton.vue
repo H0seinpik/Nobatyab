@@ -43,9 +43,10 @@ async function onLoginSuccess() {
 </script>
 
 <template>
-  <div>
+  <div class="smart-booking-button">
     <UiButton
-      :class="size === 'large' ? 'px-8 py-3 text-base' : ''"
+      class="smart-booking-button__trigger"
+      :class="{ 'smart-booking-button__trigger--large': size === 'large' }"
       :loading="checking"
       @click="handleClick"
     >
@@ -54,3 +55,10 @@ async function onLoginSuccess() {
     <LoginModal v-model:open="loginOpen" @success="onLoginSuccess" />
   </div>
 </template>
+
+<style scoped>
+.smart-booking-button__trigger--large {
+  padding: 0.75rem 2rem;
+  font-size: 1rem;
+}
+</style>

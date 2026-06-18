@@ -64,7 +64,7 @@ defineProps<{
       @update:model-value="(v) => (values.age = v)"
       @blur="touch('age')"
     />
-    <div class="md:col-span-2">
+    <div class="form-field-grid__item--full">
       <UiInput
         :model-value="String(values.address ?? '')"
         label="آدرس"
@@ -94,8 +94,8 @@ defineProps<{
       <option value="PROVIDER">ارائه‌دهنده</option>
       <option value="ADMIN">مدیر</option>
     </UiSelect>
-    <div class="flex items-center md:col-span-2">
-      <label class="flex items-center gap-2 text-sm">
+    <div class="form-field-grid__item--full checkbox-field">
+      <label class="checkbox-field__label">
         <input
           type="checkbox"
           :checked="Boolean(values.isActive)"
@@ -108,3 +108,12 @@ defineProps<{
     </div>
   </FormFieldGrid>
 </template>
+
+<style scoped>
+.checkbox-field__label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+}
+</style>

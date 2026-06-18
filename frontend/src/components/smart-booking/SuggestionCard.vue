@@ -18,17 +18,70 @@ function formatPrice(price: number) {
 </script>
 
 <template>
-  <UiCard class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-    <div class="space-y-1">
-      <div class="flex flex-wrap items-center gap-2">
-        <h3 class="font-semibold">{{ suggestion.providerName }}</h3>
-        <UiBadge v-if="suggestion.isFallback" tone="warning">خارج از زمان‌های شما</UiBadge>
+  <UiCard>
+    <div class="suggestion-card">
+      <div class="suggestion-card__info">
+        <div class="suggestion-card__header">
+          <h3 class="suggestion-card__provider">{{ suggestion.providerName }}</h3>
+          <UiBadge v-if="suggestion.isFallback" tone="warning">خارج از زمان‌های شما</UiBadge>
+        </div>
+        <p class="suggestion-card__service">{{ suggestion.serviceName }}</p>
+        <p class="suggestion-card__time">{{ formatJalaliDateTime(suggestion.startTime) }}</p>
+        <p class="suggestion-card__location">{{ suggestion.locationLabel }}</p>
+        <p class="suggestion-card__price">{{ formatPrice(suggestion.price) }} تومان</p>
       </div>
-      <p class="text-sm text-[var(--color-muted)]">{{ suggestion.serviceName }}</p>
-      <p class="text-sm font-medium">{{ formatJalaliDateTime(suggestion.startTime) }}</p>
-      <p class="text-xs text-[var(--color-muted)]">{{ suggestion.locationLabel }}</p>
-      <p class="text-sm text-[var(--color-primary)]">{{ formatPrice(suggestion.price) }} تومان</p>
+      <UiButton type="button" @click="emit('select')">انتخاب</UiButton>
     </div>
-    <UiButton type="button" @click="emit('select')">انتخاب</UiButton>
   </UiCard>
 </template>
+
+<style scoped>
+.suggestion-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .suggestion-card {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.suggestion-card__info > * + * {
+  margin-top: 0.25rem;
+}
+
+.suggestion-card__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.suggestion-card__provider {
+  font-weight: 600;
+}
+
+.suggestion-card__service {
+  font-size: 0.875rem;
+  color: var(--color-muted);
+}
+
+.suggestion-card__time {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.suggestion-card__location {
+  font-size: 0.75rem;
+  color: var(--color-muted);
+}
+
+.suggestion-card__price {
+  font-size: 0.875rem;
+  color: var(--color-primary);
+}
+</style>

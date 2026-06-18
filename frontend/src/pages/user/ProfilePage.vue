@@ -85,17 +85,17 @@ async function submitProviderApplication() {
 </script>
 
 <template>
-  <div>
+  <div class="profile-page">
     <ProfilePageHeader title="پروفایل کاربری" />
 
-    <div v-if="pageLoading" class="max-w-lg space-y-6">
+    <div v-if="pageLoading" class="profile-page__content profile-page__stack">
       <SkeletonForm :fields="7" />
       <SkeletonForm :fields="3" />
     </div>
 
-    <ContentFade v-else class="max-w-lg space-y-6">
+    <ContentFade v-else class="profile-page__content profile-page__stack">
       <UiCard>
-        <h2 class="mb-4 font-semibold">تصویر پروفایل</h2>
+        <h2 class="profile-page__card-title">تصویر پروفایل</h2>
         <AvatarUpload />
       </UiCard>
 
@@ -104,17 +104,17 @@ async function submitProviderApplication() {
       <ProviderBusinessProfileSection v-if="auth.user?.role === 'PROVIDER'" />
 
       <UiCard v-if="auth.user?.role === 'USER'">
-        <h2 class="mb-2 font-semibold">درخواست ارائه‌دهنده شدن</h2>
-        <p class="mb-4 text-sm text-[var(--color-muted)]">
+        <h2 class="profile-page__section-title">درخواست ارائه‌دهنده شدن</h2>
+        <p class="profile-page__section-description">
           اگر می‌خواهید خدمات خود را در پلتفرم ارائه دهید، درخواست خود را ارسال کنید.
         </p>
 
-        <div v-if="providerRequestLoading" class="text-sm text-[var(--color-muted)]">
+        <div v-if="providerRequestLoading" class="profile-page__loading-text">
           در حال بارگذاری وضعیت درخواست...
         </div>
 
         <template v-else-if="providerRequest?.status === 'PENDING'">
-          <UiAlert variant="info" class="flex flex-wrap items-center gap-2">
+          <UiAlert variant="info" class="profile-page__pending-alert">
             <span>درخواست شما در انتظار بررسی است.</span>
             <StatusBadge kind="review" :value="providerRequest.status" />
           </UiAlert>
@@ -125,11 +125,11 @@ async function submitProviderApplication() {
         </template>
 
         <template v-else-if="providerRequest?.status === 'REJECTED'">
-          <UiAlert variant="error" class="mb-4">
+          <UiAlert variant="error" class="profile-page__rejected-alert">
             درخواست قبلی رد شده است.
             <span v-if="providerRequest.adminNote"> — {{ providerRequest.adminNote }}</span>
           </UiAlert>
-          <form class="space-y-3" @submit.prevent="submitProviderApplication">
+          <form class="profile-page__form" @submit.prevent="submitProviderApplication">
             <UiInput v-model="providerRequestNote" label="توضیحات (اختیاری)" />
             <UiButton type="submit" :loading="providerRequestSubmitting" :disabled="providerRequestSubmitting">
               ارسال درخواست جدید
@@ -138,7 +138,7 @@ async function submitProviderApplication() {
         </template>
 
         <template v-else>
-          <form class="space-y-3" @submit.prevent="submitProviderApplication">
+          <form class="profile-page__form" @submit.prevent="submitProviderApplication">
             <UiInput v-model="providerRequestNote" label="توضیحات (اختیاری)" />
             <UiAlert v-if="providerRequestSuccess" variant="success">{{ providerRequestSuccess }}</UiAlert>
             <UiAlert v-if="providerRequestError" variant="error">{{ providerRequestError }}</UiAlert>
@@ -150,8 +150,8 @@ async function submitProviderApplication() {
       </UiCard>
 
       <UiCard v-if="auth.user?.role === 'USER'">
-        <h2 class="mb-2 font-semibold">رزرو هوشمند</h2>
-        <p class="mb-4 text-sm text-[var(--color-muted)]">
+        <h2 class="profile-page__section-title">رزرو هوشمند</h2>
+        <p class="profile-page__section-description">
           زمان‌های آزاد هفتگی خود را برای پیشنهاد خودکار نوبت تنظیم کنید.
         </p>
         <RouterLink to="/availability">
@@ -160,7 +160,7 @@ async function submitProviderApplication() {
       </UiCard>
 
       <UiCard>
-        <h2 class="mb-4 font-semibold">تنظیمات ظاهر</h2>
+        <h2 class="profile-page__card-title">تنظیمات ظاهر</h2>
         <ThemeSettings />
       </UiCard>
 
@@ -168,3 +168,49 @@ async function submitProviderApplication() {
     </ContentFade>
   </div>
 </template>
+
+<style scoped>
+.profile-page__content {
+  max-width: 32rem;
+}
+
+.profile-page__stack > * + * {
+  margin-top: 1.5rem;
+}
+
+.profile-page__card-title {
+  margin-bottom: 1rem;
+  font-weight: 600;
+}
+
+.profile-page__section-title {
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+
+.profile-page__section-description {
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+  color: var(--color-muted);
+}
+
+.profile-page__loading-text {
+  font-size: 0.875rem;
+  color: var(--color-muted);
+}
+
+.profile-page__pending-alert {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.profile-page__rejected-alert {
+  margin-bottom: 1rem;
+}
+
+.profile-page__form > * + * {
+  margin-top: 0.75rem;
+}
+</style>

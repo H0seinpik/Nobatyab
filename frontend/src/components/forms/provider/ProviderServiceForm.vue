@@ -15,7 +15,7 @@ defineProps<{
 
 <template>
   <FormFieldGrid>
-    <div class="md:col-span-2">
+    <div class="form-field-grid__item--full">
       <UiInput
         :model-value="String(values.name ?? '')"
         label="نام خدمت"
@@ -43,7 +43,7 @@ defineProps<{
       @update:model-value="(v) => (values.price = v)"
       @blur="touch('price')"
     />
-    <div v-if="mode === 'create'" class="md:col-span-2">
+    <div v-if="mode === 'create'" class="form-field-grid__item--full">
       <UiInput
         :model-value="String(values.description ?? '')"
         label="توضیحات (اختیاری)"

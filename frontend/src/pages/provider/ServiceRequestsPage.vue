@@ -84,10 +84,10 @@ onMounted(load);
 </script>
 
 <template>
-  <div class="space-y-8">
-    <UiCard class="max-w-lg space-y-4">
-      <h2 class="font-semibold">درخواست خدمت جدید</h2>
-      <form class="space-y-4" @submit.prevent="submit">
+  <div class="provider-service-requests-page">
+    <UiCard class="provider-service-requests-page__form-card">
+      <h2 class="provider-service-requests-page__form-title">درخواست خدمت جدید</h2>
+      <form class="provider-service-requests-page__form" @submit.prevent="submit">
         <UiInput
           v-model="values.serviceId"
           label="شناسه خدمت موجود (اختیاری)"
@@ -121,7 +121,7 @@ onMounted(load);
             @blur="touch('proposedDuration')"
           />
         </template>
-        <p v-if="submitError" class="text-sm text-red-600">{{ submitError }}</p>
+        <p v-if="submitError" class="provider-service-requests-page__error">{{ submitError }}</p>
         <UiButton type="submit" :loading="submitting" :disabled="!canSubmit || submitting">
           ارسال درخواست
         </UiButton>
@@ -129,21 +129,70 @@ onMounted(load);
     </UiCard>
 
     <div>
-      <h2 class="mb-4 text-xl font-bold">درخواست‌های من</h2>
-      <div v-if="listLoading" class="space-y-3">
+      <h2 class="provider-service-requests-page__list-title">درخواست‌های من</h2>
+      <div v-if="listLoading" class="provider-service-requests-page__list">
         <SkeletonCard v-for="i in 3" :key="i" />
       </div>
       <ContentFade v-else>
-        <div class="space-y-3">
+        <div class="provider-service-requests-page__list">
           <UiCard v-for="r in requests" :key="r.id">
-            <div class="flex items-center justify-between">
+            <div class="provider-service-requests-page__item">
               <span>{{ r.service?.name ?? r.proposedName }}</span>
               <StatusBadge kind="review" :value="r.status" />
             </div>
-            <p v-if="r.adminNote" class="mt-2 text-sm text-[var(--color-muted)]">{{ r.adminNote }}</p>
+            <p v-if="r.adminNote" class="provider-service-requests-page__note">{{ r.adminNote }}</p>
           </UiCard>
         </div>
       </ContentFade>
     </div>
   </div>
 </template>
+
+<style scoped>
+.provider-service-requests-page > * + * {
+  margin-top: 2rem;
+}
+
+.provider-service-requests-page__form-card {
+  max-width: 32rem;
+}
+
+.provider-service-requests-page__form-card > * + * {
+  margin-top: 1rem;
+}
+
+.provider-service-requests-page__form-title {
+  font-weight: 600;
+}
+
+.provider-service-requests-page__form > * + * {
+  margin-top: 1rem;
+}
+
+.provider-service-requests-page__error {
+  font-size: 0.875rem;
+  color: var(--color-danger);
+}
+
+.provider-service-requests-page__list-title {
+  margin-bottom: 1rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.provider-service-requests-page__list > * + * {
+  margin-top: 0.75rem;
+}
+
+.provider-service-requests-page__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.provider-service-requests-page__note {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--color-muted);
+}
+</style>

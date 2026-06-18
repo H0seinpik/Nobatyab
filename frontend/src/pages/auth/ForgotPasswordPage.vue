@@ -25,13 +25,13 @@ async function submit() {
 </script>
 
 <template>
-  <div class="mx-auto max-w-md">
+  <div class="forgot-password-page">
     <UiCard>
-      <h1 class="mb-6 text-xl font-bold">بازیابی رمز عبور</h1>
-      <p v-if="sent" class="text-sm text-green-600">
+      <h1 class="forgot-password-page__title">بازیابی رمز عبور</h1>
+      <p v-if="sent" class="forgot-password-page__success">
         در صورت وجود ایمیل، لینک بازیابی ارسال شد.
       </p>
-      <form v-else class="space-y-4" @submit.prevent="submit">
+      <form v-else class="forgot-password-page__form" @submit.prevent="submit">
         <UiInput
           v-model="values.email"
           label="ایمیل"
@@ -40,13 +40,47 @@ async function submit() {
           :error="fieldError('email')"
           @blur="touch('email')"
         />
-        <UiButton type="submit" :loading="submitting" :disabled="!isValid || submitting" class="w-full">
+        <UiButton type="submit" :loading="submitting" :disabled="!isValid || submitting" class="forgot-password-page__submit">
           ارسال لینک
         </UiButton>
       </form>
-      <RouterLink to="/login" class="mt-4 block text-center text-sm text-[var(--color-primary)]">
+      <RouterLink to="/login" class="forgot-password-page__link">
         بازگشت به ورود
       </RouterLink>
     </UiCard>
   </div>
 </template>
+
+<style scoped>
+.forgot-password-page {
+  max-width: 28rem;
+  margin-inline: auto;
+}
+
+.forgot-password-page__title {
+  margin-bottom: 1.5rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.forgot-password-page__success {
+  font-size: 0.875rem;
+  color: var(--color-alert-success-text);
+}
+
+.forgot-password-page__form > * + * {
+  margin-top: 1rem;
+}
+
+.forgot-password-page__submit {
+  width: 100%;
+}
+
+.forgot-password-page__link {
+  display: block;
+  margin-top: 1rem;
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--color-primary);
+}
+</style>

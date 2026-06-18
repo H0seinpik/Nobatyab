@@ -11,7 +11,7 @@ const options: { value: Theme; label: string }[] = [
 </script>
 
 <template>
-  <div class="flex gap-2">
+  <div class="theme-settings">
     <UiButton
       v-for="opt in options"
       :key="opt.value"
@@ -22,3 +22,10 @@ const options: { value: Theme; label: string }[] = [
     </UiButton>
   </div>
 </template>
+
+<style scoped>
+.theme-settings {
+  display: flex;
+  gap: 0.5rem;
+}
+</style>

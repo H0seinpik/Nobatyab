@@ -33,11 +33,11 @@ async function submit() {
 </script>
 
 <template>
-  <div class="mx-auto max-w-md">
+  <div class="reset-password-page">
     <UiCard>
-      <h1 class="mb-6 text-xl font-bold">تنظیم رمز جدید</h1>
-      <p v-if="done" class="text-green-600">رمز با موفقیت تغییر کرد. در حال انتقال...</p>
-      <form v-else class="space-y-4" @submit.prevent="submit">
+      <h1 class="reset-password-page__title">تنظیم رمز جدید</h1>
+      <p v-if="done" class="reset-password-page__success">رمز با موفقیت تغییر کرد. در حال انتقال...</p>
+      <form v-else class="reset-password-page__form" @submit.prevent="submit">
         <UiInput
           v-model="values.password"
           label="رمز عبور جدید"
@@ -54,11 +54,41 @@ async function submit() {
           :error="fieldError('confirmPassword')"
           @blur="touch('confirmPassword')"
         />
-        <p v-if="submitError" class="text-sm text-red-600">{{ submitError }}</p>
-        <UiButton type="submit" :loading="submitting" :disabled="!isValid || submitting" class="w-full">
+        <p v-if="submitError" class="reset-password-page__error">{{ submitError }}</p>
+        <UiButton type="submit" :loading="submitting" :disabled="!isValid || submitting" class="reset-password-page__submit">
           ذخیره
         </UiButton>
       </form>
     </UiCard>
   </div>
 </template>
+
+<style scoped>
+.reset-password-page {
+  max-width: 28rem;
+  margin-inline: auto;
+}
+
+.reset-password-page__title {
+  margin-bottom: 1.5rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.reset-password-page__success {
+  color: var(--color-alert-success-text);
+}
+
+.reset-password-page__form > * + * {
+  margin-top: 1rem;
+}
+
+.reset-password-page__error {
+  font-size: 0.875rem;
+  color: var(--color-danger);
+}
+
+.reset-password-page__submit {
+  width: 100%;
+}
+</style>

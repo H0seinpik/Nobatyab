@@ -4,8 +4,17 @@ import SkeletonText from "./SkeletonText.vue";
 </script>
 
 <template>
-  <div class="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
-    <SkeletonBase class="mb-3 h-24 w-full" />
+  <div class="skeleton-card">
+    <SkeletonBase class="skeleton--media" />
     <SkeletonText :lines="2" :widths="['70%', '50%']" />
   </div>
 </template>
+
+<style scoped>
+.skeleton-card {
+  border-radius: 0.75rem;
+  border: 1px solid var(--color-border);
+  background-color: var(--color-surface);
+  padding: 1rem;
+}
+</style>

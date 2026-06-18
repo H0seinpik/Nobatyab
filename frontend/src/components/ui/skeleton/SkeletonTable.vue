@@ -13,25 +13,53 @@ withDefaults(
 </script>
 
 <template>
-  <div class="overflow-hidden rounded-xl border border-[var(--color-border)]">
-    <div class="flex gap-3 border-b border-[var(--color-border)] bg-[var(--color-bg)] px-4 py-3">
-      <SkeletonBase v-if="showCheckbox" class="h-4 w-4 shrink-0" />
+  <div class="skeleton-table">
+    <div class="skeleton-table__header">
+      <SkeletonBase v-if="showCheckbox" class="skeleton--icon-sm" />
       <SkeletonBase
         v-for="c in columns"
         :key="`h-${c}`"
-        class="h-4 flex-1"
+        class="skeleton--header-cell"
         :style="{ maxWidth: c === columns ? '80px' : undefined }"
       />
-      <SkeletonBase v-if="showActions" class="h-4 w-8 shrink-0" />
+      <SkeletonBase v-if="showActions" class="skeleton--actions-header" />
     </div>
     <div
       v-for="r in rows"
       :key="r"
-      class="flex items-center gap-3 border-b border-[var(--color-border)] px-4 py-4 last:border-0"
+      class="skeleton-table__row"
     >
-      <SkeletonBase v-if="showCheckbox" class="h-4 w-4 shrink-0" />
-      <SkeletonBase v-for="c in columns" :key="`r-${r}-${c}`" class="h-3 flex-1" />
-      <SkeletonBase v-if="showActions" class="h-6 w-6 shrink-0 rounded-full" />
+      <SkeletonBase v-if="showCheckbox" class="skeleton--icon-sm" />
+      <SkeletonBase v-for="c in columns" :key="`r-${r}-${c}`" class="skeleton--body-cell" />
+      <SkeletonBase v-if="showActions" class="skeleton--icon-md" />
     </div>
   </div>
 </template>
+
+<style scoped>
+.skeleton-table {
+  overflow: hidden;
+  border-radius: 0.75rem;
+  border: 1px solid var(--color-border);
+}
+
+.skeleton-table__header {
+  display: flex;
+  gap: 0.75rem;
+  border-bottom: 1px solid var(--color-border);
+  background-color: var(--color-bg);
+  padding: 0.75rem 1rem;
+}
+
+.skeleton-table__row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border-bottom: 1px solid var(--color-border);
+  padding: 1rem;
+}
+
+.skeleton-table__row:last-child {
+  border-bottom: 0;
+}
+</style>

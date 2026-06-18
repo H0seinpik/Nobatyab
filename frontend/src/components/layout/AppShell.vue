@@ -8,11 +8,25 @@ defineProps<{
 </script>
 
 <template>
-  <div class="flex min-h-screen flex-col">
+  <div class="app-shell">
     <AppHeader :show-nav="showNav" />
-    <main class="flex flex-1 flex-col">
+    <main class="app-shell__main">
       <slot />
     </main>
     <AppFooter />
   </div>
 </template>
+
+<style scoped>
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+}
+
+.app-shell__main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+}
+</style>

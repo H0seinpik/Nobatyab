@@ -98,36 +98,36 @@ watch([isOpen, formLoading], async ([open, loadingForm]) => {
       <SkeletonForm :fields="6" />
     </div>
     <template v-else>
-      <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h2 class="font-semibold">اطلاعات ارائه‌دهنده</h2>
+      <div class="provider-profile__header">
+        <h2 class="provider-profile__title">اطلاعات ارائه‌دهنده</h2>
         <UiButton type="button" variant="secondary" @click="openModal">ویرایش</UiButton>
       </div>
 
-      <dl v-if="profileSummary" class="space-y-3 text-sm">
-        <div class="flex justify-between gap-4">
-          <dt class="text-[var(--color-muted)]">تخصص</dt>
+      <dl v-if="profileSummary" class="provider-profile__details">
+        <div class="provider-profile__row">
+          <dt class="provider-profile__term">تخصص</dt>
           <dd>{{ profileSummary.specialization ?? "—" }}</dd>
         </div>
-        <div class="flex justify-between gap-4">
-          <dt class="text-[var(--color-muted)]">بیوگرافی</dt>
-          <dd class="text-left">{{ profileSummary.bio ?? "—" }}</dd>
+        <div class="provider-profile__row">
+          <dt class="provider-profile__term">بیوگرافی</dt>
+          <dd class="provider-profile__value--left">{{ profileSummary.bio ?? "—" }}</dd>
         </div>
-        <div class="flex justify-between gap-4">
-          <dt class="text-[var(--color-muted)]">آدرس</dt>
-          <dd class="text-left">{{ profileSummary.address ?? "—" }}</dd>
+        <div class="provider-profile__row">
+          <dt class="provider-profile__term">آدرس</dt>
+          <dd class="provider-profile__value--left">{{ profileSummary.address ?? "—" }}</dd>
         </div>
-        <div class="flex justify-between gap-4">
-          <dt class="text-[var(--color-muted)]">مدت اسلات</dt>
+        <div class="provider-profile__row">
+          <dt class="provider-profile__term">مدت اسلات</dt>
           <dd>{{ profileSummary.slotDurationMinutes }} دقیقه</dd>
         </div>
-        <div class="flex justify-between gap-4">
-          <dt class="text-[var(--color-muted)]">پذیرش نوبت</dt>
+        <div class="provider-profile__row">
+          <dt class="provider-profile__term">پذیرش نوبت</dt>
           <dd>{{ profileSummary.isAcceptingBookings ? "فعال" : "غیرفعال" }}</dd>
         </div>
       </dl>
 
-      <div v-if="profileSummary" class="mt-4">
-        <p class="mb-2 text-sm text-[var(--color-muted)]">موقعیت روی نقشه</p>
+      <div v-if="profileSummary" class="provider-profile__map">
+        <p class="provider-profile__map-label">موقعیت روی نقشه</p>
         <MapLocationPicker
           ref="summaryMapRef"
           readonly
@@ -137,7 +137,7 @@ watch([isOpen, formLoading], async ([open, loadingForm]) => {
         />
       </div>
 
-      <UiAlert v-if="successMessage" variant="success" class="mt-4">{{ successMessage }}</UiAlert>
+      <UiAlert v-if="successMessage" variant="success" class="provider-profile__alert">{{ successMessage }}</UiAlert>
     </template>
 
     <UiModal
@@ -165,3 +165,54 @@ watch([isOpen, formLoading], async ([open, loadingForm]) => {
     </UiModal>
   </UiCard>
 </template>
+
+<style scoped>
+.provider-profile__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.provider-profile__title {
+  font-weight: 600;
+}
+
+.provider-profile__details {
+  font-size: 0.875rem;
+}
+
+.provider-profile__details > * + * {
+  margin-top: 0.75rem;
+}
+
+.provider-profile__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.provider-profile__term {
+  color: var(--color-muted);
+}
+
+.provider-profile__value--left {
+  text-align: left;
+}
+
+.provider-profile__map {
+  margin-top: 1rem;
+}
+
+.provider-profile__map-label {
+  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--color-muted);
+}
+
+.provider-profile__alert {
+  margin-top: 1rem;
+}
+</style>

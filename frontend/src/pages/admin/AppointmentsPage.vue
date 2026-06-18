@@ -63,7 +63,7 @@ function onCancelDialog() {
 </script>
 
 <template>
-  <div>
+  <div class="admin-appointments-page">
     <PageHeader title="همه نوبت‌ها" description="مشاهده و پیگیری نوبت‌های ثبت‌شده" />
 
     <DataTable
@@ -85,7 +85,7 @@ function onCancelDialog() {
     <UiModal v-model:open="detailOpen" title="جزئیات نوبت">
       <AppointmentDetailView v-if="selectedAppointment" :appointment="selectedAppointment" />
       <template #footer>
-        <div class="flex justify-end gap-2">
+        <div class="admin-appointments-page__footer">
           <UiButton
             v-if="
               selectedAppointment &&
@@ -120,6 +120,20 @@ function onCancelDialog() {
       @confirm="onConfirmCancel"
       @cancel="onCancelDialog"
     />
-    <p v-if="cancelError" class="mt-2 text-sm text-red-600">{{ cancelError }}</p>
+    <p v-if="cancelError" class="admin-appointments-page__error">{{ cancelError }}</p>
   </div>
 </template>
+
+<style scoped>
+.admin-appointments-page__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.admin-appointments-page__error {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--color-danger);
+}
+</style>

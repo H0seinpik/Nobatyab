@@ -38,38 +38,34 @@ function closeSidebar() {
 
 <template>
   <AppShell :show-nav="false">
-    <div class="flex flex-1">
+    <div class="dashboard-layout">
       <div
         v-if="sidebarOpen"
-        class="fixed inset-0 z-40 bg-black/50 lg:hidden"
+        class="dashboard-layout__overlay"
         @click="closeSidebar"
       />
 
       <aside
-        class="fixed inset-y-0 right-0 z-50 w-56 shrink-0 border-l border-[var(--color-border)] bg-[var(--color-surface)] p-4 transition-transform lg:static lg:translate-x-0"
-        :class="sidebarOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'"
+        class="dashboard-layout__sidebar"
+        :class="{ 'dashboard-layout__sidebar--open': sidebarOpen }"
       >
-        <nav class="space-y-1">
+        <nav class="dashboard-layout__nav">
           <RouterLink
             v-for="link in links"
             :key="link.to"
             :to="link.to"
-            class="block rounded-lg px-3 py-2 text-sm transition"
-            :class="
-              route.path.startsWith(link.to)
-                ? 'bg-[var(--color-primary)] text-white'
-                : 'hover:bg-[var(--color-bg)]'
-            "
+            class="dashboard-layout__link"
+            :class="{ 'dashboard-layout__link--active': route.path.startsWith(link.to) }"
             @click="closeSidebar"
           >
             {{ link.label }}
           </RouterLink>
         </nav>
-        <div class="mt-8 space-y-1">
+        <div class="dashboard-layout__secondary-nav">
           <RouterLink
             to="/profile"
-            class="block rounded-lg px-3 py-2 text-sm hover:bg-[var(--color-bg)]"
-            :class="route.path === '/profile' ? 'bg-[var(--color-primary)] text-white' : ''"
+            class="dashboard-layout__link"
+            :class="{ 'dashboard-layout__link--active': route.path === '/profile' }"
             @click="closeSidebar"
           >
             پروفایل
@@ -77,7 +73,7 @@ function closeSidebar() {
           <RouterLink
             v-if="auth.user?.role === 'ADMIN'"
             to="/admin"
-            class="block rounded-lg px-3 py-2 text-sm hover:bg-[var(--color-bg)]"
+            class="dashboard-layout__link"
             @click="closeSidebar"
           >
             پنل مدیریت
@@ -85,7 +81,7 @@ function closeSidebar() {
           <RouterLink
             v-else-if="auth.user?.role === 'PROVIDER'"
             to="/provider"
-            class="block rounded-lg px-3 py-2 text-sm hover:bg-[var(--color-bg)]"
+            class="dashboard-layout__link"
             @click="closeSidebar"
           >
             پنل ارائه‌دهنده
@@ -93,21 +89,146 @@ function closeSidebar() {
         </div>
       </aside>
 
-      <div class="flex min-w-0 flex-1 flex-col">
-        <div class="flex items-center border-b border-[var(--color-border)] px-4 py-3 lg:hidden">
+      <div class="dashboard-layout__content">
+        <div class="dashboard-layout__mobile-bar">
           <button
             type="button"
-            class="rounded-lg px-3 py-2 text-sm hover:bg-[var(--color-bg)]"
+            class="dashboard-layout__menu-button"
             aria-label="منو"
             @click="sidebarOpen = !sidebarOpen"
           >
             ☰ منو
           </button>
         </div>
-        <div class="flex-1 p-4 sm:p-6">
+        <div class="dashboard-layout__main">
           <RouterView />
         </div>
       </div>
     </div>
   </AppShell>
 </template>
+
+<style scoped>
+.dashboard-layout {
+  display: flex;
+  flex: 1;
+}
+
+.dashboard-layout__overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background-color: rgb(0 0 0 / 50%);
+}
+
+@media (min-width: 1024px) {
+  .dashboard-layout__overlay {
+    display: none;
+  }
+}
+
+.dashboard-layout__sidebar {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  z-index: 50;
+  width: 14rem;
+  flex-shrink: 0;
+  border-left: 1px solid var(--color-border);
+  background-color: var(--color-surface);
+  padding: 1rem;
+  transition: transform 0.2s ease;
+  transform: translateX(100%);
+}
+
+.dashboard-layout__sidebar--open {
+  transform: translateX(0);
+}
+
+@media (min-width: 1024px) {
+  .dashboard-layout__sidebar {
+    position: static;
+    transform: translateX(0);
+  }
+}
+
+.dashboard-layout__nav,
+.dashboard-layout__secondary-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.dashboard-layout__secondary-nav {
+  margin-top: 2rem;
+}
+
+.dashboard-layout__link {
+  display: block;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  color: inherit;
+  text-decoration: none;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.dashboard-layout__link:hover {
+  background-color: var(--color-bg);
+}
+
+.dashboard-layout__link--active {
+  background-color: var(--color-primary);
+  color: white;
+}
+
+.dashboard-layout__link--active:hover {
+  background-color: var(--color-primary);
+  color: white;
+}
+
+.dashboard-layout__content {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+.dashboard-layout__mobile-bar {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--color-border);
+  padding: 0.75rem 1rem;
+}
+
+@media (min-width: 1024px) {
+  .dashboard-layout__mobile-bar {
+    display: none;
+  }
+}
+
+.dashboard-layout__menu-button {
+  padding: 0.5rem 0.75rem;
+  border: none;
+  border-radius: 0.5rem;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+}
+
+.dashboard-layout__menu-button:hover {
+  background-color: var(--color-bg);
+}
+
+.dashboard-layout__main {
+  flex: 1;
+  padding: 1rem;
+}
+
+@media (min-width: 640px) {
+  .dashboard-layout__main {
+    padding: 1.5rem;
+  }
+}
+</style>

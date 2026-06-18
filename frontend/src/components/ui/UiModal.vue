@@ -15,12 +15,6 @@ const props = withDefaults(
 
 const emit = defineEmits<{ close: [] }>();
 
-const sizeClass = {
-  sm: "max-w-md",
-  md: "max-w-lg",
-  lg: "max-w-2xl",
-};
-
 function close() {
   if (!props.closable) return;
   open.value = false;
@@ -50,43 +44,132 @@ onUnmounted(() => {
   <Teleport to="body">
     <div
       v-if="open"
-      class="fixed inset-0 z-50 flex items-center justify-center p-4"
+      class="modal"
       role="dialog"
       aria-modal="true"
       :aria-label="title"
     >
-      <div class="absolute inset-0 bg-black/50" @click="onOverlayClick" />
-      <div
-        class="relative flex max-h-[90vh] w-full flex-col rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-xl"
-        :class="sizeClass[size]"
-      >
-        <div
-          v-if="title || $slots.header"
-          class="flex shrink-0 items-center justify-between border-b border-[var(--color-border)] px-4 py-3 sm:px-6"
-        >
+      <div class="modal__overlay" @click="onOverlayClick" />
+      <div class="modal__panel" :class="`modal__panel--${size}`">
+        <div v-if="title || $slots.header" class="modal__header">
           <slot name="header">
-            <h2 class="text-lg font-semibold">{{ title }}</h2>
+            <h2 class="modal__title">{{ title }}</h2>
           </slot>
           <button
             v-if="closable"
             type="button"
-            class="rounded-lg p-1 text-[var(--color-muted)] hover:bg-[var(--color-bg)]"
+            class="modal__close"
             aria-label="بستن"
             @click="close"
           >
             ✕
           </button>
         </div>
-        <div class="flex-1 overflow-y-auto px-4 py-4 sm:px-6">
+        <div class="modal__body">
           <slot />
         </div>
-        <div
-          v-if="$slots.footer"
-          class="shrink-0 border-t border-[var(--color-border)] px-4 py-3 sm:px-6"
-        >
+        <div v-if="$slots.footer" class="modal__footer">
           <slot name="footer" />
         </div>
       </div>
     </div>
   </Teleport>
 </template>
+
+<style scoped>
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.modal__overlay {
+  position: absolute;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal__panel {
+  position: relative;
+  display: flex;
+  max-height: 90vh;
+  width: 100%;
+  flex-direction: column;
+  border-radius: 0.75rem;
+  border: 1px solid var(--color-border);
+  background-color: var(--color-surface);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+.modal__panel--sm {
+  max-width: 28rem;
+}
+
+.modal__panel--md {
+  max-width: 32rem;
+}
+
+.modal__panel--lg {
+  max-width: 42rem;
+}
+
+.modal__header {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--color-border);
+  padding: 0.75rem 1rem;
+}
+
+@media (min-width: 640px) {
+  .modal__header {
+    padding: 0.75rem 1.5rem;
+  }
+}
+
+.modal__title {
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.modal__close {
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.25rem;
+  background: transparent;
+  color: var(--color-muted);
+}
+
+.modal__close:hover {
+  background-color: var(--color-bg);
+}
+
+.modal__body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+}
+
+@media (min-width: 640px) {
+  .modal__body {
+    padding: 1rem 1.5rem;
+  }
+}
+
+.modal__footer {
+  flex-shrink: 0;
+  border-top: 1px solid var(--color-border);
+  padding: 0.75rem 1rem;
+}
+
+@media (min-width: 640px) {
+  .modal__footer {
+    padding: 0.75rem 1.5rem;
+  }
+}
+</style>

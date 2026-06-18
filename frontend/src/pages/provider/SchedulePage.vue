@@ -165,23 +165,20 @@ async function savePolicy() {
 
 <template>
   <SkeletonForm v-if="pageLoading" :fields="6" />
-  <ContentFade v-else class="space-y-8">
+  <ContentFade v-else class="schedule-page">
     <div>
-      <h1 class="mb-4 text-2xl font-bold">برنامه کاری</h1>
-      <UiCard class="space-y-4">
+      <h1 class="schedule-page__title">برنامه کاری</h1>
+      <UiCard class="schedule-page__card">
         <form @submit.prevent="saveHours">
-          <p
-            v-if="!hoursValues.hours.length"
-            class="mb-4 text-sm text-[var(--color-muted)]"
-          >
+          <p v-if="!hoursValues.hours.length" class="schedule-page__empty-hint">
             بازه کاری تعریف نشده است. با «افزودن بازه» شروع کنید.
           </p>
 
           <div
             v-for="(h, i) in hoursValues.hours"
             :key="h.id ?? `new-${i}`"
-            class="mb-3 grid grid-cols-[auto_1fr_1fr_1fr_auto] items-center gap-2 rounded-lg border border-[var(--color-border)] p-3"
-            :class="!h.isActive ? 'opacity-60' : ''"
+            class="schedule-page__row"
+            :class="{ 'schedule-page__row--inactive': !h.isActive }"
           >
             <UiSwitch
               :model-value="h.isActive"
@@ -216,25 +213,25 @@ async function savePolicy() {
             </UiButton>
           </div>
 
-          <UiAlert v-if="hoursError" variant="error" class="mb-2">{{ hoursError }}</UiAlert>
-          <p v-if="hoursFieldError('hours')" class="mb-2 text-xs text-red-600">
+          <UiAlert v-if="hoursError" variant="error" class="schedule-page__alert">{{ hoursError }}</UiAlert>
+          <p v-if="hoursFieldError('hours')" class="schedule-page__field-error">
             {{ hoursFieldError("hours") }}
           </p>
-          <div class="flex gap-2">
+          <div class="schedule-page__actions">
             <UiButton type="button" variant="secondary" @click="addRow">افزودن بازه</UiButton>
             <UiButton type="submit" :loading="hoursSubmitting" :disabled="!hoursValid || hoursSubmitting">
               ذخیره برنامه
             </UiButton>
           </div>
-          <p v-if="hoursMessage" class="mt-2 text-sm text-green-600">{{ hoursMessage }}</p>
+          <p v-if="hoursMessage" class="schedule-page__success">{{ hoursMessage }}</p>
         </form>
       </UiCard>
     </div>
 
     <div>
-      <h2 class="mb-4 text-xl font-bold">قوانین لغو</h2>
-      <UiCard class="max-w-lg space-y-4">
-        <form class="space-y-4" @submit.prevent="savePolicy">
+      <h2 class="schedule-page__subtitle">قوانین لغو</h2>
+      <UiCard class="schedule-page__policy-card">
+        <form class="schedule-page__policy-form" @submit.prevent="savePolicy">
           <UiNumberInput
             :model-value="policyValues.minHoursBefore"
             label="حداقل ساعت قبل از نوبت"
@@ -254,9 +251,82 @@ async function savePolicy() {
           <UiButton type="submit" :loading="policySubmitting" :disabled="!policyValid || policySubmitting">
             ذخیره قوانین
           </UiButton>
-          <p v-if="policyMessage" class="text-sm text-green-600">{{ policyMessage }}</p>
+          <p v-if="policyMessage" class="schedule-page__success">{{ policyMessage }}</p>
         </form>
       </UiCard>
     </div>
   </ContentFade>
 </template>
+
+<style scoped>
+.schedule-page > * + * {
+  margin-top: 2rem;
+}
+
+.schedule-page__title {
+  margin-bottom: 1rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.schedule-page__subtitle {
+  margin-bottom: 1rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.schedule-page__card > * + *,
+.schedule-page__policy-card > * + * {
+  margin-top: 1rem;
+}
+
+.schedule-page__policy-card {
+  max-width: 32rem;
+}
+
+.schedule-page__empty-hint {
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+  color: var(--color-muted);
+}
+
+.schedule-page__row {
+  display: grid;
+  grid-template-columns: auto 1fr 1fr 1fr auto;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--color-border);
+  padding: 0.75rem;
+}
+
+.schedule-page__row--inactive {
+  opacity: 0.6;
+}
+
+.schedule-page__alert {
+  margin-bottom: 0.5rem;
+}
+
+.schedule-page__field-error {
+  margin-bottom: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--color-danger);
+}
+
+.schedule-page__actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.schedule-page__success {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--color-alert-success-text);
+}
+
+.schedule-page__policy-form > * + * {
+  margin-top: 1rem;
+}
+</style>

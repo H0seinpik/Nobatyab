@@ -48,16 +48,16 @@ function hasRowActions(row: Record<string, unknown>) {
     <tr
       v-for="row in rows"
       :key="rowId(row, rowKey)"
-      class="border-t border-[var(--color-border)] hover:bg-[var(--color-bg)]"
+      class="data-table-body__row"
     >
-      <td v-if="selectable" class="px-4 py-3">
+      <td v-if="selectable" class="data-table-body__cell">
         <input
           type="checkbox"
           :checked="selectedIds.includes(rowId(row, rowKey))"
           @change="emit('toggle-row', rowId(row, rowKey))"
         />
       </td>
-      <td v-for="col in columns" :key="col.key" class="px-4 py-3 text-sm">
+      <td v-for="col in columns" :key="col.key" class="data-table-body__cell">
         <slot :name="`cell-${col.key}`" :row="row" :value="row[col.key]">
           <StatusBadge
             v-if="col.statusKind"
@@ -67,7 +67,7 @@ function hasRowActions(row: Record<string, unknown>) {
           <template v-else>{{ cellValue(row, col) }}</template>
         </slot>
       </td>
-      <td v-if="rowActions?.length" class="px-4 py-3">
+      <td v-if="rowActions?.length" class="data-table-body__cell">
         <DataTableRowActions
           v-if="hasRowActions(row)"
           :row="row"
@@ -78,3 +78,18 @@ function hasRowActions(row: Record<string, unknown>) {
     </tr>
   </tbody>
 </template>
+
+<style scoped>
+.data-table-body__row {
+  border-top: 1px solid var(--color-border);
+}
+
+.data-table-body__row:hover {
+  background-color: var(--color-bg);
+}
+
+.data-table-body__cell {
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+}
+</style>

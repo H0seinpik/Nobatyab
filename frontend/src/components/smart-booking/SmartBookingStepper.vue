@@ -12,31 +12,121 @@ const steps = [
 </script>
 
 <template>
-  <div class="mb-8 flex flex-wrap items-center justify-center gap-2 sm:gap-3">
+  <div class="smart-booking-stepper">
     <template v-for="(s, index) in steps" :key="s.num">
-      <div class="flex items-center gap-2">
+      <div class="smart-booking-stepper__step">
         <div
-          class="flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium"
+          class="smart-booking-stepper__indicator"
           :class="
             step >= s.num
-              ? 'bg-[var(--color-primary)] text-white'
-              : 'border border-[var(--color-border)] text-[var(--color-muted)]'
+              ? 'smart-booking-stepper__indicator--active'
+              : 'smart-booking-stepper__indicator--inactive'
           "
         >
           {{ s.num }}
         </div>
         <span
-          class="hidden text-sm sm:inline"
-          :class="step >= s.num ? 'font-medium' : 'text-[var(--color-muted)]'"
+          class="smart-booking-stepper__label"
+          :class="
+            step >= s.num
+              ? 'smart-booking-stepper__label--active'
+              : 'smart-booking-stepper__label--inactive'
+          "
         >
           {{ s.label }}
         </span>
       </div>
       <div
         v-if="index < steps.length - 1"
-        class="h-px w-4 sm:w-8"
-        :class="step > s.num ? 'bg-[var(--color-primary)]' : 'bg-[var(--color-border)]'"
+        class="smart-booking-stepper__connector"
+        :class="
+          step > s.num
+            ? 'smart-booking-stepper__connector--active'
+            : 'smart-booking-stepper__connector--inactive'
+        "
       />
     </template>
   </div>
 </template>
+
+<style scoped>
+.smart-booking-stepper {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+}
+
+@media (min-width: 640px) {
+  .smart-booking-stepper {
+    gap: 0.75rem;
+  }
+}
+
+.smart-booking-stepper__step {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.smart-booking-stepper__indicator {
+  display: flex;
+  height: 2rem;
+  width: 2rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.smart-booking-stepper__indicator--active {
+  background-color: var(--color-primary);
+  color: #ffffff;
+}
+
+.smart-booking-stepper__indicator--inactive {
+  border: 1px solid var(--color-border);
+  color: var(--color-muted);
+}
+
+.smart-booking-stepper__label {
+  display: none;
+  font-size: 0.875rem;
+}
+
+@media (min-width: 640px) {
+  .smart-booking-stepper__label {
+    display: inline;
+  }
+}
+
+.smart-booking-stepper__label--active {
+  font-weight: 500;
+}
+
+.smart-booking-stepper__label--inactive {
+  color: var(--color-muted);
+}
+
+.smart-booking-stepper__connector {
+  height: 1px;
+  width: 1rem;
+}
+
+@media (min-width: 640px) {
+  .smart-booking-stepper__connector {
+    width: 2rem;
+  }
+}
+
+.smart-booking-stepper__connector--active {
+  background-color: var(--color-primary);
+}
+
+.smart-booking-stepper__connector--inactive {
+  background-color: var(--color-border);
+}
+</style>

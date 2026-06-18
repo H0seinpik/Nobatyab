@@ -77,7 +77,7 @@ async function onRowAction({ action, row }: { action: string; row: Record<string
 </script>
 
 <template>
-  <div>
+  <div class="users-page">
     <PageHeader title="کاربران" description="مدیریت کاربران سیستم">
       <template #actions>
         <UiButton @click="openCreate()">افزودن کاربر</UiButton>

@@ -55,22 +55,22 @@ onMounted(load);
 </script>
 
 <template>
-  <div>
-    <h1 class="mb-6 text-2xl font-bold">نوبت‌های من</h1>
+  <div class="my-appointments-page">
+    <h1 class="my-appointments-page__title">نوبت‌های من</h1>
 
-    <UiAlert v-if="justBooked" variant="success" class="mb-4">
+    <UiAlert v-if="justBooked" variant="success" class="my-appointments-page__alert">
       نوبت شما با موفقیت ثبت شد.
     </UiAlert>
 
-    <UiAlert v-if="loadError" variant="error" class="mb-4">{{ loadError }}</UiAlert>
+    <UiAlert v-if="loadError" variant="error" class="my-appointments-page__alert">{{ loadError }}</UiAlert>
 
-    <div v-if="loading" class="space-y-4">
+    <div v-if="loading" class="my-appointments-page__list">
       <SkeletonCard v-for="i in 3" :key="i" />
     </div>
 
     <ContentFade v-else-if="!appointments.length">
-      <UiCard class="text-center">
-        <p class="mb-4 text-[var(--color-muted)]">نوبتی ثبت نشده است</p>
+      <UiCard class="my-appointments-page__empty">
+        <p class="my-appointments-page__empty-text">نوبتی ثبت نشده است</p>
         <RouterLink to="/smart-booking">
           <UiButton type="button">رزرو هوشمند</UiButton>
         </RouterLink>
@@ -78,19 +78,19 @@ onMounted(load);
     </ContentFade>
 
     <ContentFade v-else>
-      <div class="space-y-4">
+      <div class="my-appointments-page__list">
         <UiCard v-for="apt in appointments" :key="apt.id">
-          <div class="flex flex-wrap items-start justify-between gap-4">
+          <div class="my-appointments-page__item">
             <div>
-              <h2 class="font-semibold">{{ apt.providerService.service.name }}</h2>
-              <p class="text-sm text-[var(--color-muted)]">{{ apt.provider.user.fullName }}</p>
-              <p class="mt-2 text-sm">{{ formatJalaliDateTime(apt.startAt) }}</p>
-              <div class="mt-2 flex gap-2">
+              <h2 class="my-appointments-page__item-title">{{ apt.providerService.service.name }}</h2>
+              <p class="my-appointments-page__item-provider">{{ apt.provider.user.fullName }}</p>
+              <p class="my-appointments-page__item-date">{{ formatJalaliDateTime(apt.startAt) }}</p>
+              <div class="my-appointments-page__badges">
                 <AppointmentStatusBadge :status="apt.status" />
                 <AppointmentStatusBadge kind="payment" :status="apt.paymentStatus" />
               </div>
             </div>
-            <div class="flex gap-2">
+            <div class="my-appointments-page__item-actions">
               <UiButton
                 v-if="apt.status !== 'CANCELLED' && apt.status !== 'COMPLETED'"
                 variant="danger"
@@ -111,3 +111,61 @@ onMounted(load);
     </ContentFade>
   </div>
 </template>
+
+<style scoped>
+.my-appointments-page__title {
+  margin-bottom: 1.5rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.my-appointments-page__alert {
+  margin-bottom: 1rem;
+}
+
+.my-appointments-page__list > * + * {
+  margin-top: 1rem;
+}
+
+.my-appointments-page__empty {
+  text-align: center;
+}
+
+.my-appointments-page__empty-text {
+  margin-bottom: 1rem;
+  color: var(--color-muted);
+}
+
+.my-appointments-page__item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.my-appointments-page__item-title {
+  font-weight: 600;
+}
+
+.my-appointments-page__item-provider {
+  font-size: 0.875rem;
+  color: var(--color-muted);
+}
+
+.my-appointments-page__item-date {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.my-appointments-page__badges {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.my-appointments-page__item-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+</style>

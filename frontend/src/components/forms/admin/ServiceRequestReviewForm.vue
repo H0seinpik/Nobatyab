@@ -14,7 +14,7 @@ defineProps<{
 </script>
 
 <template>
-  <div v-if="request" class="mb-4 space-y-1 text-sm text-[var(--color-muted)]">
+  <div v-if="request" class="review-info">
     <p><strong>خدمت:</strong> {{ request.service?.name ?? request.proposedName }}</p>
     <p><strong>ارائه‌دهنده:</strong> {{ request.provider.user.fullName }}</p>
     <p v-if="!request.serviceId">
@@ -33,7 +33,10 @@ defineProps<{
       <option value="APPROVED">تأیید</option>
       <option value="REJECTED">رد</option>
     </UiSelect>
-    <div v-if="values.status === 'APPROVED' && request && !request.serviceId" class="md:col-span-2">
+    <div
+      v-if="values.status === 'APPROVED' && request && !request.serviceId"
+      class="form-field-grid__item--full"
+    >
       <UiSelect
         :model-value="String(values.categoryId ?? '')"
         label="دسته‌بندی (برای خدمت جدید)"
@@ -46,7 +49,7 @@ defineProps<{
         <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
       </UiSelect>
     </div>
-    <div class="md:col-span-2">
+    <div class="form-field-grid__item--full">
       <UiInput
         :model-value="String(values.adminNote ?? '')"
         label="یادداشت مدیر"
@@ -57,3 +60,15 @@ defineProps<{
     </div>
   </FormFieldGrid>
 </template>
+
+<style scoped>
+.review-info {
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+  color: var(--color-muted);
+}
+
+.review-info > * + * {
+  margin-top: 0.25rem;
+}
+</style>

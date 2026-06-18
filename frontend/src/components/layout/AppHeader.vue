@@ -10,14 +10,56 @@ defineProps<{
 </script>
 
 <template>
-  <header class="border-b border-[var(--color-border)] bg-[var(--color-surface)]">
-    <div class="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4">
-      <RouterLink to="/" class="shrink-0 text-xl font-bold text-[var(--color-primary)]">نوبت‌یاب</RouterLink>
-      <MainNav v-if="showNav !== false" class="hidden sm:flex" />
-      <div class="flex items-center gap-2">
+  <header class="app-header">
+    <div class="app-header__inner">
+      <RouterLink to="/" class="app-header__logo">نوبت‌یاب</RouterLink>
+      <div v-if="showNav !== false" class="app-header__nav">
+        <MainNav />
+      </div>
+      <div class="app-header__controls">
         <ThemeToggle />
         <AuthControls />
       </div>
     </div>
   </header>
 </template>
+
+<style scoped>
+.app-header {
+  border-bottom: 1px solid var(--color-border);
+  background-color: var(--color-surface);
+}
+
+.app-header__inner {
+  display: flex;
+  max-width: 72rem;
+  margin-inline: auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.app-header__logo {
+  flex-shrink: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.app-header__nav {
+  display: none;
+}
+
+@media (min-width: 640px) {
+  .app-header__nav {
+    display: flex;
+  }
+}
+
+.app-header__controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+</style>

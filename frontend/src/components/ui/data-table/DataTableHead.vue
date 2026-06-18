@@ -28,21 +28,21 @@ function textFilterValue(key: string): string {
 </script>
 
 <template>
-  <thead class="bg-[var(--color-bg)]">
+  <thead class="data-table-head">
     <tr>
-      <th v-if="selectable" class="w-10 px-4 py-3">
+      <th v-if="selectable" class="data-table-head__cell data-table-head__cell--select">
         <input type="checkbox" @change="emit('toggle-all')" />
       </th>
       <th
         v-for="col in columns"
         :key="col.key"
-        class="px-4 py-3 text-right font-medium text-[var(--color-muted)]"
+        class="data-table-head__cell"
         :style="col.width ? { width: col.width } : undefined"
       >
         <button
           v-if="col.sortable"
           type="button"
-          class="inline-flex items-center gap-1 hover:text-[var(--color-text)]"
+          class="data-table-head__sort-btn"
           @click="emit('sort', col.key)"
         >
           {{ col.label }}
@@ -51,15 +51,15 @@ function textFilterValue(key: string): string {
         </button>
         <span v-else>{{ col.label }}</span>
       </th>
-      <th v-if="hasActions" class="w-12 px-4 py-3" />
+      <th v-if="hasActions" class="data-table-head__cell data-table-head__cell--actions" />
     </tr>
     <tr v-if="filtersOpen">
       <th v-if="selectable" />
-      <th v-for="col in columns" :key="`f-${col.key}`" class="px-4 pb-3">
+      <th v-for="col in columns" :key="`f-${col.key}`" class="data-table-head__filter-cell">
         <template v-if="col.filterable">
           <select
             v-if="col.filterType === 'select' && col.filterOptions"
-            class="form-control text-xs"
+            class="form-control form-control--xs"
             :value="String(filterValues[col.key] ?? '')"
             @change="
               emit(
@@ -76,7 +76,7 @@ function textFilterValue(key: string): string {
           </select>
           <select
             v-else-if="col.filterType === 'boolean'"
-            class="form-control text-xs"
+            class="form-control form-control--xs"
             :value="String(filterValues[col.key] ?? '')"
             @change="
               emit(
@@ -105,7 +105,7 @@ function textFilterValue(key: string): string {
           <input
             v-else
             type="text"
-            class="form-control text-xs"
+            class="form-control form-control--xs"
             :value="textFilterValue(col.key)"
             @input="emit('filter-change', col.key, { op: 'contains', value: ($event.target as HTMLInputElement).value })"
           />
@@ -115,3 +115,45 @@ function textFilterValue(key: string): string {
     </tr>
   </thead>
 </template>
+
+<style scoped>
+.data-table-head {
+  background-color: var(--color-bg);
+}
+
+.data-table-head__cell {
+  padding: 0.75rem 1rem;
+  text-align: right;
+  font-weight: 500;
+  color: var(--color-muted);
+}
+
+.data-table-head__cell--select {
+  width: 2.5rem;
+}
+
+.data-table-head__cell--actions {
+  width: 3rem;
+}
+
+.data-table-head__sort-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: inherit;
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-weight: inherit;
+  cursor: pointer;
+}
+
+.data-table-head__sort-btn:hover {
+  color: var(--color-text);
+}
+
+.data-table-head__filter-cell {
+  padding: 0 1rem 0.75rem;
+}
+</style>

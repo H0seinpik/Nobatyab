@@ -41,28 +41,89 @@ watch([search, categoryId], load);
 </script>
 
 <template>
-  <div>
-    <h1 class="mb-6 text-2xl font-bold">خدمات</h1>
-    <div class="mb-6 grid gap-4 sm:grid-cols-2">
+  <div class="services-page">
+    <h1 class="services-page__title">خدمات</h1>
+    <div class="services-page__filters">
       <UiInput v-model="search" label="جستجو" placeholder="نام خدمت..." />
       <UiInput v-model="categoryId" label="شناسه دسته (اختیاری)" placeholder="categoryId" />
     </div>
 
-    <div v-if="loading" class="grid gap-4 sm:grid-cols-2">
+    <div v-if="loading" class="services-page__grid">
       <SkeletonCard v-for="i in 4" :key="i" />
     </div>
     <ContentFade v-else>
-    <div class="grid gap-4 sm:grid-cols-2">
-      <UiCard v-for="svc in services" :key="svc.id">
-        <h2 class="font-semibold">{{ svc.name }}</h2>
-        <p class="mt-1 text-sm text-[var(--color-muted)]">{{ svc.category.name }}</p>
-        <p class="mt-2 text-sm">{{ svc.description }}</p>
-        <p class="mt-2 text-sm tabular-nums">{{ formatPersianNumber(Number(svc.basePrice)) }} تومان · {{ svc.defaultDuration }} دقیقه</p>
-        <RouterLink :to="`/providers?serviceId=${svc.id}`" class="mt-3 inline-block text-sm text-[var(--color-primary)]">
-          مشاهده ارائه‌دهندگان ←
-        </RouterLink>
-      </UiCard>
-    </div>
+      <div class="services-page__grid">
+        <UiCard v-for="svc in services" :key="svc.id">
+          <h2 class="services-page__item-title">{{ svc.name }}</h2>
+          <p class="services-page__item-category">{{ svc.category.name }}</p>
+          <p class="services-page__item-description">{{ svc.description }}</p>
+          <p class="services-page__item-meta">
+            {{ formatPersianNumber(Number(svc.basePrice)) }} تومان · {{ svc.defaultDuration }} دقیقه
+          </p>
+          <RouterLink :to="`/providers?serviceId=${svc.id}`" class="services-page__item-link">
+            مشاهده ارائه‌دهندگان ←
+          </RouterLink>
+        </UiCard>
+      </div>
     </ContentFade>
   </div>
 </template>
+
+<style scoped>
+.services-page__title {
+  margin-bottom: 1.5rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.services-page__filters {
+  display: grid;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (min-width: 640px) {
+  .services-page__filters {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.services-page__grid {
+  display: grid;
+  gap: 1rem;
+}
+
+@media (min-width: 640px) {
+  .services-page__grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.services-page__item-title {
+  font-weight: 600;
+}
+
+.services-page__item-category {
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
+  color: var(--color-muted);
+}
+
+.services-page__item-description {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.services-page__item-meta {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.services-page__item-link {
+  display: inline-block;
+  margin-top: 0.75rem;
+  font-size: 0.875rem;
+  color: var(--color-primary);
+}
+</style>

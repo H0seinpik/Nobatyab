@@ -63,17 +63,17 @@ async function save() {
 </script>
 
 <template>
-  <div>
+  <div class="settings-page">
     <PageHeader title="تنظیمات سایت" description="مدیریت محتوای قابل تنظیم برنامه" />
 
-    <div v-if="pageLoading" class="max-w-2xl">
+    <div v-if="pageLoading" class="settings-page__content">
       <SkeletonForm :fields="5" />
     </div>
 
-    <ContentFade v-else class="max-w-2xl space-y-6">
+    <ContentFade v-else class="settings-page__content settings-page__stack">
       <UiCard>
-        <h2 class="mb-4 font-semibold">عمومی</h2>
-        <form class="space-y-4" @submit.prevent="save">
+        <h2 class="settings-page__section-title">عمومی</h2>
+        <form class="settings-page__form" @submit.prevent="save">
           <UiInput
             v-model="values['site.title']"
             label="عنوان سایت"
@@ -87,7 +87,7 @@ async function save() {
             :error="fieldError('site.description')"
             @blur="touch('site.description')"
           />
-          <h2 class="pt-2 font-semibold">تماس</h2>
+          <h2 class="settings-page__section-title settings-page__section-title--contact">تماس</h2>
           <UiInput
             v-model="values['contact.email']"
             label="ایمیل"
@@ -117,3 +117,26 @@ async function save() {
     </ContentFade>
   </div>
 </template>
+
+<style scoped>
+.settings-page__content {
+  max-width: 42rem;
+}
+
+.settings-page__stack > * + * {
+  margin-top: 1.5rem;
+}
+
+.settings-page__section-title {
+  margin-bottom: 1rem;
+  font-weight: 600;
+}
+
+.settings-page__section-title--contact {
+  padding-top: 0.5rem;
+}
+
+.settings-page__form > * + * {
+  margin-top: 1rem;
+}
+</style>

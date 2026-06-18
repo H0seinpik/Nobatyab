@@ -48,11 +48,11 @@ async function submit() {
 </script>
 
 <template>
-  <div class="mx-auto max-w-md">
+  <div class="login-page">
     <UiCard>
-      <h1 class="mb-6 text-xl font-bold">ورود</h1>
-      <UiAlert v-if="sessionMessage" variant="info" class="mb-4">{{ sessionMessage }}</UiAlert>
-      <form class="space-y-4" @submit.prevent="submit">
+      <h1 class="login-page__title">ورود</h1>
+      <UiAlert v-if="sessionMessage" variant="info" class="login-page__alert">{{ sessionMessage }}</UiAlert>
+      <form class="login-page__form" @submit.prevent="submit">
         <UiInput
           v-model="values.email"
           label="ایمیل"
@@ -69,19 +69,65 @@ async function submit() {
           :error="fieldError('password')"
           @blur="touch('password')"
         />
-        <p v-if="auth.error" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-950/30">
+        <p v-if="auth.error" class="login-page__error">
           {{ auth.error }}
         </p>
-        <UiButton type="submit" :loading="submitting || auth.loading" :disabled="!isValid || submitting" class="w-full">
+        <UiButton type="submit" :loading="submitting || auth.loading" :disabled="!isValid || submitting" class="login-page__submit">
           ورود
         </UiButton>
       </form>
-      <RouterLink to="/register" class="mt-4 block text-center text-sm text-[var(--color-primary)]">
+      <RouterLink to="/register" class="login-page__link">
         ثبت‌نام
       </RouterLink>
-      <RouterLink to="/forgot-password" class="mt-2 block text-center text-sm text-[var(--color-muted)]">
+      <RouterLink to="/forgot-password" class="login-page__link login-page__link--muted">
         فراموشی رمز عبور
       </RouterLink>
     </UiCard>
   </div>
 </template>
+
+<style scoped>
+.login-page {
+  max-width: 28rem;
+  margin-inline: auto;
+}
+
+.login-page__title {
+  margin-bottom: 1.5rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.login-page__alert {
+  margin-bottom: 1rem;
+}
+
+.login-page__form > * + * {
+  margin-top: 1rem;
+}
+
+.login-page__error {
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  background-color: var(--color-alert-error-bg);
+  color: var(--color-alert-error-text);
+}
+
+.login-page__submit {
+  width: 100%;
+}
+
+.login-page__link {
+  display: block;
+  margin-top: 1rem;
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--color-primary);
+}
+
+.login-page__link--muted {
+  margin-top: 0.5rem;
+  color: var(--color-muted);
+}
+</style>

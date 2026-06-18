@@ -17,7 +17,7 @@ defineProps<{
 
 <template>
   <FormFieldGrid>
-    <div class="md:col-span-2">
+    <div class="form-field-grid__item--full">
       <UiSelect
         :model-value="String(values.categoryId ?? '')"
         label="دسته"
@@ -55,8 +55,8 @@ defineProps<{
       @update:model-value="(v) => (values.basePrice = v)"
       @blur="touch('basePrice')"
     />
-    <div v-if="mode === 'edit'" class="md:col-span-2">
-      <label class="flex items-center gap-2 text-sm">
+    <div v-if="mode === 'edit'" class="form-field-grid__item--full checkbox-field">
+      <label class="checkbox-field__label">
         <input
           type="checkbox"
           :checked="Boolean(values.isActive)"
@@ -65,7 +65,7 @@ defineProps<{
         فعال
       </label>
     </div>
-    <div class="md:col-span-2">
+    <div class="form-field-grid__item--full">
       <UiInput
         :model-value="String(values.description ?? '')"
         label="توضیحات"
@@ -76,3 +76,12 @@ defineProps<{
     </div>
   </FormFieldGrid>
 </template>
+
+<style scoped>
+.checkbox-field__label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+}
+</style>

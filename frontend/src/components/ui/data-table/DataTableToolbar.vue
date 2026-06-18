@@ -17,14 +17,14 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <div class="flex flex-col gap-3 border-b border-[var(--color-border)] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-    <h2 v-if="title" class="text-lg font-semibold">{{ title }}</h2>
-    <div class="flex w-full flex-col gap-2 sm:w-auto sm:flex-1 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
+  <div class="data-table-toolbar">
+    <h2 v-if="title" class="data-table-toolbar__title">{{ title }}</h2>
+    <div class="data-table-toolbar__actions">
       <UiInput
         v-if="searchable"
         :model-value="search"
         placeholder="جستجو..."
-        class="min-w-[12rem] max-w-xs"
+        class="data-table-toolbar__search"
         @update:model-value="emit('update:search', $event)"
       />
       <UiButton v-if="showFilters" variant="secondary" @click="emit('toggle-filters')">
@@ -34,3 +34,47 @@ const emit = defineEmits<{
     </div>
   </div>
 </template>
+
+<style scoped>
+.data-table-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  border-bottom: 1px solid var(--color-border);
+  padding: 0.75rem 1rem;
+}
+
+.data-table-toolbar__title {
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.data-table-toolbar__actions {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.data-table-toolbar__search {
+  min-width: 12rem;
+  max-width: 20rem;
+}
+
+@media (min-width: 640px) {
+  .data-table-toolbar {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .data-table-toolbar__actions {
+    width: auto;
+    flex: 1;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+  }
+}
+</style>

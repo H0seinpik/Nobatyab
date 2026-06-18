@@ -68,26 +68,26 @@ function addSampleWeekday() {
 </script>
 
 <template>
-  <div>
-    <h1 class="mb-2 text-2xl font-bold">زمان‌های آزاد هفتگی</h1>
+  <div class="availability-page">
+    <h1 class="availability-page__title">زمان‌های آزاد هفتگی</h1>
 
-    <UiAlert v-if="isFirstTimeSetup" variant="info" class="mb-4">
+    <UiAlert v-if="isFirstTimeSetup" variant="info" class="availability-page__alert">
       قبل از رزرو هوشمند، لطفاً روزها و ساعاتی که می‌توانید نوبت بگیرید را مشخص کنید.
     </UiAlert>
 
-    <p class="mb-6 text-sm text-[var(--color-muted)]">
+    <p class="availability-page__description">
       بازه‌هایی که می‌توانید نوبت بگیرید را مشخص کنید. رزرو هوشمند بر اساس این زمان‌ها پیشنهاد می‌دهد.
     </p>
 
-    <UiAlert v-if="success" variant="success" class="mb-4">{{ success }}</UiAlert>
-    <UiAlert v-if="error" variant="error" class="mb-4">{{ error }}</UiAlert>
+    <UiAlert v-if="success" variant="success" class="availability-page__alert">{{ success }}</UiAlert>
+    <UiAlert v-if="error" variant="error" class="availability-page__alert">{{ error }}</UiAlert>
 
     <div v-if="loading">
       <SkeletonForm :fields="4" />
     </div>
 
     <ContentFade v-else>
-      <div v-if="isFirstTimeSetup" class="mb-4">
+      <div v-if="isFirstTimeSetup" class="availability-page__sample">
         <UiButton variant="secondary" type="button" @click="addSampleWeekday">
           افزودن نمونه (شنبه تا دوشنبه)
         </UiButton>
@@ -99,7 +99,35 @@ function addSampleWeekday() {
         @change="handleEntriesChange"
         @save="handleSave"
       />
-      <p v-if="saving" class="mt-4 text-sm text-[var(--color-muted)]">در حال ذخیره...</p>
+      <p v-if="saving" class="availability-page__saving">در حال ذخیره...</p>
     </ContentFade>
   </div>
 </template>
+
+<style scoped>
+.availability-page__title {
+  margin-bottom: 0.5rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.availability-page__alert {
+  margin-bottom: 1rem;
+}
+
+.availability-page__description {
+  margin-bottom: 1.5rem;
+  font-size: 0.875rem;
+  color: var(--color-muted);
+}
+
+.availability-page__sample {
+  margin-bottom: 1rem;
+}
+
+.availability-page__saving {
+  margin-top: 1rem;
+  font-size: 0.875rem;
+  color: var(--color-muted);
+}
+</style>

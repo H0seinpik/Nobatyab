@@ -11,15 +11,83 @@ defineProps<{
   <button
     :type="type ?? 'button'"
     :disabled="disabled || loading"
-    class="inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-medium transition disabled:opacity-50"
+    class="button"
     :class="{
-      'bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-hover)]': variant === 'primary' || !variant,
-      'border border-[var(--color-border)] bg-[var(--color-surface)]': variant === 'secondary',
-      'bg-red-600 text-white hover:bg-red-700': variant === 'danger',
-      'text-[var(--color-muted)] hover:text-[var(--color-text)]': variant === 'ghost',
+      'button--primary': variant === 'primary' || !variant,
+      'button--secondary': variant === 'secondary',
+      'button--danger': variant === 'danger',
+      'button--ghost': variant === 'ghost',
     }"
   >
-    <span v-if="loading" class="ml-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+    <span v-if="loading" class="button__spinner" />
     <slot />
   </button>
 </template>
+
+<style scoped>
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: none;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.button--primary {
+  background-color: var(--color-primary);
+  color: #ffffff;
+}
+
+.button--primary:hover:not(:disabled) {
+  background-color: var(--color-primary-hover);
+}
+
+.button--secondary {
+  border: 1px solid var(--color-border);
+  background-color: var(--color-surface);
+  color: var(--color-text);
+}
+
+.button--danger {
+  background-color: var(--color-danger);
+  color: #ffffff;
+}
+
+.button--danger:hover:not(:disabled) {
+  background-color: var(--color-danger-hover);
+}
+
+.button--ghost {
+  background-color: transparent;
+  color: var(--color-muted);
+}
+
+.button--ghost:hover:not(:disabled) {
+  color: var(--color-text);
+}
+
+.button__spinner {
+  margin-inline-start: 0.5rem;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+  border-top-color: transparent;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+</style>

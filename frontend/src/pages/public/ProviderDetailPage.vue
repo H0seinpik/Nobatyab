@@ -127,22 +127,19 @@ async function book() {
 </script>
 
 <template>
-  <div v-if="loading" class="grid gap-6 lg:grid-cols-2">
+  <div v-if="loading" class="provider-detail-page__grid">
     <SkeletonCard />
     <SkeletonForm :fields="5" />
   </div>
   <ContentFade v-else-if="provider">
-    <div class="grid gap-6 lg:grid-cols-2">
+    <div class="provider-detail-page__grid">
       <UiCard>
-        <h1 class="text-2xl font-bold">{{ provider.user.fullName }}</h1>
-        <p class="mt-2 text-[var(--color-muted)]">{{ provider.bio }}</p>
-        <p class="mt-2 text-sm">مدت هر اسلات: {{ provider.slotDurationMinutes }} دقیقه</p>
+        <h1 class="provider-detail-page__name">{{ provider.user.fullName }}</h1>
+        <p class="provider-detail-page__bio">{{ provider.bio }}</p>
+        <p class="provider-detail-page__slot-info">مدت هر اسلات: {{ provider.slotDurationMinutes }} دقیقه</p>
 
-        <label class="mt-4 block text-sm text-[var(--color-muted)]">انتخاب خدمت</label>
-        <select
-          v-model="selectedServiceId"
-          class="form-control mt-1"
-        >
+        <label class="provider-detail-page__label">انتخاب خدمت</label>
+        <select v-model="selectedServiceId" class="form-control provider-detail-page__select">
           <option v-for="ps in provider.providerServices" :key="ps.id" :value="ps.id">
             {{ ps.service.name }} — {{ formatPersianNumber(Number(ps.price)) }} تومان
           </option>
@@ -150,17 +147,17 @@ async function book() {
       </UiCard>
 
       <UiCard>
-        <h2 class="mb-4 text-lg font-semibold">رزرو نوبت</h2>
-        <JalaliDatePicker v-model="jalaliDate" class="mb-4" />
+        <h2 class="provider-detail-page__booking-title">رزرو نوبت</h2>
+        <JalaliDatePicker v-model="jalaliDate" class="provider-detail-page__date-picker" />
         <TimeSlotGrid
           :slots="slots"
           :loading="slotsLoading"
           :selected="selectedSlot?.startAt ?? null"
-          class="mb-4"
+          class="provider-detail-page__slots"
           @select="(s) => (selectedSlot = s)"
         />
 
-        <form class="space-y-3" @submit.prevent="book">
+        <form class="provider-detail-page__form" @submit.prevent="book">
           <template v-if="!auth.isAuthenticated">
             <UiInput
               v-model="guestValues.guestFullName"
@@ -191,13 +188,77 @@ async function book() {
             :error="fieldError('notes')"
             @blur="touch('notes')"
           />
-          <p v-if="bookingError" class="text-sm text-red-600">{{ bookingError }}</p>
+          <p v-if="bookingError" class="provider-detail-page__error">{{ bookingError }}</p>
           <UiButton type="submit" :disabled="!canBook || booking" :loading="booking">
             ثبت نوبت
           </UiButton>
-          <p v-if="message" class="text-sm text-green-600">{{ message }}</p>
+          <p v-if="message" class="provider-detail-page__success">{{ message }}</p>
         </form>
       </UiCard>
     </div>
   </ContentFade>
 </template>
+
+<style scoped>
+.provider-detail-page__grid {
+  display: grid;
+  gap: 1.5rem;
+}
+
+@media (min-width: 1024px) {
+  .provider-detail-page__grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.provider-detail-page__name {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.provider-detail-page__bio {
+  margin-top: 0.5rem;
+  color: var(--color-muted);
+}
+
+.provider-detail-page__slot-info {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.provider-detail-page__label {
+  display: block;
+  margin-top: 1rem;
+  font-size: 0.875rem;
+  color: var(--color-muted);
+}
+
+.provider-detail-page__select {
+  margin-top: 0.25rem;
+}
+
+.provider-detail-page__booking-title {
+  margin-bottom: 1rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.provider-detail-page__date-picker,
+.provider-detail-page__slots {
+  margin-bottom: 1rem;
+}
+
+.provider-detail-page__form > * + * {
+  margin-top: 0.75rem;
+}
+
+.provider-detail-page__error {
+  font-size: 0.875rem;
+  color: var(--color-danger);
+}
+
+.provider-detail-page__success {
+  font-size: 0.875rem;
+  color: var(--color-alert-success-text);
+}
+</style>

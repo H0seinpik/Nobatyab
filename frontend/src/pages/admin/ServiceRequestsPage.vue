@@ -90,7 +90,7 @@ onMounted(loadCategories);
 </script>
 
 <template>
-  <div>
+  <div class="admin-service-requests-page">
     <PageHeader title="درخواست‌های خدمت" description="بررسی و تأیید درخواست‌های ارائه‌دهندگان" />
 
     <DataTable
