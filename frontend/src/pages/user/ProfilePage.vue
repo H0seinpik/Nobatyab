@@ -48,10 +48,6 @@ async function loadPage() {
       providerRequestLoading.value = true;
       try {
         providerRequest.value = await getMyProviderRequest();
-        if (providerRequest.value?.status === "APPROVED") {
-          await handleApprovedRequestLogout();
-          return;
-        }
       } finally {
         providerRequestLoading.value = false;
       }
@@ -145,6 +141,12 @@ async function submitProviderApplication() {
               ارسال درخواست جدید
             </UiButton>
           </form>
+        </template>
+
+        <template v-else-if="providerRequest?.status === 'APPROVED'">
+          <UiAlert variant="info">
+            درخواست ارائه‌دهنده شما قبلاً تأیید شده است. برای دسترسی به پنل ارائه‌دهنده با پشتیبانی تماس بگیرید.
+          </UiAlert>
         </template>
 
         <template v-else>

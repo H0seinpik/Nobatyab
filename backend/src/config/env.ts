@@ -20,7 +20,7 @@ const envSchema = z.object({
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
   PORT: z.coerce.number().default(3000),
   RATE_LIMIT_WINDOW_MS: z.coerce.number().default(900_000),
-  RATE_LIMIT_MAX: z.coerce.number().default(100),
+  RATE_LIMIT_MAX: z.coerce.number().default(5_000),
   PAYMENT_PROVIDER: z.string().default("simulated"),
   SMS_PROVIDER: z.string().default("simulated"),
   UPLOAD_DIR: z.string().default("./uploads"),

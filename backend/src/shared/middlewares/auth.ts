@@ -2,6 +2,7 @@ import type { Request, Response, NextFunction } from "express";
 import { verifyAccessToken, type AccessTokenPayload } from "../utils/jwt.js";
 import { ApiError } from "../utils/apiError.js";
 import type { Role } from "@prisma/client";
+import { authRepository } from "../../modules/auth/auth.repository.js";
 
 export interface AuthRequest extends Request {
   user?: AccessTokenPayload;
@@ -37,13 +38,26 @@ export function optionalAuth(req: AuthRequest, _res: Response, next: NextFunctio
 }
 
 export function requireRole(...roles: Role[]) {
-  return (req: AuthRequest, _res: Response, next: NextFunction) => {
+  return async (req: AuthRequest, _res: Response, next: NextFunction) => {
     if (!req.user) {
       return next(ApiError.unauthorized());
     }
-    if (!roles.includes(req.user.role)) {
-      return next(ApiError.forbidden());
+
+    try {
+      const dbUser = await authRepository.findUserById(req.user.sub);
+      if (!dbUser || !dbUser.isActive) {
+        return next(ApiError.unauthorized());
+      }
+      if (req.user.role !== dbUser.role) {
+        return next(ApiError.tokenRoleStale());
+      }
+      if (!roles.includes(dbUser.role)) {
+        return next(ApiError.forbidden());
+      }
+      req.user.role = dbUser.role;
+      next();
+    } catch {
+      next(ApiError.internal());
     }
-    next();
   };
 }

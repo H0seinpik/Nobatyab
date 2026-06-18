@@ -6,14 +6,19 @@ import { apiGet, apiPost } from "@/services/api";
 import { useAuthStore } from "@/stores/auth";
 import { useZodForm } from "@/composables/useZodForm";
 import { guestBookingFormSchema } from "@/schemas/appointment.schema";
-import { jalaliToGregorianDate } from "@/utils/datetime";
+import {
+  gregorianToJalaliDate,
+  jalaliToGregorianDate,
+  startOfWeekSaturday,
+  todayGregorian,
+} from "@/utils/datetime";
 import { formatPersianNumber } from "@/utils/numbers";
 import type { SlotDto, AvailableDaysDto } from "@/types/booking";
 import { getApiErrorMessage } from "@/utils/apiError";
 import UiCard from "@/components/ui/UiCard.vue";
 import UiButton from "@/components/ui/UiButton.vue";
 import UiInput from "@/components/ui/UiInput.vue";
-import JalaliDatePicker from "@/components/booking/JalaliDatePicker.vue";
+import WeeklyBookingCalendar from "@/components/booking/WeeklyBookingCalendar.vue";
 import TimeSlotGrid from "@/components/booking/TimeSlotGrid.vue";
 import SkeletonCard from "@/components/ui/skeleton/SkeletonCard.vue";
 import SkeletonForm from "@/components/ui/skeleton/SkeletonForm.vue";
@@ -39,6 +44,7 @@ interface ProviderDetail {
 const provider = ref<ProviderDetail | null>(null);
 const selectedServiceId = ref("");
 const jalaliDate = ref("");
+const weekStart = ref(startOfWeekSaturday(todayGregorian()));
 const slots = ref<SlotDto[]>([]);
 const availableDates = ref<string[]>([]);
 const selectedSlot = ref<SlotDto | null>(null);
@@ -68,6 +74,48 @@ const canBook = computed(() => {
   return guestBookingFormSchema.safeParse(guestValues).success;
 });
 
+function clearDateSelection() {
+  jalaliDate.value = "";
+  selectedSlot.value = null;
+  slots.value = [];
+}
+
+function ensureValidDateSelection() {
+  if (jalaliDate.value) {
+    const selectedGregorian = jalaliToGregorianDate(jalaliDate.value);
+    if (availableDates.value.includes(selectedGregorian)) {
+      return;
+    }
+    clearDateSelection();
+  }
+
+  const first = availableDates.value[0];
+  if (first) {
+    jalaliDate.value = gregorianToJalaliDate(first);
+  }
+}
+
+async function fetchAvailableDays() {
+  if (!selectedServiceId.value) return;
+  daysLoading.value = true;
+  slotsError.value = "";
+  try {
+    const res = await apiGet<AvailableDaysDto>(`/providers/${providerId}/available-days`, {
+      providerServiceId: selectedServiceId.value,
+      from: weekStart.value,
+      horizonDays: 7,
+    });
+    availableDates.value = res.data.dates;
+    ensureValidDateSelection();
+  } catch (e: unknown) {
+    availableDates.value = [];
+    clearDateSelection();
+    slotsError.value = getApiErrorMessage(e, "بارگذاری تاریخ‌های قابل رزرو ناموفق بود");
+  } finally {
+    daysLoading.value = false;
+  }
+}
+
 onMounted(async () => {
   const res = await apiGet<ProviderDetail>(`/providers/${providerId}`);
   provider.value = res.data;
@@ -77,22 +125,15 @@ onMounted(async () => {
   loading.value = false;
 });
 
-watch(selectedServiceId, async (serviceId) => {
+watch(selectedServiceId, (serviceId) => {
   if (!serviceId) return;
-  daysLoading.value = true;
-  slotsError.value = "";
-  try {
-    const res = await apiGet<AvailableDaysDto>(`/providers/${providerId}/available-days`, {
-      providerServiceId: serviceId,
-      horizonDays: 30,
-    });
-    availableDates.value = res.data.dates;
-  } catch (e: unknown) {
-    availableDates.value = [];
-    slotsError.value = getApiErrorMessage(e, "بارگذاری تاریخ‌های قابل رزرو ناموفق بود");
-  } finally {
-    daysLoading.value = false;
-  }
+  clearDateSelection();
+  weekStart.value = startOfWeekSaturday(todayGregorian());
+});
+
+watch([selectedServiceId, weekStart], async ([serviceId]) => {
+  if (!serviceId) return;
+  await fetchAvailableDays();
 });
 
 watch([selectedServiceId, jalaliDate], async () => {
@@ -118,6 +159,10 @@ watch([selectedServiceId, jalaliDate], async () => {
     slotsLoading.value = false;
   }
 });
+
+function onWeekChange(newWeekStart: string) {
+  weekStart.value = newWeekStart;
+}
 
 async function book() {
   if (booking.value) return;
@@ -177,12 +222,14 @@ async function book() {
 
       <UiCard>
         <h2 class="provider-detail-page__booking-title">رزرو نوبت</h2>
-        <JalaliDatePicker
+        <WeeklyBookingCalendar
           v-model="jalaliDate"
           :available-dates="availableDates"
-          class="provider-detail-page__date-picker"
+          :loading="daysLoading"
+          :week-start="weekStart"
+          class="provider-detail-page__calendar"
+          @week-change="onWeekChange"
         />
-        <p v-if="daysLoading" class="provider-detail-page__hint">در حال بارگذاری تاریخ‌های قابل رزرو...</p>
         <TimeSlotGrid
           :slots="slots"
           :loading="slotsLoading"
@@ -279,15 +326,9 @@ async function book() {
   font-weight: 600;
 }
 
-.provider-detail-page__date-picker,
+.provider-detail-page__calendar,
 .provider-detail-page__slots {
   margin-bottom: 1rem;
-}
-
-.provider-detail-page__hint {
-  margin-bottom: 0.75rem;
-  font-size: 0.75rem;
-  color: var(--color-muted);
 }
 
 .provider-detail-page__form > * + * {

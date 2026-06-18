@@ -51,7 +51,7 @@ function sanitizeUser(user: {
     avatarUrl: user.avatarUrl ?? null,
     role: user.role,
     isActive: user.isActive,
-    providerProfileId: user.providerProfile?.id ?? null,
+    providerProfileId: user.role === Role.PROVIDER ? (user.providerProfile?.id ?? null) : null,
   };
 }
 

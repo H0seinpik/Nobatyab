@@ -1,6 +1,7 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from "axios";
 import { useLoadingStore } from "@/stores/loading";
 import { useAuthStore, type User } from "@/stores/auth";
+import { decodeAccessTokenRole } from "@/utils/jwt";
 
 const API_URL = import.meta.env.VITE_API_URL || "/api/v1";
 const SKIP_LOADING_HEADER = "X-Skip-Global-Loading";
@@ -44,6 +45,24 @@ function stopGlobalLoading(config?: InternalAxiosRequestConfig) {
   }
 }
 
+function isTokenRoleStale(user: User): boolean {
+  if (user.tokenRoleStale) return true;
+  const jwtRole = decodeAccessTokenRole(getAccessToken());
+  return jwtRole !== null && jwtRole !== user.role;
+}
+
+function isStaleRoleError(error: AxiosError): boolean {
+  const code = (error.response?.data as { error?: { code?: string } })?.error?.code;
+  return error.response?.status === 403 && code === "TOKEN_ROLE_STALE";
+}
+
+async function handleStaleSession() {
+  if (typeof window === "undefined" || window.location.pathname.includes("/login")) return;
+  const auth = useAuthStore();
+  await auth.logout();
+  window.location.assign("/login?reason=session-changed");
+}
+
 api.interceptors.response.use(
   (res) => {
     stopGlobalLoading(res.config);
@@ -52,6 +71,12 @@ api.interceptors.response.use(
   async (error: AxiosError) => {
     stopGlobalLoading(error.config);
     const original = error.config;
+
+    if (isStaleRoleError(error)) {
+      await handleStaleSession();
+      return Promise.reject(error);
+    }
+
     if (!original || error.response?.status !== 401 || original.url?.includes("/auth/refresh")) {
       if (
         error.response?.status === 403 &&
@@ -61,8 +86,7 @@ api.interceptors.response.use(
         const auth = useAuthStore();
         const result = await auth.syncSession();
         if (result === "changed" && !window.location.pathname.includes("/login")) {
-          await auth.logout();
-          window.location.assign("/login?reason=session-changed");
+          await handleStaleSession();
         }
       }
       return Promise.reject(error);
@@ -81,6 +105,13 @@ api.interceptors.response.use(
           };
           setTokens(data.accessToken, data.refreshToken);
           if (data.user) {
+            if (isTokenRoleStale(data.user)) {
+              setTokens(null, null);
+              if (typeof window !== "undefined" && !window.location.pathname.includes("/login")) {
+                window.location.assign("/login?reason=session-changed");
+              }
+              return null;
+            }
             useAuthStore().applyUserFromAuthResponse(data.user);
           }
           return data.accessToken;

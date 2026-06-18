@@ -21,6 +21,10 @@ export class ApiError extends Error {
     return new ApiError(403, "FORBIDDEN", message);
   }
 
+  static tokenRoleStale(message = "Session role is outdated") {
+    return new ApiError(403, "TOKEN_ROLE_STALE", message);
+  }
+
   static notFound(message = "Not found") {
     return new ApiError(404, "NOT_FOUND", message);
   }

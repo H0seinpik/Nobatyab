@@ -142,6 +142,13 @@ router.beforeEach(async (to) => {
 
   const roles = to.meta.roles as UserRole[] | undefined;
   if (roles && auth.user && !roles.includes(auth.user.role)) {
+    if (to.path.startsWith("/provider")) {
+      const result = await auth.syncSession();
+      if (result === "changed") {
+        await auth.logout();
+        return { name: "login", query: { reason: "session-changed", redirect: to.fullPath } };
+      }
+    }
     return { name: "home" };
   }
 });

@@ -272,7 +272,57 @@ async function main() {
         `/api/v1/providers/${publicProviderId}/slots?date=${bookDate}&providerServiceId=${publicProviderServiceId}`,
       );
       assert(slots.status === 200 && Array.isArray(slots.body.data), "GET /api/v1/providers/:id/slots");
+      assert(slots.body.data.length > 0, "GET slots returns at least one slot for available day");
       console.log("OK  GET /api/v1/providers/:id/slots");
+
+      const bookDay = new Date(`${bookDate}T12:00:00Z`);
+      const daysSinceSaturday = (bookDay.getUTCDay() + 1) % 7;
+      const weekStartDate = new Date(bookDay);
+      weekStartDate.setUTCDate(bookDay.getUTCDate() - daysSinceSaturday);
+      const weekFrom = weekStartDate.toISOString().slice(0, 10);
+
+      const weekAvailable = await request(
+        `/api/v1/providers/${publicProviderId}/available-days?providerServiceId=${publicProviderServiceId}&from=${weekFrom}&horizonDays=7`,
+      );
+      assert(
+        weekAvailable.status === 200 && Array.isArray(weekAvailable.body.data?.dates),
+        "GET available-days week window",
+      );
+      for (const date of weekAvailable.body.data.dates as string[]) {
+        const dt = new Date(`${date}T12:00:00Z`);
+        const diffDays = Math.round((dt.getTime() - weekStartDate.getTime()) / 86_400_000);
+        assert(diffDays >= 0 && diffDays < 7, "available-days dates within 7-day horizon");
+      }
+      console.log("OK  GET /api/v1/providers/:id/available-days week calendar window");
+
+      const slotStartAt = slots.body.data[0]?.startAt as string | undefined;
+      if (slotStartAt) {
+        const guestBook = await request("/api/v1/appointments", {
+          method: "POST",
+          body: JSON.stringify({
+            providerId: publicProviderId,
+            providerServiceId: publicProviderServiceId,
+            startAt: slotStartAt,
+            guestFullName: "مهمان تست",
+            guestPhone: "09120000111",
+          }),
+        });
+        assert(guestBook.status === 201, "POST /appointments guest booking from calendar slot");
+        console.log("OK  POST /api/v1/appointments guest booking from calendar slot");
+
+        const duplicateBook = await request("/api/v1/appointments", {
+          method: "POST",
+          body: JSON.stringify({
+            providerId: publicProviderId,
+            providerServiceId: publicProviderServiceId,
+            startAt: slotStartAt,
+            guestFullName: "مهمان دیگر",
+            guestPhone: "09120000112",
+          }),
+        });
+        assert(duplicateBook.status === 409, "POST /appointments duplicate slot (409)");
+        console.log("OK  POST /api/v1/appointments duplicate slot (409)");
+      }
     }
   }
 
@@ -608,6 +658,78 @@ async function main() {
     "POST login after approve has PROVIDER role",
   );
   console.log("OK  POST login after approve has PROVIDER role");
+
+  const downgradeUserId = approveUserLogin.body.data.user.id as string;
+  const staleProviderAccessToken = approveUserLogin.body.data.accessToken as string;
+  const staleProviderRefreshToken = approveUserLogin.body.data.refreshToken as string;
+  const staleProviderHeaders = { Authorization: `Bearer ${staleProviderAccessToken}` };
+
+  const downgrade = await request(`/api/v1/admin/users/${downgradeUserId}`, {
+    method: "PATCH",
+    headers: adminHeaders,
+    body: JSON.stringify({ role: "USER" }),
+  });
+  assert(
+    downgrade.status === 200 && downgrade.body.data?.role === "USER",
+    "PATCH /api/v1/admin/users/:id downgrade to USER",
+  );
+  console.log("OK  PATCH /api/v1/admin/users/:id downgrade to USER");
+
+  const staleMe = await request("/api/v1/auth/me", { headers: staleProviderHeaders });
+  assert(
+    staleMe.status === 200 && staleMe.body.data?.tokenRoleStale === true,
+    "GET /auth/me tokenRoleStale after downgrade",
+  );
+  console.log("OK  GET /auth/me tokenRoleStale after downgrade");
+
+  const staleProviderProfile = await request("/api/v1/provider/profile", {
+    headers: staleProviderHeaders,
+  });
+  assert(
+    staleProviderProfile.status === 403 &&
+      staleProviderProfile.body.error?.code === "TOKEN_ROLE_STALE",
+    "GET /provider/profile rejects stale token after downgrade",
+  );
+  console.log("OK  GET /provider/profile rejects stale token after downgrade");
+
+  const refreshAfterDowngrade = await request("/api/v1/auth/refresh", {
+    method: "POST",
+    body: JSON.stringify({ refreshToken: staleProviderRefreshToken }),
+  });
+  assert(refreshAfterDowngrade.status === 401, "POST /auth/refresh revoked after downgrade");
+  console.log("OK  POST /auth/refresh revoked after downgrade");
+
+  const downgradeLogin = await request("/api/v1/auth/login", {
+    method: "POST",
+    body: JSON.stringify({ email: approveUserEmail, password: "User123!" }),
+  });
+  assert(
+    downgradeLogin.status === 200 &&
+      downgradeLogin.body.data?.user?.role === "USER" &&
+      downgradeLogin.body.data?.user?.providerProfileId === null,
+    "POST login after downgrade has USER role and no providerProfileId",
+  );
+  console.log("OK  POST login after downgrade has USER role and no providerProfileId");
+
+  const downgradeHeaders = {
+    Authorization: `Bearer ${downgradeLogin.body.data.accessToken}`,
+  };
+
+  const downgradeProfile = await request("/api/v1/user/profile", { headers: downgradeHeaders });
+  assert(downgradeProfile.status === 200, "GET /user/profile after downgrade");
+  console.log("OK  GET /user/profile after downgrade");
+
+  const downgradeProfilePatch = await request("/api/v1/user/profile", {
+    method: "PATCH",
+    headers: downgradeHeaders,
+    body: JSON.stringify({ firstName: "کاربر", lastName: "عادی" }),
+  });
+  assert(downgradeProfilePatch.status === 200, "PATCH /user/profile after downgrade");
+  console.log("OK  PATCH /user/profile after downgrade");
+
+  const noProviderAccess = await request("/api/v1/provider/profile", { headers: downgradeHeaders });
+  assert(noProviderAccess.status === 403, "GET /provider/profile forbidden for USER after downgrade");
+  console.log("OK  GET /provider/profile forbidden for USER after downgrade");
 
   const reviewPendingAgain = await request(`/api/v1/admin/provider-requests/${approveRequestId}`, {
     method: "PATCH",

@@ -27,14 +27,16 @@ export function createApp() {
 
   app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
   app.use(cors({ origin: env.corsOrigin, credentials: true }));
-  app.use(
-    rateLimit({
-      windowMs: env.rateLimit.windowMs,
-      max: env.rateLimit.max,
-      standardHeaders: true,
-      legacyHeaders: false,
-    }),
-  );
+  if (env.app.nodeEnv !== "development") {
+    app.use(
+      rateLimit({
+        windowMs: env.rateLimit.windowMs,
+        max: env.rateLimit.max,
+        standardHeaders: true,
+        legacyHeaders: false,
+      }),
+    );
+  }
   app.use(express.json());
   app.use(cookieParser());
   app.use("/uploads", express.static(path.resolve(env.upload.dir)));

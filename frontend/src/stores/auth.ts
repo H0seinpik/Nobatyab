@@ -102,8 +102,12 @@ export const useAuthStore = defineStore("auth", () => {
         { email, password },
       );
       setTokens(res.data.accessToken, res.data.refreshToken);
-      user.value = res.data.user;
-      return res.data.user;
+      const syncResult = await fetchMe();
+      if (syncResult !== "ok") {
+        await logout();
+        throw new Error("session invalid after login");
+      }
+      return user.value!;
     } catch (e: unknown) {
       error.value = "ایمیل یا رمز عبور اشتباه است";
       throw e;
