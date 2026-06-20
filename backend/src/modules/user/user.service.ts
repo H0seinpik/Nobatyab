@@ -21,6 +21,8 @@ function mapUserProfile(user: {
   phone: string | null;
   address: string | null;
   avatarUrl: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
 }) {
   return {
     id: user.id,
@@ -33,6 +35,8 @@ function mapUserProfile(user: {
     phone: user.phone,
     address: user.address,
     avatarUrl: user.avatarUrl,
+    latitude: user.latitude ?? null,
+    longitude: user.longitude ?? null,
     image: user.avatarUrl,
   };
 }
@@ -82,6 +86,8 @@ export class UserService {
       ...(input.phone !== undefined ? { phone: input.phone || null } : {}),
       ...(input.address !== undefined ? { address: input.address || null } : {}),
       ...(input.email !== undefined ? { email: input.email } : {}),
+      ...(input.latitude !== undefined ? { latitude: input.latitude } : {}),
+      ...(input.longitude !== undefined ? { longitude: input.longitude } : {}),
     });
 
     return mapUserProfile(user);

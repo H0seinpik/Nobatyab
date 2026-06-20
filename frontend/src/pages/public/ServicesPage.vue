@@ -1,12 +1,18 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from "vue";
-import { useRoute, RouterLink } from "vue-router";
+import { useRoute } from "vue-router";
 import { apiGet } from "@/services/api";
-import { formatPersianNumber } from "@/utils/numbers";
-import UiCard from "@/components/ui/UiCard.vue";
-import UiInput from "@/components/ui/UiInput.vue";
+import FilterBar from "@/components/discovery/FilterBar.vue";
+import ServiceCard from "@/components/discovery/ServiceCard.vue";
+import EmptyState from "@/components/feedback/EmptyState.vue";
 import SkeletonCard from "@/components/ui/skeleton/SkeletonCard.vue";
 import ContentFade from "@/components/ui/ContentFade.vue";
+import { SearchX } from "lucide-vue-next";
+
+interface Category {
+  id: string;
+  name: string;
+}
 
 interface Service {
   id: string;
@@ -19,6 +25,7 @@ interface Service {
 
 const route = useRoute();
 const services = ref<Service[]>([]);
+const categories = ref<Category[]>([]);
 const loading = ref(true);
 const search = ref("");
 const categoryId = ref((route.query.categoryId as string) || "");
@@ -36,94 +43,54 @@ async function load() {
   }
 }
 
-onMounted(load);
+onMounted(async () => {
+  const catRes = await apiGet<Category[]>("/categories");
+  categories.value = catRes.data;
+  await load();
+});
+
 watch([search, categoryId], load);
 </script>
 
 <template>
   <div class="services-page">
-    <h1 class="services-page__title">خدمات</h1>
-    <div class="services-page__filters">
-      <UiInput v-model="search" label="جستجو" placeholder="نام خدمت..." />
-      <UiInput v-model="categoryId" label="شناسه دسته (اختیاری)" placeholder="categoryId" />
-    </div>
+    <h1 class="heading-page">خدمات</h1>
+    <FilterBar
+      v-model:search="search"
+      v-model:category-id="categoryId"
+      :categories="categories"
+      search-placeholder="جستجوی نام خدمت..."
+      @submit="load"
+    />
 
-    <div v-if="loading" class="services-page__grid">
+    <div v-if="loading" class="grid-cards">
       <SkeletonCard v-for="i in 4" :key="i" />
     </div>
-    <ContentFade v-else>
-      <div class="services-page__grid">
-        <UiCard v-for="svc in services" :key="svc.id">
-          <h2 class="services-page__item-title">{{ svc.name }}</h2>
-          <p class="services-page__item-category">{{ svc.category.name }}</p>
-          <p class="services-page__item-description">{{ svc.description }}</p>
-          <p class="services-page__item-meta">
-            {{ formatPersianNumber(Number(svc.basePrice)) }} تومان · {{ svc.defaultDuration }} دقیقه
-          </p>
-          <RouterLink :to="`/providers?serviceId=${svc.id}`" class="services-page__item-link">
-            مشاهده ارائه‌دهندگان ←
-          </RouterLink>
-        </UiCard>
+    <ContentFade v-else-if="services.length">
+      <div class="grid-cards">
+        <ServiceCard
+          v-for="svc in services"
+          :key="svc.id"
+          :id="svc.id"
+          :name="svc.name"
+          :description="svc.description"
+          :category-name="svc.category.name"
+          :base-price="Number(svc.basePrice)"
+          :default-duration="svc.defaultDuration"
+        />
       </div>
     </ContentFade>
+    <EmptyState
+      v-else
+      :icon="SearchX"
+      title="خدمتی یافت نشد"
+      description="فیلترها را تغییر دهید یا عبارت جستجوی دیگری امتحان کنید."
+    />
   </div>
 </template>
 
 <style scoped>
-.services-page__title {
-  margin-bottom: 1.5rem;
-  font-size: 1.5rem;
-  font-weight: 700;
-}
-
-.services-page__filters {
-  display: grid;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-}
-
-@media (min-width: 640px) {
-  .services-page__filters {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-.services-page__grid {
-  display: grid;
-  gap: 1rem;
-}
-
-@media (min-width: 640px) {
-  .services-page__grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-.services-page__item-title {
-  font-weight: 600;
-}
-
-.services-page__item-category {
-  margin-top: 0.25rem;
-  font-size: 0.875rem;
-  color: var(--color-muted);
-}
-
-.services-page__item-description {
-  margin-top: 0.5rem;
-  font-size: 0.875rem;
-}
-
-.services-page__item-meta {
-  margin-top: 0.5rem;
-  font-size: 0.875rem;
-  font-variant-numeric: tabular-nums;
-}
-
-.services-page__item-link {
-  display: inline-block;
-  margin-top: 0.75rem;
-  font-size: 0.875rem;
-  color: var(--color-primary);
+.services-page {
+  padding-block: var(--space-6);
 }
 </style>

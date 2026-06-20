@@ -4,6 +4,10 @@ import { RouterLink } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import { useSmartBookingNavigation } from "@/composables/useSmartBookingNavigation";
 
+defineProps<{
+  vertical?: boolean;
+}>();
+
 const auth = useAuthStore();
 const { goToSmartBooking } = useSmartBookingNavigation();
 const navLoading = ref(false);
@@ -19,7 +23,7 @@ async function onSmartBookingClick() {
 </script>
 
 <template>
-  <nav class="main-nav">
+  <nav class="main-nav" :class="{ 'main-nav--vertical': vertical }">
     <RouterLink to="/services" class="main-nav__link">خدمات</RouterLink>
     <RouterLink to="/providers" class="main-nav__link">ارائه‌دهندگان</RouterLink>
     <button
@@ -78,5 +82,28 @@ async function onSmartBookingClick() {
 .main-nav__button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.main-nav--vertical {
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-1);
+}
+
+.main-nav--vertical .main-nav__link {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  transition: background-color var(--transition-base), color var(--transition-base);
+}
+
+.main-nav--vertical .main-nav__link:hover,
+.main-nav--vertical .main-nav__link.router-link-active {
+  background-color: var(--color-primary-subtle);
+  color: var(--color-primary);
+}
+
+.main-nav--vertical .main-nav__button {
+  text-align: start;
+  width: 100%;
 }
 </style>

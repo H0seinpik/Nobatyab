@@ -1,43 +1,53 @@
 <script setup lang="ts">
-import { formatTime } from "@/utils/datetime";
+import type { SlotDto } from "@/types/booking";
+import SlotButton from "./SlotButton.vue";
+import EmptyState from "@/components/feedback/EmptyState.vue";
+import SkeletonBase from "@/components/ui/skeleton/SkeletonBase.vue";
+import { CalendarX } from "lucide-vue-next";
 
 defineProps<{
-  slots: { startAt: string; endAt: string }[];
+  slots: SlotDto[];
   selected?: string | null;
   loading?: boolean;
   hasDateSelected?: boolean;
   errorMessage?: string;
 }>();
 
-defineEmits<{ select: [slot: { startAt: string; endAt: string }] }>();
+defineEmits<{ select: [slot: SlotDto] }>();
 </script>
 
 <template>
   <div class="time-slot-grid">
-    <p v-if="loading" class="time-slot-grid__message">در حال بارگذاری...</p>
+    <div v-if="loading" class="time-slot-grid__skeleton">
+      <SkeletonBase v-for="i in 6" :key="i" height="2.75rem" />
+    </div>
     <p v-else-if="errorMessage" class="time-slot-grid__message time-slot-grid__message--error">
       {{ errorMessage }}
     </p>
-    <p v-else-if="!hasDateSelected" class="time-slot-grid__message">لطفاً تاریخ را انتخاب کنید</p>
-    <p v-else-if="!slots.length" class="time-slot-grid__message">اسلاتی برای این تاریخ موجود نیست</p>
+    <p v-else-if="!hasDateSelected" class="time-slot-grid__message">
+      لطفاً تاریخ را انتخاب کنید
+    </p>
+    <EmptyState
+      v-else-if="!slots.length"
+      :icon="CalendarX"
+      title="اسلاتی موجود نیست"
+      description="برای این تاریخ زمان خالی وجود ندارد. تاریخ دیگری انتخاب کنید."
+    />
     <div v-else class="time-slot-grid__slots">
-      <button
+      <SlotButton
         v-for="slot in slots"
         :key="slot.startAt"
-        type="button"
-        class="time-slot-grid__slot"
-        :class="{ 'time-slot-grid__slot--selected': selected === slot.startAt }"
-        @click="$emit('select', slot)"
-      >
-        {{ formatTime(slot.startAt) }}
-      </button>
+        :slot="slot"
+        :selected="selected === slot.startAt"
+        @select="$emit('select', $event)"
+      />
     </div>
   </div>
 </template>
 
 <style scoped>
 .time-slot-grid__message {
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
   color: var(--color-muted);
 }
 
@@ -45,42 +55,29 @@ defineEmits<{ select: [slot: { startAt: string; endAt: string }] }>();
   color: var(--color-danger);
 }
 
+.time-slot-grid__skeleton {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
 .time-slot-grid__slots {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 @media (min-width: 640px) {
-  .time-slot-grid__slots {
+  .time-slot-grid__slots,
+  .time-slot-grid__skeleton {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 
 @media (min-width: 768px) {
-  .time-slot-grid__slots {
+  .time-slot-grid__slots,
+  .time-slot-grid__skeleton {
     grid-template-columns: repeat(6, minmax(0, 1fr));
   }
-}
-
-.time-slot-grid__slot {
-  border-radius: 0.5rem;
-  border: 1px solid var(--color-border);
-  padding: 0.5rem 0.75rem;
-  font-size: 0.875rem;
-  background-color: transparent;
-  color: var(--color-text);
-  cursor: pointer;
-  transition: border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease;
-}
-
-.time-slot-grid__slot:hover {
-  border-color: var(--color-primary);
-}
-
-.time-slot-grid__slot--selected {
-  border-color: var(--color-primary);
-  background-color: var(--color-primary);
-  color: #ffffff;
 }
 </style>

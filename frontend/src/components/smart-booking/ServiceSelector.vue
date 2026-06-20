@@ -2,10 +2,11 @@
 import { ref, onMounted, computed } from "vue";
 import { apiGet } from "@/services/api";
 import type { CatalogService } from "@/types/smartBooking";
-import { formatPersianNumber } from "@/utils/numbers";
-import UiCard from "@/components/ui/UiCard.vue";
+import ServiceCard from "@/components/discovery/ServiceCard.vue";
+import EmptyState from "@/components/feedback/EmptyState.vue";
 import SkeletonCard from "@/components/ui/skeleton/SkeletonCard.vue";
 import ContentFade from "@/components/ui/ContentFade.vue";
+import { SearchX } from "lucide-vue-next";
 
 const emit = defineEmits<{ select: [service: CatalogService] }>();
 
@@ -24,10 +25,6 @@ onMounted(async () => {
     loading.value = false;
   }
 });
-
-function formatPrice(price: string) {
-  return formatPersianNumber(Number(price));
-}
 </script>
 
 <template>
@@ -36,93 +33,41 @@ function formatPrice(price: string) {
       <SkeletonCard v-for="i in 4" :key="i" />
     </div>
 
-    <ContentFade v-else>
-      <p v-if="!bookableServices.length" class="service-selector__empty">
-        خدمتی برای رزرو هوشمند یافت نشد
-      </p>
-      <div v-else class="service-selector__grid">
-        <button
+    <ContentFade v-else-if="bookableServices.length">
+      <div class="service-selector__grid">
+        <ServiceCard
           v-for="service in bookableServices"
           :key="service.id"
-          type="button"
-          class="service-selector__item"
-          @click="emit('select', service)"
-        >
-          <UiCard>
-            <h3 class="service-selector__name">{{ service.name }}</h3>
-            <p v-if="service.description" class="service-selector__description">
-              {{ service.description }}
-            </p>
-            <p class="service-selector__duration">
-              <span class="service-selector__label">مدت:</span>
-              {{ service.defaultDuration }} دقیقه
-            </p>
-            <p class="service-selector__price">
-              از {{ formatPrice(service.basePrice) }} تومان
-            </p>
-          </UiCard>
-        </button>
+          :id="service.id"
+          :name="service.name"
+          :description="service.description"
+          :category-name="service.category?.name"
+          :base-price="Number(service.basePrice)"
+          :default-duration="service.defaultDuration"
+          selectable
+          @select="emit('select', service)"
+        />
       </div>
     </ContentFade>
+
+    <EmptyState
+      v-else
+      :icon="SearchX"
+      title="خدمتی برای رزرو هوشمند یافت نشد"
+      description="خدمات با مدت زوج ۳۰ دقیقه‌ای برای رزرو هوشمند مناسب هستند."
+    />
   </div>
 </template>
 
 <style scoped>
 .service-selector__grid {
   display: grid;
-  gap: 1rem;
+  gap: var(--space-4);
 }
 
 @media (min-width: 640px) {
   .service-selector__grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-}
-
-.service-selector__empty {
-  font-size: 0.875rem;
-  color: var(--color-muted);
-}
-
-.service-selector__item {
-  text-align: right;
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  width: 100%;
-}
-
-.service-selector__item :deep(.card) {
-  height: 100%;
-  transition: border-color 0.2s ease;
-}
-
-.service-selector__item:hover :deep(.card) {
-  border-color: var(--color-primary);
-}
-
-.service-selector__name {
-  margin-bottom: 0.25rem;
-  font-weight: 600;
-}
-
-.service-selector__description {
-  margin-bottom: 0.5rem;
-  font-size: 0.875rem;
-  color: var(--color-muted);
-}
-
-.service-selector__duration {
-  font-size: 0.875rem;
-}
-
-.service-selector__label {
-  color: var(--color-muted);
-}
-
-.service-selector__price {
-  font-size: 0.875rem;
-  color: var(--color-primary);
 }
 </style>

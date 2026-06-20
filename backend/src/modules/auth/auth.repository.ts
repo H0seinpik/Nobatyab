@@ -52,6 +52,8 @@ export class AuthRepository {
       email?: string;
       phone?: string | null;
       avatarUrl?: string | null;
+      latitude?: number | null;
+      longitude?: number | null;
     },
   ) {
     return prisma.user.update({

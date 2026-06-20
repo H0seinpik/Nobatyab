@@ -1,12 +1,18 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from "vue";
-import { RouterLink } from "vue-router";
 import { apiGet } from "@/services/api";
 import { useSettingsStore } from "@/stores/settings";
-import UiCard from "@/components/ui/UiCard.vue";
+import { formatPersianNumber } from "@/utils/numbers";
+import HeroSection from "@/components/marketing/HeroSection.vue";
+import StatsSection from "@/components/marketing/StatsSection.vue";
+import ServiceCard from "@/components/discovery/ServiceCard.vue";
+import ProviderCard from "@/components/discovery/ProviderCard.vue";
 import SkeletonCard from "@/components/ui/skeleton/SkeletonCard.vue";
 import ContentFade from "@/components/ui/ContentFade.vue";
-import SmartBookingButton from "@/components/smart-booking/SmartBookingButton.vue";
+import CategoryPill from "@/components/marketing/CategoryPill.vue";
+import PageSection from "@/components/layout/PageSection.vue";
+import { fetchPublicStats } from "@/services/public.service";
+import { useHeroPreview } from "@/composables/useHeroPreview";
 
 interface Category {
   id: string;
@@ -16,20 +22,84 @@ interface Category {
   _count?: { services: number };
 }
 
+interface Service {
+  id: string;
+  name: string;
+  description: string | null;
+  defaultDuration: number;
+  basePrice: string;
+  category: { name: string };
+}
+
+interface Provider {
+  id: string;
+  bio: string | null;
+  specialization: string | null;
+  address: string | null;
+  avgRating: number;
+  reviewCount: number;
+  user: { fullName: string; avatarUrl: string | null };
+  providerServices: { service?: { name: string } }[];
+}
+
 const settings = useSettingsStore();
 const categories = ref<Category[]>([]);
+const featuredServices = ref<Service[]>([]);
+const featuredProviders = ref<Provider[]>([]);
+const platformStats = ref<Awaited<ReturnType<typeof fetchPublicStats>> | null>(null);
 const loading = ref(true);
+
+const heroProvider = computed(() => featuredProviders.value[0] ?? null);
+const heroProviderId = computed(() => heroProvider.value?.id);
+
+const {
+  slots: heroSlots,
+  previewDate,
+  previewPrice,
+  previewDuration,
+  loading: heroPreviewLoading,
+  formatDateLabel,
+} = useHeroPreview(() => heroProviderId.value);
+const heroServiceName = computed(() => {
+  const p = heroProvider.value;
+  if (!p?.providerServices?.length) return undefined;
+  return p.providerServices[0]?.service?.name;
+});
 
 const siteTitle = computed(() => settings.get("site.title", "رزرو آنلاین نوبت"));
 const siteDescription = computed(() =>
   settings.get("site.description", "خدمات مورد نظر خود را انتخاب کنید و نوبت بگیرید"),
 );
 
+const stats = computed(() => {
+  const s = platformStats.value;
+  if (!s) return [];
+  return [
+    { label: "دسته‌بندی", value: formatPersianNumber(s.categories), icon: "briefcase" as const },
+    { label: "خدمات", value: formatPersianNumber(s.services), icon: "calendar" as const },
+    { label: "ارائه‌دهندگان", value: formatPersianNumber(s.providers), icon: "users" as const },
+    {
+      label: "رزرو هوشمند",
+      value: s.smartBookingEnabled ? "فعال" : "غیرفعال",
+      icon: "star" as const,
+    },
+  ];
+});
+
+const heroDateLabel = computed(() => (previewDate.value ? formatDateLabel(previewDate.value) : undefined));
 onMounted(async () => {
   try {
     await settings.fetchPublic();
-    const res = await apiGet<Category[]>("/categories");
-    categories.value = res.data;
+    const [catRes, svcRes, provRes, statsRes] = await Promise.all([
+      apiGet<Category[]>("/categories"),
+      apiGet<Service[]>("/services", { limit: 6 }),
+      apiGet<Provider[]>("/providers", { limit: 4 }),
+      fetchPublicStats(),
+    ]);
+    categories.value = catRes.data;
+    featuredServices.value = svcRes.data;
+    featuredProviders.value = provRes.data;
+    platformStats.value = statsRes;
   } finally {
     loading.value = false;
   }
@@ -38,105 +108,77 @@ onMounted(async () => {
 
 <template>
   <div class="home-page">
-    <section class="home-page__hero">
-      <h1 class="home-page__title">{{ siteTitle }}</h1>
-      <p class="home-page__description">{{ siteDescription }}</p>
-      <p class="home-page__hint">
-        با رزرو هوشمند، بهترین زمان را بر اساس دسترسی شما پیدا کنید
-      </p>
-      <div class="home-page__cta">
-        <SmartBookingButton size="large" />
-      </div>
-    </section>
+    <HeroSection
+      :title="siteTitle"
+      :description="siteDescription"
+      hint="با رزرو هوشمند، بهترین زمان را بر اساس دسترسی شما پیدا کنید"
+      :preview-provider-name="heroProvider?.user.fullName"
+      :preview-specialization="heroProvider?.specialization ?? undefined"
+      :preview-service-name="heroServiceName"
+      :preview-address="heroProvider?.address ?? undefined"
+      :preview-rating="heroProvider?.avgRating"
+      :preview-review-count="heroProvider?.reviewCount"
+      :preview-slots="heroSlots"
+      :preview-date-label="heroDateLabel"
+      :preview-price="previewPrice"
+      :preview-duration="previewDuration"
+      :preview-loading="heroPreviewLoading"
+    />
 
-    <div v-if="loading" class="home-page__grid">
-      <SkeletonCard v-for="i in 6" :key="i" />
-    </div>
+    <StatsSection :stats="stats" />
 
-    <ContentFade v-else>
-      <div class="home-page__grid">
-        <RouterLink v-for="cat in categories" :key="cat.id" :to="`/services?categoryId=${cat.id}`">
-          <UiCard class="home-page__card">
-            <h2 class="home-page__card-title">{{ cat.name }}</h2>
-            <p class="home-page__card-description">{{ cat.description }}</p>
-            <p v-if="cat._count" class="home-page__card-count">
-              {{ cat._count.services }} خدمت
-            </p>
-          </UiCard>
-        </RouterLink>
+    <PageSection title="دسته‌بندی‌ها" view-all-to="/services">
+      <div v-if="loading" class="grid-cards">
+        <SkeletonCard v-for="i in 6" :key="i" />
       </div>
-    </ContentFade>
+      <ContentFade v-else>
+        <div class="grid-cards">
+          <CategoryPill
+            v-for="cat in categories"
+            :key="cat.id"
+            :to="`/services?categoryId=${cat.id}`"
+            :name="cat.name"
+            :description="cat.description"
+            :service-count="cat._count?.services"
+          />
+        </div>
+      </ContentFade>
+    </PageSection>
+
+    <PageSection v-if="featuredServices.length" title="خدمات پرطرفدار" view-all-to="/services">
+      <div class="grid-cards">
+        <ServiceCard
+          v-for="svc in featuredServices"
+          :key="svc.id"
+          :id="svc.id"
+          :name="svc.name"
+          :description="svc.description"
+          :category-name="svc.category.name"
+          :base-price="Number(svc.basePrice)"
+          :default-duration="svc.defaultDuration"
+        />
+      </div>
+    </PageSection>
+
+    <PageSection v-if="featuredProviders.length" title="ارائه‌دهندگان برتر" view-all-to="/providers">
+      <div class="grid-cards">
+        <ProviderCard
+          v-for="p in featuredProviders"
+          :key="p.id"
+          :id="p.id"
+          :full-name="p.user.fullName"
+          :bio="p.bio"
+          :specialization="p.specialization"
+          :address="p.address"
+          :avatar-url="p.user.avatarUrl"
+          :service-count="p.providerServices.length"
+          :avg-rating="p.avgRating"
+          :review-count="p.reviewCount"
+        />
+      </div>
+    </PageSection>
   </div>
 </template>
 
 <style scoped>
-.home-page__hero {
-  margin-bottom: 2.5rem;
-  text-align: center;
-}
-
-.home-page__title {
-  margin-bottom: 0.75rem;
-  font-size: 1.875rem;
-  font-weight: 700;
-}
-
-.home-page__description {
-  margin-bottom: 0.5rem;
-  color: var(--color-muted);
-}
-
-.home-page__hint {
-  margin-bottom: 1.5rem;
-  font-size: 0.875rem;
-  color: var(--color-muted);
-}
-
-.home-page__cta {
-  display: flex;
-  justify-content: center;
-}
-
-.home-page__grid {
-  display: grid;
-  gap: 1rem;
-}
-
-@media (min-width: 640px) {
-  .home-page__grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (min-width: 1024px) {
-  .home-page__grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
-.home-page__card {
-  height: 100%;
-  transition: border-color 0.2s ease;
-}
-
-.home-page__card:hover {
-  border-color: var(--color-primary);
-}
-
-.home-page__card-title {
-  margin-bottom: 0.5rem;
-  font-size: 1.125rem;
-  font-weight: 600;
-}
-
-.home-page__card-description {
-  font-size: 0.875rem;
-  color: var(--color-muted);
-}
-
-.home-page__card-count {
-  margin-top: 0.75rem;
-  font-size: 0.75rem;
-  color: var(--color-primary);
-}
 </style>

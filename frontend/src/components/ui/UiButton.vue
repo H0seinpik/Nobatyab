@@ -29,12 +29,18 @@ defineProps<{
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 0.5rem;
-  padding: 0.5rem 1rem;
-  font-size: 0.875rem;
+  gap: var(--space-2);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-sm);
   font-weight: 500;
   border: none;
-  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  transition: background-color var(--transition-base), color var(--transition-base),
+    border-color var(--transition-base), box-shadow var(--transition-base), transform var(--transition-fast);
+}
+
+.button:active:not(:disabled) {
+  transform: scale(0.98);
 }
 
 .button:disabled {
@@ -45,10 +51,12 @@ defineProps<{
 .button--primary {
   background-color: var(--color-primary);
   color: #ffffff;
+  box-shadow: var(--shadow-sm);
 }
 
 .button--primary:hover:not(:disabled) {
   background-color: var(--color-primary-hover);
+  box-shadow: var(--shadow-md);
 }
 
 .button--secondary {

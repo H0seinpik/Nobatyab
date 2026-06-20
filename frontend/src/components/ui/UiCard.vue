@@ -6,10 +6,16 @@
 
 <style scoped>
 .card {
-  border-radius: 0.75rem;
+  border-radius: var(--radius-lg);
   border: 1px solid var(--color-border);
   background-color: var(--color-surface);
-  padding: 1rem;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  padding: var(--space-4);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow var(--transition-base), border-color var(--transition-base),
+    transform var(--transition-base);
+}
+
+.card:hover {
+  box-shadow: var(--shadow-md);
 }
 </style>

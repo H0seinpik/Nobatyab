@@ -20,9 +20,11 @@ defineProps<{ tone?: "default" | "success" | "warning" | "danger" | "info" }>();
 <style scoped>
 .badge {
   display: inline-flex;
-  border-radius: 9999px;
+  align-items: center;
+  gap: var(--space-1);
+  border-radius: var(--radius-full);
   padding: 0.125rem 0.625rem;
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
   font-weight: 500;
 }
 

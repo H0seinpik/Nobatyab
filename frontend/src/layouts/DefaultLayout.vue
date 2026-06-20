@@ -14,9 +14,15 @@ import AppShell from "@/components/layout/AppShell.vue";
 <style scoped>
 .default-layout {
   width: 100%;
-  max-width: 72rem;
+  max-width: var(--container-max);
   flex: 1;
   margin-inline: auto;
-  padding: 2rem 1rem;
+  padding: var(--space-8) var(--space-4);
+}
+
+@media (min-width: 640px) {
+  .default-layout {
+    padding-inline: var(--space-6);
+  }
 }
 </style>

@@ -4,7 +4,7 @@ import { useRoute, useRouter, RouterLink } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import { useZodForm } from "@/composables/useZodForm";
 import { loginFormSchema } from "@/schemas/auth.schema";
-import UiCard from "@/components/ui/UiCard.vue";
+import AuthLayout from "@/components/auth/AuthLayout.vue";
 import UiInput from "@/components/ui/UiInput.vue";
 import UiButton from "@/components/ui/UiButton.vue";
 import UiAlert from "@/components/ui/UiAlert.vue";
@@ -48,86 +48,76 @@ async function submit() {
 </script>
 
 <template>
-  <div class="login-page">
-    <UiCard>
-      <h1 class="login-page__title">ورود</h1>
-      <UiAlert v-if="sessionMessage" variant="info" class="login-page__alert">{{ sessionMessage }}</UiAlert>
-      <form class="login-page__form" @submit.prevent="submit">
-        <UiInput
-          v-model="values.email"
-          label="ایمیل"
-          type="email"
-          required
-          :error="fieldError('email')"
-          @blur="touch('email')"
-        />
-        <UiInput
-          v-model="values.password"
-          label="رمز عبور"
-          type="password"
-          required
-          :error="fieldError('password')"
-          @blur="touch('password')"
-        />
-        <p v-if="auth.error" class="login-page__error">
-          {{ auth.error }}
-        </p>
-        <UiButton type="submit" :loading="submitting || auth.loading" :disabled="!isValid || submitting" class="login-page__submit">
-          ورود
-        </UiButton>
-      </form>
-      <RouterLink to="/register" class="login-page__link">
-        ثبت‌نام
-      </RouterLink>
-      <RouterLink to="/forgot-password" class="login-page__link login-page__link--muted">
-        فراموشی رمز عبور
-      </RouterLink>
-    </UiCard>
-  </div>
+  <AuthLayout title="ورود" subtitle="به حساب کاربری خود وارد شوید">
+    <UiAlert v-if="sessionMessage" variant="info" class="auth-form__alert">{{ sessionMessage }}</UiAlert>
+    <form class="auth-form" @submit.prevent="submit">
+      <UiInput
+        v-model="values.email"
+        label="ایمیل"
+        type="email"
+        required
+        autocomplete="email"
+        :error="fieldError('email')"
+        @blur="touch('email')"
+      />
+      <UiInput
+        v-model="values.password"
+        label="رمز عبور"
+        type="password"
+        required
+        autocomplete="current-password"
+        :error="fieldError('password')"
+        @blur="touch('password')"
+      />
+      <p v-if="auth.error" class="auth-form__error" role="alert">{{ auth.error }}</p>
+      <UiButton type="submit" :loading="submitting || auth.loading" :disabled="!isValid || submitting" class="auth-form__submit">
+        ورود
+      </UiButton>
+    </form>
+    <nav class="auth-form__links" aria-label="لینک‌های مرتبط">
+      <RouterLink to="/register">ثبت‌نام</RouterLink>
+      <RouterLink to="/forgot-password">فراموشی رمز عبور</RouterLink>
+    </nav>
+  </AuthLayout>
 </template>
 
 <style scoped>
-.login-page {
-  max-width: 28rem;
-  margin-inline: auto;
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
 }
 
-.login-page__title {
-  margin-bottom: 1.5rem;
-  font-size: 1.25rem;
-  font-weight: 700;
+.auth-form__alert {
+  margin-bottom: var(--space-2);
 }
 
-.login-page__alert {
-  margin-bottom: 1rem;
-}
-
-.login-page__form > * + * {
-  margin-top: 1rem;
-}
-
-.login-page__error {
-  border-radius: 0.5rem;
-  padding: 0.5rem 0.75rem;
-  font-size: 0.875rem;
+.auth-form__error {
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
   background-color: var(--color-alert-error-bg);
   color: var(--color-alert-error-text);
 }
 
-.login-page__submit {
+.auth-form__submit {
   width: 100%;
 }
 
-.login-page__link {
-  display: block;
-  margin-top: 1rem;
+.auth-form__links {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-6);
   text-align: center;
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
+}
+
+.auth-form__links a {
   color: var(--color-primary);
 }
 
-.login-page__link--muted {
-  margin-top: 0.5rem;
+.auth-form__links a:last-child {
   color: var(--color-muted);
 }
 </style>

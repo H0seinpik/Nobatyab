@@ -4,7 +4,7 @@ import { useRoute, useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import { useZodForm } from "@/composables/useZodForm";
 import { resetPasswordFormSchema } from "@/schemas/auth.schema";
-import UiCard from "@/components/ui/UiCard.vue";
+import AuthLayout from "@/components/auth/AuthLayout.vue";
 import UiInput from "@/components/ui/UiInput.vue";
 import UiButton from "@/components/ui/UiButton.vue";
 
@@ -33,62 +33,53 @@ async function submit() {
 </script>
 
 <template>
-  <div class="reset-password-page">
-    <UiCard>
-      <h1 class="reset-password-page__title">تنظیم رمز جدید</h1>
-      <p v-if="done" class="reset-password-page__success">رمز با موفقیت تغییر کرد. در حال انتقال...</p>
-      <form v-else class="reset-password-page__form" @submit.prevent="submit">
-        <UiInput
-          v-model="values.password"
-          label="رمز عبور جدید"
-          type="password"
-          required
-          :error="fieldError('password')"
-          @blur="touch('password')"
-        />
-        <UiInput
-          v-model="values.confirmPassword"
-          label="تکرار رمز عبور"
-          type="password"
-          required
-          :error="fieldError('confirmPassword')"
-          @blur="touch('confirmPassword')"
-        />
-        <p v-if="submitError" class="reset-password-page__error">{{ submitError }}</p>
-        <UiButton type="submit" :loading="submitting" :disabled="!isValid || submitting" class="reset-password-page__submit">
-          ذخیره
-        </UiButton>
-      </form>
-    </UiCard>
-  </div>
+  <AuthLayout title="تنظیم رمز جدید" subtitle="رمز عبور جدید خود را وارد کنید">
+    <p v-if="done" class="auth-form__success" role="status">رمز با موفقیت تغییر کرد. در حال انتقال...</p>
+    <form v-else class="auth-form" @submit.prevent="submit">
+      <UiInput
+        v-model="values.password"
+        label="رمز عبور جدید"
+        type="password"
+        required
+        autocomplete="new-password"
+        :error="fieldError('password')"
+        @blur="touch('password')"
+      />
+      <UiInput
+        v-model="values.confirmPassword"
+        label="تکرار رمز عبور"
+        type="password"
+        required
+        autocomplete="new-password"
+        :error="fieldError('confirmPassword')"
+        @blur="touch('confirmPassword')"
+      />
+      <p v-if="submitError" class="auth-form__error" role="alert">{{ submitError }}</p>
+      <UiButton type="submit" :loading="submitting" :disabled="!isValid || submitting" class="auth-form__submit">
+        ذخیره
+      </UiButton>
+    </form>
+  </AuthLayout>
 </template>
 
 <style scoped>
-.reset-password-page {
-  max-width: 28rem;
-  margin-inline: auto;
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
 }
 
-.reset-password-page__title {
-  margin-bottom: 1.5rem;
-  font-size: 1.25rem;
-  font-weight: 700;
-}
-
-.reset-password-page__success {
+.auth-form__success {
   color: var(--color-alert-success-text);
+  font-size: var(--text-sm);
 }
 
-.reset-password-page__form > * + * {
-  margin-top: 1rem;
-}
-
-.reset-password-page__error {
-  font-size: 0.875rem;
+.auth-form__error {
+  font-size: var(--text-sm);
   color: var(--color-danger);
 }
 
-.reset-password-page__submit {
+.auth-form__submit {
   width: 100%;
 }
 </style>

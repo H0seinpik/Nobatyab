@@ -21,6 +21,8 @@ import { userAvailabilityRoutes } from "./modules/user-availability/user-availab
 import { userRoutes } from "./modules/user/user.routes.js";
 import { providerRequestRoutes } from "./modules/provider-request/provider-request.routes.js";
 import { errorHandler, notFoundHandler } from "./shared/middlewares/errorHandler.js";
+import { analyticsRoutes } from "./modules/analytics/analytics.routes.js";
+import { publicRoutes } from "./modules/public/public.routes.js";
 
 export function createApp() {
   const app = express();
@@ -54,6 +56,8 @@ export function createApp() {
   api.use("/provider/request", providerRequestRoutes);
   api.use("/provider", providerDashboardRoutes);
   api.use("/admin", adminRoutes);
+  api.use("/admin/analytics", analyticsRoutes);
+  api.use("/public", publicRoutes);
   api.use("/admin/categories", adminCategoryRoutes);
   api.use("/admin/services", adminServiceRoutes);
   api.use("/settings", settingsRoutes);

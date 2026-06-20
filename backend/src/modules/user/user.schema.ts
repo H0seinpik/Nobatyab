@@ -19,6 +19,8 @@ export const updateUserProfileSchema = z.object({
   phone: iranianPhoneSchema.optional().or(z.literal("")),
   address: z.string().max(500).optional(),
   email: z.string().email().optional(),
+  latitude: z.number().min(-90).max(90).optional().nullable(),
+  longitude: z.number().min(-180).max(180).optional().nullable(),
 });
 
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;

@@ -3,6 +3,8 @@
 @import "@fontsource/vazirmatn/700.css";
 
 @import "./themes/tokens.css";
+@import "./themes/typography.css";
+@import "./themes/layout.css";
 
 *,
 *::before,
@@ -76,13 +78,13 @@ a {
 /* Form controls */
 .form-control {
   width: 100%;
-  border-radius: 0.5rem;
+  border-radius: var(--radius-md);
   border: 1px solid var(--color-input-border);
   background-color: var(--color-input-bg);
   color: var(--color-input-text);
-  padding: 0.5rem 0.75rem;
+  padding: var(--space-2) var(--space-3);
   outline: none;
-  transition: var(--transition-theme);
+  transition: var(--transition-theme), box-shadow var(--transition-base);
 }
 
 .form-control::placeholder {
@@ -207,4 +209,20 @@ input[type="checkbox"]:not(.sr-only):disabled {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border-width: 0;
+}
+
+/* Accessibility */
+:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

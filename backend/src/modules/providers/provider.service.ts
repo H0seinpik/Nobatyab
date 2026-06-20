@@ -8,6 +8,9 @@ export class PublicProviderService {
     serviceId?: string;
     categoryId?: string;
     q?: string;
+    lat?: number;
+    lng?: number;
+    radiusKm?: number;
     page?: string;
     limit?: string;
   }) {
@@ -16,6 +19,9 @@ export class PublicProviderService {
       serviceId: query.serviceId,
       categoryId: query.categoryId,
       q: query.q,
+      lat: query.lat,
+      lng: query.lng,
+      radiusKm: query.radiusKm,
       skip,
       take: limit,
     });

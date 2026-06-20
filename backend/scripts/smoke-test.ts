@@ -24,6 +24,10 @@ async function main() {
   assert(categories.status === 200 && categories.body.success, "GET /api/v1/categories");
   console.log("OK  GET /api/v1/categories");
 
+  const publicStats = await request("/api/v1/public/stats");
+  assert(publicStats.status === 200 && publicStats.body.success && typeof publicStats.body.data?.providers === "number", "GET /api/v1/public/stats");
+  console.log("OK  GET /api/v1/public/stats");
+
   const login = await request("/api/v1/auth/login", {
     method: "POST",
     body: JSON.stringify({ email: "user@nobatyab.com", password: "User123!" }),
@@ -115,6 +119,15 @@ async function main() {
     "GET /api/v1/provider/profile persists fields",
   );
   console.log("OK  GET /api/v1/provider/profile persists fields");
+
+  const providerDashboard = await request("/api/v1/provider/dashboard/overview", { headers: providerHeaders });
+  assert(
+    providerDashboard.status === 200 &&
+      providerDashboard.body.success &&
+      typeof providerDashboard.body.data?.todayAppointments === "number",
+    "GET /api/v1/provider/dashboard/overview",
+  );
+  console.log("OK  GET /api/v1/provider/dashboard/overview");
 
   const providerServicesList = await request("/api/v1/provider/services", { headers: providerHeaders });
   assert(providerServicesList.status === 200 && providerServicesList.body.data?.length > 0, "GET /api/v1/provider/services for schedule");

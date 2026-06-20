@@ -9,6 +9,14 @@ import {
 } from "../../shared/utils/datetime.js";
 import { ApiError } from "../../shared/utils/apiError.js";
 
+export type SlotStatus = "available" | "booked" | "past" | "inactive";
+
+export interface EnrichedSlot {
+  startAt: string;
+  endAt: string;
+  status: SlotStatus;
+}
+
 function minutesToTime(minutes: number): string {
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
@@ -47,7 +55,7 @@ export class SlotService {
         providerServiceId: input.providerServiceId,
         date,
       });
-      if (slots.length > 0) {
+      if (slots.some((s) => s.status === "available")) {
         dates.push(date);
       }
     }
@@ -93,7 +101,7 @@ export class SlotService {
     const now = new Date();
     const todayLocal = formatLocalDate(now);
 
-    const candidateSlots: { startAt: Date; endAt: Date }[] = [];
+    const candidateSlots: { startAt: Date; endAt: Date; status: SlotStatus }[] = [];
 
     for (const range of dayHours) {
       let cursor = timeToMinutes(range.startTime);
@@ -104,11 +112,11 @@ export class SlotService {
         const endAt = localToUtc(input.date, minutesToTime(cursor + serviceDuration));
 
         if (input.date === todayLocal && startAt <= now) {
-          cursor += slotStep;
-          continue;
+          candidateSlots.push({ startAt, endAt, status: "past" });
+        } else {
+          candidateSlots.push({ startAt, endAt, status: "available" });
         }
 
-        candidateSlots.push({ startAt, endAt });
         cursor += slotStep;
       }
     }
@@ -128,10 +136,19 @@ export class SlotService {
       select: { startAt: true, endAt: true },
     });
 
-    return candidateSlots.filter(
-      (slot) =>
-        !appointments.some((appt) => appt.startAt < slot.endAt && appt.endAt > slot.startAt),
-    );
+    return candidateSlots.map((slot) => {
+      const isBooked = appointments.some(
+        (appt) => appt.startAt < slot.endAt && appt.endAt > slot.startAt,
+      );
+      const status: SlotStatus =
+        isBooked && slot.status === "available" ? "booked" : slot.status;
+
+      return {
+        startAt: slot.startAt.toISOString(),
+        endAt: slot.endAt.toISOString(),
+        status,
+      };
+    });
   }
 }
 

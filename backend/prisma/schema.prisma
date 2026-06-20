@@ -78,6 +78,7 @@ model User {
   providerRequests  ProviderRequest[]
   availabilities    UserAvailability[]
   bookingRequests  BookingIdempotency[]
+  reviews          Review[]
 }
 
 model RefreshToken {
@@ -141,6 +142,8 @@ model ProviderProfile {
   longitude           Float?
   slotDurationMinutes Int      @default(30)
   isAcceptingBookings Boolean  @default(true)
+  avgRating           Float    @default(0)
+  reviewCount         Int      @default(0)
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
@@ -150,6 +153,7 @@ model ProviderProfile {
   appointments       Appointment[]
   serviceRequests    ServiceRequest[]
   timeSlots          TimeSlot[]
+  reviews            Review[]
 }
 
 model ProviderService {
@@ -259,6 +263,7 @@ model Appointment {
   smsLogs             SmsLog[]
   timeSlots           TimeSlot[]
   bookingIdempotency  BookingIdempotency?
+  review              Review?
 
   @@index([providerId, startAt, endAt])
   @@index([userId])
@@ -353,5 +358,23 @@ model BookingIdempotency {
   user        User?       @relation(fields: [userId], references: [id], onDelete: Cascade)
   appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
+}
+
+model Review {
+  id            String   @id @default(cuid())
+  appointmentId String   @unique
+  userId        String
+  providerId    String
+  rating        Int
+  comment       String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  appointment Appointment     @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider    ProviderProfile @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@index([providerId])
   @@index([userId])
 }

@@ -1,17 +1,14 @@
 <script setup lang="ts">
+import EmptyState from "@/components/feedback/EmptyState.vue";
+import { Inbox } from "lucide-vue-next";
+
 defineProps<{ text?: string }>();
 </script>
 
 <template>
-  <div class="data-table-empty">
-    <slot>{{ text ?? "موردی یافت نشد" }}</slot>
-  </div>
+  <EmptyState
+    :icon="Inbox"
+    :title="text ?? 'موردی یافت نشد'"
+    description="داده‌ای برای نمایش وجود ندارد."
+  />
 </template>
-
-<style scoped>
-.data-table-empty {
-  padding: 3rem 1rem;
-  text-align: center;
-  color: var(--color-muted);
-}
-</style>

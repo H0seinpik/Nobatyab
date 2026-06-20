@@ -3,7 +3,7 @@ import { RouterLink, useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import { useZodForm } from "@/composables/useZodForm";
 import { registerFormSchema } from "@/schemas/auth.schema";
-import UiCard from "@/components/ui/UiCard.vue";
+import AuthLayout from "@/components/auth/AuthLayout.vue";
 import UiInput from "@/components/ui/UiInput.vue";
 import UiButton from "@/components/ui/UiButton.vue";
 
@@ -38,91 +38,78 @@ async function submit() {
 </script>
 
 <template>
-  <div class="register-page">
-    <UiCard>
-      <h1 class="register-page__title">ثبت‌نام</h1>
-      <form class="register-page__form" @submit.prevent="submit">
-        <UiInput
-          v-model="values.fullName"
-          label="نام کامل"
-          required
-          :error="fieldError('fullName')"
-          @blur="touch('fullName')"
-        />
-        <UiInput
-          v-model="values.email"
-          label="ایمیل"
-          type="email"
-          required
-          :error="fieldError('email')"
-          @blur="touch('email')"
-        />
-        <UiInput
-          v-model="values.phone"
-          label="موبایل"
-          :error="fieldError('phone')"
-          @blur="touch('phone')"
-        />
-        <UiInput
-          v-model="values.password"
-          label="رمز عبور"
-          type="password"
-          required
-          :error="fieldError('password')"
-          @blur="touch('password')"
-        />
-        <p v-if="auth.error" class="register-page__error">
-          {{ auth.error }}
-        </p>
-        <UiButton type="submit" :loading="submitting || auth.loading" :disabled="!isValid || submitting" class="register-page__submit">
-          ثبت‌نام
-        </UiButton>
-      </form>
-      <div class="register-page__footer">
-        <RouterLink to="/login" class="register-page__link">
-          ورود
-        </RouterLink>
-      </div>
-    </UiCard>
-  </div>
+  <AuthLayout title="ثبت‌نام" subtitle="حساب جدید بسازید و نوبت بگیرید">
+    <form class="auth-form" @submit.prevent="submit">
+      <UiInput
+        v-model="values.fullName"
+        label="نام کامل"
+        required
+        autocomplete="name"
+        :error="fieldError('fullName')"
+        @blur="touch('fullName')"
+      />
+      <UiInput
+        v-model="values.email"
+        label="ایمیل"
+        type="email"
+        required
+        autocomplete="email"
+        :error="fieldError('email')"
+        @blur="touch('email')"
+      />
+      <UiInput
+        v-model="values.phone"
+        label="موبایل"
+        autocomplete="tel"
+        :error="fieldError('phone')"
+        @blur="touch('phone')"
+      />
+      <UiInput
+        v-model="values.password"
+        label="رمز عبور"
+        type="password"
+        required
+        autocomplete="new-password"
+        :error="fieldError('password')"
+        @blur="touch('password')"
+      />
+      <p v-if="auth.error" class="auth-form__error" role="alert">{{ auth.error }}</p>
+      <UiButton type="submit" :loading="submitting || auth.loading" :disabled="!isValid || submitting" class="auth-form__submit">
+        ثبت‌نام
+      </UiButton>
+    </form>
+    <nav class="auth-form__links" aria-label="لینک‌های مرتبط">
+      <RouterLink to="/login">ورود</RouterLink>
+    </nav>
+  </AuthLayout>
 </template>
 
 <style scoped>
-.register-page {
-  max-width: 28rem;
-  margin-inline: auto;
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
 }
 
-.register-page__title {
-  margin-bottom: 1.5rem;
-  font-size: 1.25rem;
-  font-weight: 700;
-}
-
-.register-page__form > * + * {
-  margin-top: 1rem;
-}
-
-.register-page__error {
-  border-radius: 0.5rem;
-  padding: 0.5rem 0.75rem;
-  font-size: 0.875rem;
+.auth-form__error {
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
   background-color: var(--color-alert-error-bg);
   color: var(--color-alert-error-text);
 }
 
-.register-page__submit {
+.auth-form__submit {
   width: 100%;
 }
 
-.register-page__footer {
-  margin-top: 1rem;
+.auth-form__links {
+  margin-top: var(--space-6);
   text-align: center;
+  font-size: var(--text-sm);
 }
 
-.register-page__link {
-  display: block;
-  font-size: 0.875rem;
+.auth-form__links a {
   color: var(--color-primary);
 }
 </style>

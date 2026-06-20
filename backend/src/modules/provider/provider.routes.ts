@@ -31,6 +31,10 @@ export const providerDashboardRoutes = Router();
 providerDashboardRoutes.use(requireAuth, requireRole(Role.PROVIDER));
 
 providerDashboardRoutes.get("/profile", asyncHandler(providerController.getProfile));
+providerDashboardRoutes.get(
+  "/dashboard/overview",
+  asyncHandler(providerController.dashboardOverview),
+);
 providerDashboardRoutes.put(
   "/profile",
   validateBody(updateProviderProfileSchema),

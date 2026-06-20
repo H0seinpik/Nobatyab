@@ -2,6 +2,7 @@ import { ref, computed } from "vue";
 import type { ZodType } from "zod";
 import { useZodForm } from "./useZodForm";
 import { extractFieldErrors } from "@/utils/validation/zodHelpers";
+import { useToast } from "./useToast";
 
 export type CrudMode = "create" | "edit";
 
@@ -16,6 +17,7 @@ export interface UseCrudFormOptions<T extends Record<string, unknown>> {
 }
 
 export function useCrudForm<T extends Record<string, unknown>>(options: UseCrudFormOptions<T>) {
+  const toast = useToast();
   const isOpen = ref(false);
   const mode = ref<CrudMode>("create");
   const editingId = ref<string | null>(null);
@@ -93,12 +95,14 @@ export function useCrudForm<T extends Record<string, unknown>>(options: UseCrudF
         await options.update?.(editingId.value, data);
       }
       options.onSuccess?.();
+      toast.success(mode.value === "create" ? "با موفقیت ایجاد شد" : "با موفقیت به‌روزرسانی شد");
       isOpen.value = false;
       formError.value = null;
       formLoading.value = false;
       return true;
     } catch {
       formError.value = "عملیات ناموفق بود";
+      toast.error("عملیات ناموفق بود");
       return false;
     } finally {
       form.submitting.value = false;

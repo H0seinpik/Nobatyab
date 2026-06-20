@@ -22,6 +22,7 @@ import SkeletonForm from "@/components/ui/skeleton/SkeletonForm.vue";
 import ContentFade from "@/components/ui/ContentFade.vue";
 import AvatarUpload from "@/components/profile/AvatarUpload.vue";
 import AppointmentStatusBadge from "@/components/booking/AppointmentStatusBadge.vue";
+import UserDashboardStats from "@/components/dashboard/UserDashboardStats.vue";
 
 const auth = useAuthStore();
 const logout = useLogout();
@@ -88,6 +89,11 @@ const filteredAppointments = computed(() => {
     const providerName = apt.provider.user.fullName.toLowerCase();
     return serviceName.includes(q) || providerName.includes(q);
   });
+});
+
+const nextAppointmentAt = computed(() => {
+  if (!upcoming.value.length) return null;
+  return [...upcoming.value].sort((a, b) => a.startAt.localeCompare(b.startAt))[0]?.startAt ?? null;
 });
 
 function syncProfileAvatar(avatarUrl: string | null) {
@@ -177,6 +183,12 @@ async function changePassword() {
     </div>
 
     <ContentFade v-else class="user-dashboard-page__stack">
+      <UserDashboardStats
+        :upcoming-count="upcoming.length"
+        :completed-count="completed.length"
+        :next-appointment-at="nextAppointmentAt"
+      />
+
       <section>
         <h2 class="user-dashboard-page__section-title">اطلاعات پروفایل</h2>
         <UiCard>

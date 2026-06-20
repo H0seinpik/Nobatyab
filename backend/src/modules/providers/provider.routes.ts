@@ -3,11 +3,16 @@ import { z } from "zod";
 import { publicProviderController } from "./provider.controller.js";
 import { validateParams, validateQuery, asyncHandler } from "../../shared/middlewares/errorHandler.js";
 import { idSchema } from "../../shared/schemas/id.schema.js";
+import { reviewController } from "../reviews/review.controller.js";
+import { providerReviewsQuerySchema } from "../reviews/review.schema.js";
 
 const providerQuerySchema = z.object({
   serviceId: idSchema.optional(),
   categoryId: idSchema.optional(),
   q: z.string().optional(),
+  lat: z.coerce.number().optional(),
+  lng: z.coerce.number().optional(),
+  radiusKm: z.coerce.number().positive().optional(),
   page: z.string().optional(),
   limit: z.string().optional(),
 });
@@ -28,6 +33,17 @@ const providerAvailableDaysQuerySchema = z.object({
 export const providerRoutes = Router();
 
 providerRoutes.get("/", validateQuery(providerQuerySchema), asyncHandler(publicProviderController.list));
+providerRoutes.get(
+  "/:id/reviews",
+  validateParams(providerIdSchema),
+  validateQuery(providerReviewsQuerySchema),
+  asyncHandler(reviewController.listByProvider),
+);
+providerRoutes.get(
+  "/:id/rating-summary",
+  validateParams(providerIdSchema),
+  asyncHandler(reviewController.getSummary),
+);
 providerRoutes.get(
   "/:id/available-days",
   validateParams(providerIdSchema),

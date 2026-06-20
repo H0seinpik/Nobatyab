@@ -1,4 +1,8 @@
-import { AppointmentStatus, ServiceRequestStatus } from "@prisma/client";
+import {
+  AppointmentStatus,
+  PaymentTransactionStatus,
+  ServiceRequestStatus,
+} from "@prisma/client";
 import { prisma } from "../../config/database.js";
 import { ApiError, parsePagination, paginationMeta } from "../../shared/utils/apiError.js";
 import { timeToMinutes } from "../../shared/utils/datetime.js";
@@ -303,6 +307,57 @@ export class ProviderService {
 
     await this.repo.deleteProviderServiceRecord(id);
     return { deleted: true };
+  }
+
+  async getDashboardOverview(userId: string) {
+    const providerId = await this.getProviderProfileId(userId);
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayEnd = new Date(todayStart);
+    todayEnd.setDate(todayEnd.getDate() + 1);
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const [
+      todayAppointments,
+      pendingConfirmations,
+      completedThisMonth,
+      revenueResult,
+      activeServices,
+    ] = await Promise.all([
+      prisma.appointment.count({
+        where: {
+          providerId,
+          startAt: { gte: todayStart, lt: todayEnd },
+          status: { not: AppointmentStatus.CANCELLED },
+        },
+      }),
+      prisma.appointment.count({
+        where: { providerId, status: AppointmentStatus.PENDING },
+      }),
+      prisma.appointment.count({
+        where: {
+          providerId,
+          status: AppointmentStatus.COMPLETED,
+          startAt: { gte: monthStart },
+        },
+      }),
+      prisma.paymentTransaction.aggregate({
+        where: {
+          status: PaymentTransactionStatus.SUCCESS,
+          appointment: { providerId, startAt: { gte: monthStart } },
+        },
+        _sum: { amount: true },
+      }),
+      prisma.providerService.count({ where: { providerId, isActive: true } }),
+    ]);
+
+    return {
+      todayAppointments,
+      pendingConfirmations,
+      completedThisMonth,
+      revenueThisMonth: Number(revenueResult._sum.amount ?? 0),
+      activeServices,
+    };
   }
 }
 

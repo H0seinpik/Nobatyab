@@ -1,14 +1,18 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { useRoute, RouterLink } from "vue-router";
 import { apiGet, apiPost } from "@/services/api";
 import { formatJalaliDateTime } from "@/utils/datetime";
+import { useToast } from "@/composables/useToast";
 import UiCard from "@/components/ui/UiCard.vue";
 import UiButton from "@/components/ui/UiButton.vue";
 import UiAlert from "@/components/ui/UiAlert.vue";
+import EmptyState from "@/components/feedback/EmptyState.vue";
+import ReviewForm from "@/components/reviews/ReviewForm.vue";
 import AppointmentStatusBadge from "@/components/booking/AppointmentStatusBadge.vue";
 import SkeletonCard from "@/components/ui/skeleton/SkeletonCard.vue";
 import ContentFade from "@/components/ui/ContentFade.vue";
+import { Calendar } from "lucide-vue-next";
 
 interface Appointment {
   id: string;
@@ -21,7 +25,9 @@ interface Appointment {
 }
 
 const route = useRoute();
+const toast = useToast();
 const appointments = ref<Appointment[]>([]);
+const reviewedIds = ref<Set<string>>(new Set());
 const loading = ref(true);
 const loadError = ref<string | null>(null);
 
@@ -42,13 +48,27 @@ async function load() {
 }
 
 async function cancel(id: string) {
-  await apiPost(`/appointments/${id}/cancel`, { reason: "لغو توسط کاربر" });
-  await load();
+  try {
+    await apiPost(`/appointments/${id}/cancel`, { reason: "لغو توسط کاربر" });
+    toast.success("نوبت لغو شد");
+    await load();
+  } catch {
+    toast.error("لغو نوبت ناموفق بود");
+  }
 }
 
 async function pay(id: string) {
-  await apiPost(`/appointments/${id}/pay`);
-  await load();
+  try {
+    await apiPost(`/appointments/${id}/pay`);
+    toast.success("پرداخت با موفقیت انجام شد");
+    await load();
+  } catch {
+    toast.error("پرداخت ناموفق بود");
+  }
+}
+
+function onReviewSubmitted(id: string) {
+  reviewedIds.value.add(id);
 }
 
 onMounted(load);
@@ -56,7 +76,7 @@ onMounted(load);
 
 <template>
   <div class="my-appointments-page">
-    <h1 class="my-appointments-page__title">نوبت‌های من</h1>
+    <h1 class="heading-page">نوبت‌های من</h1>
 
     <UiAlert v-if="justBooked" variant="success" class="my-appointments-page__alert">
       نوبت شما با موفقیت ثبت شد.
@@ -68,14 +88,18 @@ onMounted(load);
       <SkeletonCard v-for="i in 3" :key="i" />
     </div>
 
-    <ContentFade v-else-if="!appointments.length">
-      <UiCard class="my-appointments-page__empty">
-        <p class="my-appointments-page__empty-text">نوبتی ثبت نشده است</p>
+    <EmptyState
+      v-else-if="!appointments.length"
+      :icon="Calendar"
+      title="نوبتی ثبت نشده است"
+      description="اولین نوبت خود را با رزرو هوشمند یا انتخاب ارائه‌دهنده ثبت کنید."
+    >
+      <template #action>
         <RouterLink to="/smart-booking">
           <UiButton type="button">رزرو هوشمند</UiButton>
         </RouterLink>
-      </UiCard>
-    </ContentFade>
+      </template>
+    </EmptyState>
 
     <ContentFade v-else>
       <div class="my-appointments-page__list">
@@ -106,6 +130,11 @@ onMounted(load);
               </UiButton>
             </div>
           </div>
+          <ReviewForm
+            v-if="apt.status === 'COMPLETED' && !reviewedIds.has(apt.id)"
+            :appointment-id="apt.id"
+            @submitted="onReviewSubmitted(apt.id)"
+          />
         </UiCard>
       </div>
     </ContentFade>
@@ -113,27 +142,14 @@ onMounted(load);
 </template>
 
 <style scoped>
-.my-appointments-page__title {
-  margin-bottom: 1.5rem;
-  font-size: 1.5rem;
-  font-weight: 700;
-}
-
 .my-appointments-page__alert {
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-4);
 }
 
-.my-appointments-page__list > * + * {
-  margin-top: 1rem;
-}
-
-.my-appointments-page__empty {
-  text-align: center;
-}
-
-.my-appointments-page__empty-text {
-  margin-bottom: 1rem;
-  color: var(--color-muted);
+.my-appointments-page__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
 }
 
 .my-appointments-page__item {
@@ -141,7 +157,7 @@ onMounted(load);
   flex-wrap: wrap;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 1rem;
+  gap: var(--space-4);
 }
 
 .my-appointments-page__item-title {
@@ -149,23 +165,23 @@ onMounted(load);
 }
 
 .my-appointments-page__item-provider {
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
   color: var(--color-muted);
 }
 
 .my-appointments-page__item-date {
-  margin-top: 0.5rem;
-  font-size: 0.875rem;
+  margin-top: var(--space-2);
+  font-size: var(--text-sm);
 }
 
 .my-appointments-page__badges {
   display: flex;
-  gap: 0.5rem;
-  margin-top: 0.5rem;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
 }
 
 .my-appointments-page__item-actions {
   display: flex;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 </style>

@@ -14,6 +14,8 @@ import {
   asyncHandler,
 } from "../../shared/middlewares/errorHandler.js";
 import { requireAuth, requireRole, optionalAuth } from "../../shared/middlewares/auth.js";
+import { reviewController } from "../reviews/review.controller.js";
+import { createReviewSchema } from "../reviews/review.schema.js";
 
 export const appointmentRoutes = Router();
 
@@ -56,4 +58,12 @@ appointmentRoutes.post(
   requireRole(Role.USER),
   validateParams(appointmentIdSchema),
   asyncHandler(appointmentController.pay),
+);
+appointmentRoutes.post(
+  "/:id/review",
+  requireAuth,
+  requireRole(Role.USER),
+  validateParams(appointmentIdSchema),
+  validateBody(createReviewSchema),
+  asyncHandler(reviewController.create),
 );

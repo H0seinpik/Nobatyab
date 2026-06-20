@@ -147,6 +147,10 @@ export class ProviderController {
       successResponse(await providerService.deleteProviderService(req.user!.sub, getParam(req.params.id))),
     );
   };
+
+  dashboardOverview = async (req: AuthRequest, res: Response) => {
+    res.json(successResponse(await providerService.getDashboardOverview(req.user!.sub)));
+  };
 }
 
 export const providerController = new ProviderController();
