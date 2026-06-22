@@ -1,4 +1,4 @@
-import { prisma } from "../../config/database.js";
+import { prisma, prismaTransactionOptions } from "../../config/database.js";
 import { getSmsProvider } from "../../integrations/sms/index.js";
 import { ApiError } from "../../shared/utils/apiError.js";
 import { formatLocalDate, getLocalDayOfWeek, localToUtc } from "../../shared/utils/datetime.js";
@@ -48,7 +48,7 @@ export class SmartBookingService {
 
     if (user.availabilities.length === 0) {
       throw ApiError.badRequest(
-        "Please set your availability first. Use PUT /api/v1/user/availability to configure your available times.",
+        "لطفاً ابتدا زمان‌های آزاد خود را تنظیم کنید.",
       );
     }
 
@@ -59,7 +59,7 @@ export class SmartBookingService {
     });
 
     if (providerServices.length === 0) {
-      throw ApiError.notFound("No providers found offering this service");
+      throw ApiError.notFound("ارائه‌دهنده‌ای برای این خدمت یافت نشد");
     }
 
     const providerServiceIds = providerServices.map((ps) => ps.id);
@@ -165,7 +165,8 @@ export class SmartBookingService {
 
     const requestKey = buildSmartBookingRequestKey(userId, input);
 
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(
+      async (tx) => {
       const replay = await findIdempotentAppointment(tx, requestKey);
       if (replay?.appointment) {
         return { appointment: replay.appointment, isReplay: true };
@@ -188,24 +189,24 @@ export class SmartBookingService {
 
       const providerIds = new Set(slots.map((s) => s.providerId));
       if (providerIds.size !== 1 || !providerIds.has(input.providerId)) {
-        throw ApiError.badRequest("All time slots must belong to the specified provider");
+        throw ApiError.badRequest("همه بازه‌های زمانی باید متعلق به ارائه‌دهنده مشخص‌شده باشند");
       }
 
       const providerService = await appointmentRepository.findProviderService(
         input.providerServiceId,
         input.providerId,
       );
-      if (!providerService) throw ApiError.notFound("Provider service not found");
+      if (!providerService) throw ApiError.notFound("خدمت ارائه‌دهنده یافت نشد");
 
       const slotsNeeded = providerService.duration / 30;
       if (slots.length !== slotsNeeded) {
         throw ApiError.badRequest(
-          `Expected ${slotsNeeded} consecutive slots for this service duration`,
+          `برای مدت زمان این خدمت به ${slotsNeeded} بازه زمانی متوالی نیاز است`,
         );
       }
 
       if (slots.some((s) => s.providerServiceId !== input.providerServiceId)) {
-        throw ApiError.badRequest("All time slots must belong to the specified service");
+        throw ApiError.badRequest("همه بازه‌های زمانی باید متعلق به خدمت مشخص‌شده باشند");
       }
 
       const matchingBlock = findConsecutiveSlots(slots, providerService.duration).find(
@@ -215,14 +216,14 @@ export class SmartBookingService {
       );
 
       if (!matchingBlock) {
-        throw ApiError.badRequest("Time slots must be consecutive");
+        throw ApiError.badRequest("بازه‌های زمانی باید پشت سر هم باشند");
       }
 
       if (
         user.availabilities.length > 0 &&
         !blockFitsUserAvailability(matchingBlock, user.availabilities, getDayOfWeek)
       ) {
-        throw ApiError.badRequest("Selected time is outside your availability");
+        throw ApiError.badRequest("زمان انتخاب‌شده خارج از دسترس‌پذیری شماست");
       }
 
       const dayHours = getActiveHoursForDay(
@@ -236,14 +237,14 @@ export class SmartBookingService {
           providerService.duration,
         )
       ) {
-        throw ApiError.badRequest("Appointment extends beyond provider working hours");
+        throw ApiError.badRequest("زمان نوبت خارج از ساعات کاری ارائه‌دهنده است");
       }
 
       const startAt = localToUtc(slots[0].date, slots[0].startTime);
       const endAt = localToUtc(slots[slots.length - 1].date, slots[slots.length - 1].endTime);
 
       if (startAt <= new Date()) {
-        throw ApiError.badRequest("Cannot book appointments in the past");
+        throw ApiError.badRequest("امکان رزرو زمان گذشته وجود ندارد");
       }
 
       await assertNoDuplicateBooking(tx, input.providerId, startAt, endAt);
@@ -270,7 +271,9 @@ export class SmartBookingService {
       } catch (error) {
         return handleBookingUniqueViolation(error, tx, requestKey, input.timeSlotIds);
       }
-    });
+    },
+    prismaTransactionOptions,
+    );
 
     const appointment = result.appointment;
     if (!appointment) throw duplicateBookingError();

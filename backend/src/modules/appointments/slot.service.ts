@@ -45,7 +45,9 @@ export class SlotService {
     horizonDays?: number;
   }) {
     const horizonDays = Math.min(60, Math.max(1, input.horizonDays ?? 30));
-    const startDate = input.from ?? formatLocalDate(new Date());
+    const todayLocal = formatLocalDate(new Date());
+    const requestedFrom = input.from ?? todayLocal;
+    const startDate = requestedFrom < todayLocal ? todayLocal : requestedFrom;
     const dates: string[] = [];
 
     for (let i = 0; i < horizonDays; i++) {
@@ -76,7 +78,7 @@ export class SlotService {
       },
     });
 
-    if (!provider) throw ApiError.notFound("Provider not found");
+    if (!provider) throw ApiError.notFound("ارائه‌دهنده یافت نشد");
 
     const providerService = await prisma.providerService.findFirst({
       where: {
@@ -88,7 +90,10 @@ export class SlotService {
       include: { workingHours: true },
     });
 
-    if (!providerService) throw ApiError.notFound("Provider service not found");
+    if (!providerService) throw ApiError.notFound("خدمت ارائه‌دهنده یافت نشد");
+
+    const todayLocal = formatLocalDate(new Date());
+    if (input.date < todayLocal) return [];
 
     const referenceDate = localToUtc(input.date, "12:00");
     const dayOfWeek = getLocalDayOfWeek(referenceDate);
@@ -99,7 +104,6 @@ export class SlotService {
     const slotStep = Math.max(provider.slotDurationMinutes, providerService.duration);
     const serviceDuration = providerService.duration;
     const now = new Date();
-    const todayLocal = formatLocalDate(now);
 
     const candidateSlots: { startAt: Date; endAt: Date; status: SlotStatus }[] = [];
 
@@ -136,19 +140,21 @@ export class SlotService {
       select: { startAt: true, endAt: true },
     });
 
-    return candidateSlots.map((slot) => {
-      const isBooked = appointments.some(
-        (appt) => appt.startAt < slot.endAt && appt.endAt > slot.startAt,
-      );
-      const status: SlotStatus =
-        isBooked && slot.status === "available" ? "booked" : slot.status;
+    return candidateSlots
+      .map((slot) => {
+        const isBooked = appointments.some(
+          (appt) => appt.startAt < slot.endAt && appt.endAt > slot.startAt,
+        );
+        const status: SlotStatus =
+          isBooked && slot.status === "available" ? "booked" : slot.status;
 
-      return {
-        startAt: slot.startAt.toISOString(),
-        endAt: slot.endAt.toISOString(),
-        status,
-      };
-    });
+        return {
+          startAt: slot.startAt.toISOString(),
+          endAt: slot.endAt.toISOString(),
+          status,
+        };
+      })
+      .filter((slot) => slot.status !== "past");
   }
 }
 

@@ -16,37 +16,14 @@ import type {
   BookingSuggestion,
 } from "@/types/smartBooking";
 import axios from "axios";
+import { isAppointmentInPast } from "@/utils/datetime";
+import { getApiErrorMessage } from "@/utils/apiError";
 
 /** 1=availability, 2=service, 3=preferences, 4=suggestions */
 export const STEP_AVAILABILITY = 1;
 export const STEP_SERVICE = 2;
 export const STEP_PREFERENCES = 3;
 export const STEP_SUGGESTIONS = 4;
-
-function parseApiError(e: unknown, fallback = "خطا در انجام عملیات"): string {
-  if (!axios.isAxiosError(e)) return fallback;
-
-  const err = e.response?.data?.error;
-  const msg = err?.message as string | undefined;
-
-  if (msg?.toLowerCase().includes("availability")) {
-    return "لطفاً ابتدا زمان‌های آزاد خود را تنظیم کنید";
-  }
-
-  const fieldErrors = err?.details?.fieldErrors as Record<string, string[]> | undefined;
-  if (fieldErrors) {
-    const first = Object.values(fieldErrors).flat()[0];
-    if (first) {
-      const lower = first.toLowerCase();
-      if (lower.includes("cuid") || lower.includes("uuid")) {
-        return "شناسه خدمت نامعتبر است. لطفاً دوباره خدمت را انتخاب کنید.";
-      }
-      return first;
-    }
-  }
-
-  return msg ?? fallback;
-}
 
 function isValidSuggestion(s: EnrichedSuggestion | null): s is EnrichedSuggestion {
   return !!(
@@ -206,7 +183,7 @@ export const useSmartBookingStore = defineStore("smartBooking", () => {
 
       step.value = STEP_SUGGESTIONS;
     } catch (e: unknown) {
-      const message = parseApiError(e, "خطا در دریافت پیشنهادها");
+      const message = getApiErrorMessage(e, "خطا در دریافت پیشنهادها");
       error.value = message;
       if (message.includes("زمان‌های آزاد")) {
         step.value = STEP_AVAILABILITY;
@@ -242,6 +219,13 @@ export const useSmartBookingStore = defineStore("smartBooking", () => {
       return "error";
     }
 
+    if (isAppointmentInPast(suggestion.startTime)) {
+      confirmError.value = "امکان رزرو زمان گذشته وجود ندارد. لطفاً پیشنهاد دیگری انتخاب کنید.";
+      clearSelectedSuggestion();
+      await fetchSuggestions();
+      return "error";
+    }
+
     confirming.value = true;
     confirmError.value = null;
 
@@ -254,16 +238,15 @@ export const useSmartBookingStore = defineStore("smartBooking", () => {
       return "ok";
     } catch (e: unknown) {
       if (axios.isAxiosError(e) && e.response?.status === 409) {
-        const msg = (e.response?.data?.error?.message as string | undefined)?.toLowerCase() ?? "";
         clearSelectedSuggestion();
-        error.value =
-          msg.includes("already booked") || msg.includes("no longer available")
-            ? "این زمان قبلاً رزرو شده است. لطفاً پیشنهاد دیگری انتخاب کنید."
-            : "این زمان دیگر در دسترس نیست. لطفاً پیشنهاد دیگری انتخاب کنید.";
+        error.value = getApiErrorMessage(
+          e,
+          "این زمان دیگر در دسترس نیست. لطفاً پیشنهاد دیگری انتخاب کنید.",
+        );
         await fetchSuggestions();
         return "conflict";
       }
-      confirmError.value = parseApiError(e, "خطا در ثبت نوبت. لطفاً دوباره تلاش کنید");
+      confirmError.value = getApiErrorMessage(e, "خطا در ثبت نوبت. لطفاً دوباره تلاش کنید");
       return "error";
     } finally {
       confirming.value = false;

@@ -3,12 +3,13 @@ import {
   PaymentStatus,
   Role,
 } from "@prisma/client";
-import { prisma } from "../../config/database.js";
+import { prisma, prismaTransactionOptions } from "../../config/database.js";
 import { getPaymentProvider } from "../../integrations/payment/index.js";
 import { getSmsProvider } from "../../integrations/sms/index.js";
 import { ApiError, parsePagination, paginationMeta } from "../../shared/utils/apiError.js";
 import type { AccessTokenPayload } from "../../shared/utils/jwt.js";
 import { appointmentRepository } from "./appointment.repository.js";
+import { computeUserAppointmentActions } from "./appointmentActions.js";
 import { buildAppointmentRequestKey } from "./bookingGuard.js";
 import {
   appointmentFitsWorkingHoursAt,
@@ -36,29 +37,29 @@ export class AppointmentService {
 
   async book(input: BookInput, user?: AccessTokenPayload): Promise<BookingTransactionResult> {
     if (!user && (!input.guestFullName || !input.guestPhone)) {
-      throw ApiError.badRequest("Guest bookings require guestFullName and guestPhone");
+      throw ApiError.badRequest("رزرو مهمان نیاز به نام و شماره تماس دارد");
     }
 
     const provider = await this.repo.findProvider(input.providerId);
-    if (!provider) throw ApiError.notFound("Provider not available for booking");
+    if (!provider) throw ApiError.notFound("ارائه‌دهنده برای رزرو در دسترس نیست");
 
     const providerService = await this.repo.findProviderService(
       input.providerServiceId,
       input.providerId,
     );
-    if (!providerService) throw ApiError.notFound("Provider service not found");
+    if (!providerService) throw ApiError.notFound("خدمت ارائه‌دهنده یافت نشد");
 
     const startAt = new Date(input.startAt);
     const endAt = new Date(startAt.getTime() + providerService.duration * 60_000);
 
     if (startAt <= new Date()) {
-      throw ApiError.badRequest("Cannot book appointments in the past");
+      throw ApiError.badRequest("امکان رزرو زمان گذشته وجود ندارد");
     }
 
     const dayOfWeek = getLocalDayOfWeek(startAt);
     const dayHours = getActiveHoursForDay(providerService.workingHours, dayOfWeek);
     if (!appointmentFitsWorkingHoursAt(dayHours, startAt, providerService.duration)) {
-      throw ApiError.badRequest("Appointment extends beyond provider working hours");
+      throw ApiError.badRequest("زمان نوبت خارج از ساعات کاری ارائه‌دهنده است");
     }
 
     const requestKey = buildAppointmentRequestKey(user?.sub, {
@@ -68,34 +69,37 @@ export class AppointmentService {
       guestPhone: input.guestPhone,
     });
 
-    const result = await prisma.$transaction(async (tx) => {
-      const replay = await findIdempotentAppointment(tx, requestKey);
-      if (replay?.appointment) {
-        return { appointment: replay.appointment, isReplay: true };
-      }
+    const result = await prisma.$transaction(
+      async (tx) => {
+        const replay = await findIdempotentAppointment(tx, requestKey);
+        if (replay?.appointment) {
+          return { appointment: replay.appointment, isReplay: true };
+        }
 
-      await assertNoDuplicateBooking(tx, input.providerId, startAt, endAt);
+        await assertNoDuplicateBooking(tx, input.providerId, startAt, endAt);
 
-      try {
-        const created = await createAppointmentRecord(tx, {
-          providerId: input.providerId,
-          providerServiceId: input.providerServiceId,
-          userId: user?.sub,
-          guestFullName: user ? undefined : input.guestFullName,
-          guestPhone: user ? undefined : input.guestPhone,
-          guestEmail: user ? undefined : input.guestEmail,
-          startAt,
-          endAt,
-          notes: input.notes,
-        });
+        try {
+          const created = await createAppointmentRecord(tx, {
+            providerId: input.providerId,
+            providerServiceId: input.providerServiceId,
+            userId: user?.sub,
+            guestFullName: user ? undefined : input.guestFullName,
+            guestPhone: user ? undefined : input.guestPhone,
+            guestEmail: user ? undefined : input.guestEmail,
+            startAt,
+            endAt,
+            notes: input.notes,
+          });
 
-        await recordBookingIdempotency(tx, requestKey, user?.sub, created.id);
-        return { appointment: created, isReplay: false };
-      } catch (error) {
-        const resolved = await handleBookingUniqueViolation(error, tx, requestKey, []);
-        return resolved;
-      }
-    });
+          await recordBookingIdempotency(tx, requestKey, user?.sub, created.id);
+          return { appointment: created, isReplay: false };
+        } catch (error) {
+          const resolved = await handleBookingUniqueViolation(error, tx, requestKey, []);
+          return resolved;
+        }
+      },
+      prismaTransactionOptions,
+    );
 
     const appointment = result.appointment;
     if (!appointment) throw duplicateBookingError();
@@ -129,12 +133,22 @@ export class AppointmentService {
     const { page, limit, skip } = parsePagination(query);
     const status = query.status as AppointmentStatus | undefined;
     const [items, total] = await this.repo.findByUser(userId, { status, skip, take: limit });
-    return { items, meta: paginationMeta(page, limit, total) };
+    const enriched = await Promise.all(
+      items.map(async (item) => {
+        const policy = await this.repo.findCancellationPolicy(item.providerId);
+        return {
+          ...item,
+          cancellationPolicy: policy,
+          actions: computeUserAppointmentActions(item, policy),
+        };
+      }),
+    );
+    return { items: enriched, meta: paginationMeta(page, limit, total) };
   }
 
   async getById(id: string, user?: AccessTokenPayload) {
     const appointment = await this.repo.findById(id);
-    if (!appointment) throw ApiError.notFound("Appointment not found");
+    if (!appointment) throw ApiError.notFound("نوبت یافت نشد");
 
     if (!user) throw ApiError.unauthorized();
 
@@ -157,7 +171,7 @@ export class AppointmentService {
 
   async cancel(id: string, input: CancelInput, user: AccessTokenPayload) {
     const appointment = await this.repo.findById(id);
-    if (!appointment) throw ApiError.notFound("Appointment not found");
+    if (!appointment) throw ApiError.notFound("نوبت یافت نشد");
 
     let providerProfileId: string | null = null;
     if (user.role === Role.PROVIDER) {
@@ -173,14 +187,14 @@ export class AppointmentService {
     if (!allowed) throw ApiError.forbidden();
 
     if (appointment.status === AppointmentStatus.CANCELLED) {
-      throw ApiError.badRequest("Appointment is already cancelled");
+      throw ApiError.badRequest("این نوبت قبلاً لغو شده است");
     }
     if (appointment.status === AppointmentStatus.COMPLETED) {
-      throw ApiError.badRequest("Completed appointments cannot be cancelled");
+      throw ApiError.badRequest("نوبت‌های انجام‌شده قابل لغو نیستند");
     }
 
     if (appointment.startAt <= new Date()) {
-      throw ApiError.badRequest("Cannot cancel past appointments");
+      throw ApiError.badRequest("امکان لغو نوبت گذشته وجود ندارد");
     }
 
     if (user.role === Role.USER) {
@@ -190,16 +204,19 @@ export class AppointmentService {
 
       if (new Date() > deadline) {
         throw ApiError.forbidden(
-          `Cancellation must be at least ${minHoursBefore} hours before the appointment`,
+          `لغو باید حداقل ${minHoursBefore} ساعت قبل از نوبت انجام شود`,
         );
       }
     }
 
-    let cancelled = await prisma.$transaction(async (tx) => {
-      const updated = await this.repo.cancel(id, input.reason, tx);
-      await releaseAppointmentTimeSlots(tx, id);
-      return updated;
-    });
+    let cancelled = await prisma.$transaction(
+      async (tx) => {
+        const updated = await this.repo.cancel(id, input.reason, tx);
+        await releaseAppointmentTimeSlots(tx, id);
+        return updated;
+      },
+      prismaTransactionOptions,
+    );
 
     if (cancelled.paymentStatus === PaymentStatus.PAID) {
       const latestTx = await prisma.paymentTransaction.findFirst({
@@ -236,13 +253,13 @@ export class AppointmentService {
 
   async pay(id: string, user: AccessTokenPayload) {
     const appointment = await this.repo.findById(id);
-    if (!appointment) throw ApiError.notFound("Appointment not found");
+    if (!appointment) throw ApiError.notFound("نوبت یافت نشد");
     if (appointment.userId !== user.sub) throw ApiError.forbidden();
     if (appointment.status === AppointmentStatus.CANCELLED) {
-      throw ApiError.badRequest("Cannot pay for a cancelled appointment");
+      throw ApiError.badRequest("نوبت لغو شده قابل پرداخت نیست");
     }
     if (appointment.paymentStatus === PaymentStatus.PAID) {
-      throw ApiError.badRequest("Appointment is already paid");
+      throw ApiError.badRequest("این نوبت قبلاً پرداخت شده است");
     }
 
     const amount = Number(appointment.providerService.price);
@@ -254,7 +271,7 @@ export class AppointmentService {
 
     if (!result.success) {
       await this.repo.updatePaymentStatus(id, PaymentStatus.FAILED);
-      throw ApiError.badRequest(result.errorMessage ?? "Payment failed");
+      throw ApiError.badRequest(result.errorMessage ?? "پرداخت ناموفق بود");
     }
 
     return this.repo.updatePaymentStatus(id, PaymentStatus.PAID);

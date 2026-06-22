@@ -59,7 +59,7 @@ defineExpose({
     </div>
     <UiNumberInput
       :model-value="values.slotDurationMinutes as number | undefined"
-      label="مدت اسلات (دقیقه)"
+      label="مدت بازه زمانی (دقیقه)"
       required
       :min="5"
       :max="240"

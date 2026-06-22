@@ -128,6 +128,7 @@ watch([search, serviceId, sortBy], load);
           :avg-rating="p.avgRating"
           :review-count="p.reviewCount"
           :distance-km="p.distanceKm"
+          :to="serviceId ? `/providers/${p.id}?serviceId=${serviceId}` : undefined"
         />
       </div>
     </ContentFade>

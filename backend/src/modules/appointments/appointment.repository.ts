@@ -73,7 +73,12 @@ export class AppointmentRepository {
         take: filters.take,
         orderBy: { startAt: "desc" },
         include: {
-          provider: { include: { user: { select: { fullName: true } } } },
+          provider: {
+            include: {
+              user: { select: { fullName: true } },
+              cancellationPolicy: true,
+            },
+          },
           providerService: { include: { service: true } },
         },
       }),

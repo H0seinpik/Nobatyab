@@ -14,7 +14,7 @@ export interface CategoryRow {
 
 export const categoriesColumns: DataTableColumn[] = [
   { key: "name", label: "نام", sortable: true, filterable: true, filterType: "text" },
-  { key: "slug", label: "Slug", sortable: true },
+  { key: "slug", label: "نامک", sortable: true },
   {
     key: "services",
     label: "خدمات",

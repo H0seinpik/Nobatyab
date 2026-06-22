@@ -1,22 +1,41 @@
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import jalaliPlugin from "jalali-plugin-dayjs";
+import { normalizeDigits, toPersianDigits } from "@/utils/numbers";
 
 dayjs.extend(relativeTime);
 dayjs.extend(jalaliPlugin);
 
 const APP_TIMEZONE = import.meta.env.VITE_APP_TIMEZONE || "Asia/Tehran";
 
+const persianMonthYearFormatter = new Intl.DateTimeFormat("fa-IR", {
+  calendar: "persian",
+  month: "long",
+  year: "numeric",
+  timeZone: APP_TIMEZONE,
+});
+
+const persianMonthFormatter = new Intl.DateTimeFormat("fa-IR", {
+  calendar: "persian",
+  month: "long",
+  timeZone: APP_TIMEZONE,
+});
+
 export function toJalali(date: string | Date) {
   return dayjs(date).calendar("jalali");
 }
 
-export function formatJalaliDate(date: string | Date) {
+/** ASCII Jalali YYYY/MM/DD for internal model values and API conversion */
+function formatJalaliDateAscii(date: string | Date): string {
   return dayjs(date).calendar("jalali").format("YYYY/MM/DD");
 }
 
+export function formatJalaliDate(date: string | Date) {
+  return toPersianDigits(formatJalaliDateAscii(date));
+}
+
 export function formatJalaliDateTime(date: string | Date) {
-  return dayjs(date).calendar("jalali").format("YYYY/MM/DD HH:mm");
+  return toPersianDigits(dayjs(date).calendar("jalali").format("YYYY/MM/DD HH:mm"));
 }
 
 export function formatTime(date: string | Date) {
@@ -28,10 +47,22 @@ export function formatTime(date: string | Date) {
   }).format(new Date(date));
 }
 
+/** True when the appointment start time is now or earlier. */
+export function isAppointmentInPast(startAt: string | Date): boolean {
+  return new Date(startAt).getTime() <= Date.now();
+}
+
 /** Convert Jalali YYYY/MM/DD to Gregorian YYYY-MM-DD for API */
 export function jalaliToGregorianDate(jalaliDate: string): string {
-  const normalized = jalaliDate.replace(/\//g, "-");
-  return dayjs(normalized, { jalali: true } as never).format("YYYY-MM-DD");
+  const normalized = normalizeDigits(jalaliDate).replace(/\//g, "-");
+  const parsed = dayjs(normalized, { jalali: true } as never);
+  if (!parsed.isValid()) return "";
+  const gregorian = parsed.format("YYYY-MM-DD");
+  return gregorian === "Invalid Date" ? "" : gregorian;
+}
+
+export function isValidJalaliDate(jalaliDate: string): boolean {
+  return jalaliToGregorianDate(jalaliDate) !== "";
 }
 
 export function todayGregorian(): string {
@@ -39,11 +70,11 @@ export function todayGregorian(): string {
 }
 
 export function todayJalali(): string {
-  return dayjs().calendar("jalali").format("YYYY/MM/DD");
+  return formatJalaliDate(new Date());
 }
 
 export function formatJalaliRelative(date: string | Date) {
-  return dayjs(date).calendar("jalali").fromNow();
+  return toPersianDigits(dayjs(date).calendar("jalali").fromNow());
 }
 
 /** Normalize Jalali input (1403/01/15 or 1403-01-15) to ISO date string for API filters */
@@ -59,7 +90,7 @@ export function isoToJalali(iso: string | undefined | null): string {
 }
 
 export function gregorianToJalaliDate(date: string): string {
-  return formatJalaliDate(date);
+  return formatJalaliDateAscii(date);
 }
 
 /** Gregorian YYYY-MM-DD — Saturday on or before the given date (Iranian week start). */
@@ -80,15 +111,35 @@ export function getWeekDayRange(weekStart: string): string[] {
 
 /** Jalali day-of-month for calendar cell display. */
 export function gregorianToJalaliDayNumber(date: string): string {
-  return dayjs(date).calendar("jalali").format("D");
+  return toPersianDigits(dayjs(date).calendar("jalali").format("D"));
+}
+
+/** Earliest allowed week start (Saturday of current week). */
+export function minAllowedWeekStart(): string {
+  return startOfWeekSaturday(todayGregorian());
+}
+
+/** Clamp week start so past weeks cannot be navigated to. */
+export function clampWeekStart(weekStart: string): string {
+  const min = minAllowedWeekStart();
+  return weekStart < min ? min : weekStart;
+}
+
+function formatPersianMonthYear(date: string): string {
+  return toPersianDigits(persianMonthYearFormatter.format(new Date(`${date}T12:00:00`)));
+}
+
+function formatPersianMonth(date: string): string {
+  return toPersianDigits(persianMonthFormatter.format(new Date(`${date}T12:00:00`)));
 }
 
 /** Jalali month/year label for week navigation header. */
 export function formatJalaliWeekLabel(weekStart: string): string {
-  const start = dayjs(weekStart).calendar("jalali");
-  const end = dayjs(addGregorianDays(weekStart, 6)).calendar("jalali");
-  if (start.format("YYYY/MM") === end.format("YYYY/MM")) {
-    return start.format("MMMM YYYY");
+  const weekEnd = addGregorianDays(weekStart, 6);
+  const startMonth = formatPersianMonth(weekStart);
+  const endMonth = formatPersianMonth(weekEnd);
+  if (startMonth === endMonth) {
+    return formatPersianMonthYear(weekStart);
   }
-  return `${start.format("MMMM")} – ${end.format("MMMM YYYY")}`;
+  return `${startMonth} – ${formatPersianMonthYear(weekEnd)}`;
 }

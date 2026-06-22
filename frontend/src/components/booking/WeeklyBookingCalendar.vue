@@ -14,6 +14,7 @@ const props = defineProps<{
   availableDates?: string[];
   loading?: boolean;
   weekStart: string;
+  minWeekStart?: string;
 }>();
 
 const emit = defineEmits<{
@@ -37,12 +38,18 @@ const weekDays = computed(() => {
 
 const weekLabel = computed(() => formatJalaliWeekLabel(props.weekStart));
 
+const canGoPrevious = computed(() => {
+  if (!props.minWeekStart) return true;
+  return props.weekStart > props.minWeekStart;
+});
+
 function selectDay(day: (typeof weekDays.value)[number]) {
   if (!day.isAvailable || props.loading) return;
   emit("update:modelValue", day.jalaliDate);
 }
 
 function goToPreviousWeek() {
+  if (!canGoPrevious.value) return;
   emit("week-change", addGregorianDays(props.weekStart, -7));
 }
 
@@ -58,10 +65,10 @@ function goToNextWeek() {
         type="button"
         class="weekly-booking-calendar__nav"
         aria-label="هفته قبل"
-        :disabled="loading"
+        :disabled="loading || !canGoPrevious"
         @click="goToPreviousWeek"
       >
-        ‹
+        ›
       </button>
       <span class="weekly-booking-calendar__label">{{ weekLabel }}</span>
       <button
@@ -71,7 +78,7 @@ function goToNextWeek() {
         :disabled="loading"
         @click="goToNextWeek"
       >
-        ›
+        ‹
       </button>
     </div>
 

@@ -34,7 +34,8 @@ function onInput(e: Event) {
   <input
     type="text"
     class="form-control form-control--xs"
-    placeholder="1404/03/15"
+    placeholder="۱۴۰۴/۰۳/۱۵"
+    dir="ltr"
     :value="display"
     @input="onInput"
   />

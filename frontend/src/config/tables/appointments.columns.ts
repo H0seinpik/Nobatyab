@@ -63,7 +63,7 @@ export const appointmentsColumns: DataTableColumn[] = [
       { label: "در انتظار", value: "PENDING" },
       { label: "پرداخت شده", value: "PAID" },
       { label: "ناموفق", value: "FAILED" },
-      { label: "بازگشت", value: "REFUNDED" },
+      { label: "بازگشت داده شده", value: "REFUNDED" },
     ],
   },
 ];

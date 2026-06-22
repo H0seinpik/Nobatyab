@@ -17,14 +17,18 @@ import ContentFade from "@/components/ui/ContentFade.vue";
 const route = useRoute();
 const auth = useAuthStore();
 const providerId = route.params.id as string;
+const catalogServiceId = (route.query.serviceId as string) || undefined;
 
 const {
   provider,
   reviews,
   selectedServiceId,
+  selectedProviderService,
+  isServiceLocked,
   jalaliDate,
   weekStart,
-  slots,
+  minWeekStart,
+  visibleSlots,
   availableDates,
   selectedSlot,
   loading,
@@ -45,7 +49,7 @@ const {
   onSlotSelect,
   book,
   init,
-} = useProviderBooking(providerId);
+} = useProviderBooking(providerId, catalogServiceId);
 
 onMounted(() => {
   void init();
@@ -77,26 +81,36 @@ onMounted(() => {
       <UiCard class="provider-detail-page__booking">
         <BookingStepHeader :step="bookingStep" />
 
-        <label class="field">
+        <div class="field">
           <span class="field__label">انتخاب خدمت</span>
-          <select v-model="selectedServiceId" class="form-control">
+          <div
+            v-if="isServiceLocked && selectedProviderService"
+            class="provider-detail-page__service-locked"
+          >
+            <span class="provider-detail-page__service-name">{{ selectedProviderService.service.name }}</span>
+            <span class="provider-detail-page__service-meta">
+              {{ selectedProviderService.duration }} دقیقه — {{ formatPersianNumber(Number(selectedProviderService.price)) }} تومان
+            </span>
+          </div>
+          <select v-else v-model="selectedServiceId" class="form-control">
             <option v-for="ps in provider.providerServices" :key="ps.id" :value="ps.id">
               {{ ps.service.name }} — {{ ps.duration }} دقیقه — {{ formatPersianNumber(Number(ps.price)) }} تومان
             </option>
           </select>
-        </label>
+        </div>
 
         <WeeklyBookingCalendar
           v-model="jalaliDate"
           :available-dates="availableDates"
           :loading="daysLoading"
           :week-start="weekStart"
+          :min-week-start="minWeekStart"
           class="provider-detail-page__calendar"
           @week-change="onWeekChange"
         />
 
         <TimeSlotGrid
-          :slots="slots"
+          :slots="visibleSlots"
           :loading="slotsLoading"
           :has-date-selected="!!jalaliDate"
           :error-message="slotsError || undefined"
@@ -158,6 +172,25 @@ onMounted(() => {
   .provider-detail-page__booking {
     order: 0;
   }
+}
+
+.provider-detail-page__service-locked {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface-muted, rgba(0, 0, 0, 0.02));
+}
+
+.provider-detail-page__service-name {
+  font-weight: 600;
+}
+
+.provider-detail-page__service-meta {
+  font-size: var(--text-sm);
+  color: var(--color-muted);
 }
 
 .provider-detail-page__calendar,

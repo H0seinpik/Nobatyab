@@ -176,7 +176,7 @@ export async function resolveDuplicateBooking(
 }
 
 export function duplicateBookingError(): ApiError {
-  return ApiError.conflict("Time slot already booked");
+  return ApiError.conflict("این زمان قبلاً رزرو شده است");
 }
 
 export async function handleBookingUniqueViolation(

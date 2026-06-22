@@ -23,7 +23,7 @@ defineProps<{
     />
     <UiInput
       :model-value="String(values.slug ?? '')"
-      label="Slug"
+      label="نامک"
       required
       :error="fieldError('slug')"
       @update:model-value="(v) => (values.slug = v)"

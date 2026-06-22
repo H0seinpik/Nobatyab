@@ -43,7 +43,7 @@ const props = defineProps<{
       <p v-if="bio" class="provider-profile-sidebar__bio">{{ bio }}</p>
       <UiBadge>
         <Clock :size="14" />
-        {{ slotDurationMinutes }} دقیقه هر اسلات
+        {{ slotDurationMinutes }} دقیقه هر بازه زمانی
       </UiBadge>
       <div v-if="cancellationPolicy" class="provider-profile-sidebar__policy">
         <Shield :size="16" />

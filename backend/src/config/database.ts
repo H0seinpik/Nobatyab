@@ -1,6 +1,15 @@
 import { PrismaClient } from "@prisma/client";
 import { env } from "./env.js";
 
+/** Interactive transaction limits for booking flows (default Prisma timeout is 5s). */
+export const prismaTransactionOptions: {
+  maxWait: number;
+  timeout: number;
+} = {
+  maxWait: 10_000,
+  timeout: 15_000,
+};
+
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
 export const prisma =

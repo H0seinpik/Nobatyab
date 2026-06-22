@@ -3,12 +3,21 @@ import { ApiError } from "../../shared/utils/apiError.js";
 import { authRepository } from "../auth/auth.repository.js";
 import { authService } from "../auth/auth.service.js";
 import { appointmentService } from "../appointments/appointment.service.js";
+import { computeUserAppointmentActions } from "../appointments/appointmentActions.js";
 import type { ChangePasswordInput, UpdateUserProfileInput } from "./user.schema.js";
 
-const COMPLETED_STATUSES = new Set<AppointmentStatus>([
-  AppointmentStatus.COMPLETED,
-  AppointmentStatus.CANCELLED,
-]);
+type AppointmentListItem = Awaited<
+  ReturnType<typeof appointmentService.getMyAppointments>
+>["items"][number];
+
+function enrichAppointment(item: AppointmentListItem) {
+  const policy = item.cancellationPolicy ?? item.provider.cancellationPolicy;
+  return {
+    ...item,
+    cancellationPolicy: policy,
+    actions: computeUserAppointmentActions(item, policy),
+  };
+}
 
 function mapUserProfile(user: {
   id: string;
@@ -102,18 +111,22 @@ export class UserService {
       limit: query.limit ?? "100",
     });
 
-    const upcoming: typeof result.items = [];
-    const completed: typeof result.items = [];
+    const upcoming: ReturnType<typeof enrichAppointment>[] = [];
+    const completed: ReturnType<typeof enrichAppointment>[] = [];
+    const cancelled: ReturnType<typeof enrichAppointment>[] = [];
 
     for (const item of result.items) {
-      if (COMPLETED_STATUSES.has(item.status)) {
-        completed.push(item);
+      const enriched = enrichAppointment(item);
+      if (item.status === AppointmentStatus.CANCELLED) {
+        cancelled.push(enriched);
+      } else if (item.status === AppointmentStatus.COMPLETED) {
+        completed.push(enriched);
       } else {
-        upcoming.push(item);
+        upcoming.push(enriched);
       }
     }
 
-    return { upcoming, completed, meta: result.meta };
+    return { upcoming, completed, cancelled, meta: result.meta };
   }
 
   async changePassword(userId: string, input: ChangePasswordInput) {

@@ -2,6 +2,7 @@ import { ref, computed } from "vue";
 import type { ZodType } from "zod";
 import { useZodForm } from "./useZodForm";
 import { extractFieldErrors } from "@/utils/validation/zodHelpers";
+import { getApiErrorMessage } from "@/utils/apiError";
 import { useToast } from "./useToast";
 
 export type CrudMode = "create" | "edit";
@@ -100,9 +101,10 @@ export function useCrudForm<T extends Record<string, unknown>>(options: UseCrudF
       formError.value = null;
       formLoading.value = false;
       return true;
-    } catch {
-      formError.value = "عملیات ناموفق بود";
-      toast.error("عملیات ناموفق بود");
+    } catch (e: unknown) {
+      const message = getApiErrorMessage(e, "عملیات ناموفق بود");
+      formError.value = message;
+      toast.error(message);
       return false;
     } finally {
       form.submitting.value = false;

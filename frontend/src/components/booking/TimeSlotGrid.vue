@@ -30,7 +30,7 @@ defineEmits<{ select: [slot: SlotDto] }>();
     <EmptyState
       v-else-if="!slots.length"
       :icon="CalendarX"
-      title="اسلاتی موجود نیست"
+      title="بازه زمانی موجود نیست"
       description="برای این تاریخ زمان خالی وجود ندارد. تاریخ دیگری انتخاب کنید."
     />
     <div v-else class="time-slot-grid__slots">

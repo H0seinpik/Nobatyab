@@ -12,6 +12,7 @@ const logout = useLogout();
   <div class="auth-controls">
     <template v-if="auth.isAuthenticated">
       <RouterLink to="/profile" class="auth-controls__link">پروفایل</RouterLink>
+      <RouterLink to="/appointments" class="auth-controls__link">نوبت‌های من</RouterLink>
       <RouterLink
         v-if="auth.user?.role === 'ADMIN'"
         to="/admin"

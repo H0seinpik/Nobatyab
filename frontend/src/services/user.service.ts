@@ -14,19 +14,38 @@ export interface UserProfile {
   email: string;
 }
 
+export interface AppointmentAction {
+  enabled: boolean;
+  reason?: string;
+}
+
+export interface UserAppointmentActions {
+  cancel: AppointmentAction;
+  pay: AppointmentAction;
+  review: AppointmentAction;
+  viewDetails: AppointmentAction;
+}
+
 export interface DashboardAppointment {
   id: string;
   startAt: string;
   endAt: string;
   status: string;
   paymentStatus: string;
-  providerService: { service: { name: string } };
-  provider: { user: { fullName: string } };
+  notes?: string | null;
+  providerService: { price?: string; service: { name: string } };
+  provider: {
+    user: { fullName: string };
+    cancellationPolicy?: { minHoursBefore: number; description: string | null } | null;
+  };
+  cancellationPolicy?: { minHoursBefore: number; description: string | null } | null;
+  actions?: UserAppointmentActions;
 }
 
 export interface UserAppointmentsResponse {
   upcoming: DashboardAppointment[];
   completed: DashboardAppointment[];
+  cancelled: DashboardAppointment[];
 }
 
 export type UpdateUserProfilePayload = {

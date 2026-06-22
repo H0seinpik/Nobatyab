@@ -48,7 +48,7 @@ export function errorHandler(err: unknown, _req: Request, res: Response, _next: 
       success: false,
       error: {
         code: "VALIDATION_ERROR",
-        message: "Validation failed",
+        message: "خطا در اعتبارسنجی داده‌ها",
         details: err.flatten(),
       },
     });
@@ -57,7 +57,7 @@ export function errorHandler(err: unknown, _req: Request, res: Response, _next: 
   console.error(err);
   return res.status(500).json({
     success: false,
-    error: { code: "INTERNAL_ERROR", message: "Internal server error" },
+    error: { code: "INTERNAL_ERROR", message: "خطای داخلی سرور" },
   });
 }
 
@@ -72,6 +72,6 @@ export function asyncHandler(
 export function notFoundHandler(_req: Request, res: Response) {
   res.status(404).json({
     success: false,
-    error: { code: "NOT_FOUND", message: "Route not found" },
+    error: { code: "NOT_FOUND", message: "مسیر یافت نشد" },
   });
 }

@@ -123,7 +123,7 @@ function textFilterValue(key: string): string {
 
 .data-table-head__cell {
   padding: 0.75rem 1rem;
-  text-align: right;
+  text-align: start;
   font-weight: 500;
   color: var(--color-muted);
 }

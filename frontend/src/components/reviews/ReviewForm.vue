@@ -4,6 +4,7 @@ import UiButton from "@/components/ui/UiButton.vue";
 import UiInput from "@/components/ui/UiInput.vue";
 import { submitReview } from "@/services/review.service";
 import { useToast } from "@/composables/useToast";
+import { getApiErrorMessage } from "@/utils/apiError";
 
 const props = defineProps<{
   appointmentId: string;
@@ -25,8 +26,8 @@ async function submit() {
     });
     toast.success("نظر شما ثبت شد");
     emit("submitted");
-  } catch {
-    toast.error("ثبت نظر ناموفق بود");
+  } catch (e: unknown) {
+    toast.error(getApiErrorMessage(e, "ثبت نظر ناموفق بود"));
   } finally {
     submitting.value = false;
   }

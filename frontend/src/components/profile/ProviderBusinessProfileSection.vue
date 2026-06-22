@@ -117,7 +117,7 @@ watch([isOpen, formLoading], async ([open, loadingForm]) => {
           <dd class="provider-profile__value--left">{{ profileSummary.address ?? "—" }}</dd>
         </div>
         <div class="provider-profile__row">
-          <dt class="provider-profile__term">مدت اسلات</dt>
+          <dt class="provider-profile__term">مدت بازه زمانی</dt>
           <dd>{{ profileSummary.slotDurationMinutes }} دقیقه</dd>
         </div>
         <div class="provider-profile__row">
@@ -199,7 +199,8 @@ watch([isOpen, formLoading], async ([open, loadingForm]) => {
 }
 
 .provider-profile__value--left {
-  text-align: left;
+  direction: ltr;
+  text-align: start;
 }
 
 .provider-profile__map {

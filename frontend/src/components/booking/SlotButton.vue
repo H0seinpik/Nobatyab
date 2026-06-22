@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { formatTime } from "@/utils/datetime";
+import { formatTime, isAppointmentInPast } from "@/utils/datetime";
 import type { SlotDto, SlotStatus } from "@/types/booking";
 
 const props = defineProps<{
@@ -17,7 +17,9 @@ const statusLabels: Record<SlotStatus, string> = {
   inactive: "غیرفعال",
 };
 
-const isDisabled = computed(() => (props.slot.status ?? "available") !== "available");
+const isDisabled = computed(
+  () => isAppointmentInPast(props.slot.startAt) || (props.slot.status ?? "available") !== "available",
+);
 </script>
 
 <template>

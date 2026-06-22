@@ -188,7 +188,8 @@ defineExpose({ reload: load });
 }
 
 .account-profile__value--left {
-  text-align: left;
+  direction: ltr;
+  text-align: start;
 }
 
 .account-profile__alert {
