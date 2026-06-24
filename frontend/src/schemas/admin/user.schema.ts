@@ -1,4 +1,9 @@
 import { z } from "zod";
+import {
+  adminPromoteProviderInitialValues,
+  providerOnboardingFormFields,
+  refineProviderOnboarding,
+} from "./promoteProvider.schema";
 
 function isValidNationalCode(code: string): boolean {
   if (!/^\d{10}$/.test(code)) return false;
@@ -46,11 +51,14 @@ const userFieldsSchema = z.object({
   phone: optionalPhone,
   role: z.enum(["USER", "PROVIDER", "ADMIN"]),
   isActive: z.boolean(),
+  ...providerOnboardingFormFields,
 });
 
-export const createUserSchema = userFieldsSchema.extend({
-  password: z.string().min(8, "رمز عبور باید حداقل ۸ کاراکتر باشد"),
-});
+export const createUserSchema = userFieldsSchema
+  .extend({
+    password: z.string().min(8, "رمز عبور باید حداقل ۸ کاراکتر باشد"),
+  })
+  .superRefine(refineProviderOnboarding);
 
 export const updateUserSchema = userFieldsSchema
   .partial()
@@ -61,7 +69,23 @@ export const updateUserSchema = userFieldsSchema
       .optional()
       .or(z.literal(""))
       .transform((v) => v || undefined),
-  });
+  })
+  .superRefine(refineProviderOnboarding);
 
 export type CreateUserForm = z.infer<typeof createUserSchema>;
 export type UpdateUserForm = z.infer<typeof updateUserSchema>;
+
+export const userFormInitialValues = {
+  email: "",
+  password: "",
+  firstName: "",
+  lastName: "",
+  nationalCode: "",
+  age: undefined as number | undefined,
+  address: "",
+  phone: "",
+  role: "USER" as const,
+  isActive: true,
+  hasProviderProfile: false,
+  ...adminPromoteProviderInitialValues,
+};

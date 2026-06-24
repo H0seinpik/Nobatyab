@@ -8,6 +8,9 @@ import {
   ServiceRequestStatus,
   ProviderRequestStatus,
   SmsStatus,
+  type User,
+  type ProviderService,
+  type ProviderProfile,
 } from "@prisma/client";
 import bcrypt from "bcrypt";
 import { timeSlotSyncService } from "../src/modules/smart-booking/timeSlotSync.service.js";
@@ -20,7 +23,30 @@ async function hashPassword(password: string) {
   return bcrypt.hash(password, 12);
 }
 
-const DEFAULT_PASSWORD = "Demo123!";
+const USER_PASSWORD = "User123!";
+const PROVIDER_PASSWORD = "Provider123!";
+const ADMIN_PASSWORD = "Admin123!";
+const DEMO_PASSWORD = "Demo123!";
+
+/** Provider working days (0=Sun … 6=Sat); Friday (5) is off */
+const PROVIDER_WORKING_DAYS = [0, 1, 2, 3, 4, 6];
+
+function isProviderWorkingDay(date: Date): boolean {
+  return PROVIDER_WORKING_DAYS.includes(date.getDay());
+}
+
+/** Next calendar date on a provider working day, at the given local hour */
+function nextWorkingDate(daysAhead: number, hour = 10, minute = 0): Date {
+  const d = new Date();
+  d.setDate(d.getDate() + daysAhead);
+  d.setHours(hour, minute, 0, 0);
+  let guard = 0;
+  while (!isProviderWorkingDay(d) && guard < 14) {
+    d.setDate(d.getDate() + 1);
+    guard++;
+  }
+  return d;
+}
 
 /** Tehran-area coordinates for map / distance demos */
 const TEHRAN_LOCATIONS = [
@@ -113,7 +139,17 @@ async function upsertProvider(input: {
     },
   });
 
-  const providerServices = [];
+  await prisma.cancellationPolicy.upsert({
+    where: { providerId: profile.id },
+    update: { minHoursBefore: 24, description: "لغو حداقل ۲۴ ساعت قبل از نوبت" },
+    create: {
+      providerId: profile.id,
+      minHoursBefore: 24,
+      description: "لغو حداقل ۲۴ ساعت قبل از نوبت",
+    },
+  });
+
+  const providerServices: ProviderService[] = [];
   for (const serviceId of input.serviceIds) {
     const service = await prisma.service.findUnique({ where: { id: serviceId } });
     if (!service) continue;
@@ -144,6 +180,12 @@ async function upsertProvider(input: {
   return { user, profile, providerServices };
 }
 
+type SeededProvider = {
+  user: User;
+  profile: ProviderProfile;
+  providerServices: ProviderService[];
+};
+
 async function recalculateProviderRatings(providerId: string) {
   const agg = await prisma.review.aggregate({
     where: { providerId },
@@ -163,12 +205,20 @@ async function recalculateProviderRatings(providerId: string) {
 async function main() {
   console.log("Seeding database with rich demo data...");
 
-  const adminPassword = await hashPassword("Admin123!");
-  const demoPassword = await hashPassword(DEFAULT_PASSWORD);
+  const adminPassword = await hashPassword(ADMIN_PASSWORD);
+  const userPassword = await hashPassword(USER_PASSWORD);
+  const providerPassword = await hashPassword(PROVIDER_PASSWORD);
+  const demoPassword = await hashPassword(DEMO_PASSWORD);
 
   const admin = await prisma.user.upsert({
     where: { email: "admin@nobatyab.com" },
-    update: {},
+    update: {
+      fullName: "مدیر سیستم",
+      phone: "09120000001",
+      role: Role.ADMIN,
+      isActive: true,
+      passwordHash: adminPassword,
+    },
     create: {
       email: "admin@nobatyab.com",
       passwordHash: adminPassword,
@@ -179,38 +229,24 @@ async function main() {
   });
 
   // ── Categories ──────────────────────────────────────────────────────────────
-  const categories = await Promise.all([
-    prisma.category.upsert({
-      where: { slug: "medical" },
-      update: {},
-      create: { name: "پزشکی", slug: "medical", description: "ویزیت، مشاوره و خدمات پزشکی" },
-    }),
-    prisma.category.upsert({
-      where: { slug: "beauty" },
-      update: {},
-      create: { name: "زیبایی", slug: "beauty", description: "مراقبت پوست، مو و زیبایی" },
-    }),
-    prisma.category.upsert({
-      where: { slug: "dental" },
-      update: {},
-      create: { name: "دندانپزشکی", slug: "dental", description: "خدمات دندانپزشکی و ارتودنسی" },
-    }),
-    prisma.category.upsert({
-      where: { slug: "fitness" },
-      update: {},
-      create: { name: "ورزش و سلامت", slug: "fitness", description: "مربیگری، فیزیوتراپی و تناسب اندام" },
-    }),
-    prisma.category.upsert({
-      where: { slug: "therapy" },
-      update: {},
-      create: { name: "روانشناسی", slug: "therapy", description: "مشاوره فردی و خانوادگی" },
-    }),
-    prisma.category.upsert({
-      where: { slug: "nutrition" },
-      update: {},
-      create: { name: "تغذیه", slug: "nutrition", description: "برنامه غذایی و مشاوره تغذیه" },
-    }),
-  ]);
+  const categoryDefs = [
+    { slug: "medical", name: "پزشکی", description: "ویزیت، مشاوره و خدمات پزشکی" },
+    { slug: "beauty", name: "زیبایی", description: "مراقبت پوست، مو و زیبایی" },
+    { slug: "dental", name: "دندانپزشکی", description: "خدمات دندانپزشکی و ارتودنسی" },
+    { slug: "fitness", name: "ورزش و سلامت", description: "مربیگری، فیزیوتراپی و تناسب اندام" },
+    { slug: "therapy", name: "روانشناسی", description: "مشاوره فردی و خانوادگی" },
+    { slug: "nutrition", name: "تغذیه", description: "برنامه غذایی و مشاوره تغذیه" },
+  ];
+
+  const categories = await Promise.all(
+    categoryDefs.map((c) =>
+      prisma.category.upsert({
+        where: { slug: c.slug },
+        update: { name: c.name, description: c.description, isActive: true },
+        create: { name: c.name, slug: c.slug, description: c.description },
+      }),
+    ),
+  );
 
   const [medical, beauty, dental, fitness, therapy, nutrition] = categories;
 
@@ -219,15 +255,15 @@ async function main() {
     { id: "seed-service-consultation", categoryId: medical.id, name: "مشاوره پزشکی", description: "ویزیت و مشاوره اولیه", duration: 30, price: 500000 },
     { id: "seed-service-skincare", categoryId: beauty.id, name: "مراقبت پوست", description: "فیشیال و مراقبت تخصصی پوست", duration: 60, price: 800000 },
     { id: "seed-service-laser", categoryId: beauty.id, name: "لیزر موهای زائد", description: "جلسه لیزر با دستگاه پیشرفته", duration: 30, price: 600000 },
-    { id: "seed-svc-checkup", categoryId: medical.id, name: "چکاپ سلامت", description: "معاینه دوره‌ای کامل", duration: 45, price: 750000 },
+    { id: "seed-svc-checkup", categoryId: medical.id, name: "چکاپ سلامت", description: "معاینه دوره‌ای کامل", duration: 60, price: 750000 },
     { id: "seed-svc-makeup", categoryId: beauty.id, name: "آرایش عروس", description: "آرایش حرفه‌ای مراسم", duration: 120, price: 2500000 },
-    { id: "seed-svc-haircut", categoryId: beauty.id, name: "کوتاهی و استایل مو", description: "خدمات آرایشگاه", duration: 45, price: 350000 },
+    { id: "seed-svc-haircut", categoryId: beauty.id, name: "کوتاهی و استایل مو", description: "خدمات آرایشگاه", duration: 60, price: 350000 },
     { id: "seed-svc-dental-clean", categoryId: dental.id, name: "جرم‌گیری دندان", description: "پاکسازی و جرم‌گیری", duration: 30, price: 450000 },
-    { id: "seed-svc-ortho", categoryId: dental.id, name: "مشاوره ارتودنسی", description: "بررسی و طرح درمان", duration: 45, price: 550000 },
-    { id: "seed-svc-physio", categoryId: fitness.id, name: "فیزیوتراپی", description: "جلسه درمان و توانبخشی", duration: 45, price: 400000 },
+    { id: "seed-svc-ortho", categoryId: dental.id, name: "مشاوره ارتودنسی", description: "بررسی و طرح درمان", duration: 60, price: 550000 },
+    { id: "seed-svc-physio", categoryId: fitness.id, name: "فیزیوتراپی", description: "جلسه درمان و توانبخشی", duration: 60, price: 400000 },
     { id: "seed-svc-yoga", categoryId: fitness.id, name: "کلاس یوگا", description: "جلسه خصوصی یوگا", duration: 60, price: 300000 },
-    { id: "seed-svc-therapy", categoryId: therapy.id, name: "مشاوره روانشناسی", description: "جلسه ۵۰ دقیقه‌ای فردی", duration: 50, price: 700000 },
-    { id: "seed-svc-nutrition", categoryId: nutrition.id, name: "برنامه غذایی", description: "طراحی رژیم اختصاصی", duration: 40, price: 450000 },
+    { id: "seed-svc-therapy", categoryId: therapy.id, name: "مشاوره روانشناسی", description: "جلسه ۶۰ دقیقه‌ای فردی", duration: 60, price: 700000 },
+    { id: "seed-svc-nutrition", categoryId: nutrition.id, name: "برنامه غذایی", description: "طراحی رژیم اختصاصی", duration: 60, price: 450000 },
   ];
 
   for (const s of serviceDefs) {
@@ -257,33 +293,136 @@ async function main() {
     data: { isActive: false },
   });
 
+  // Align linked provider services with updated catalog durations/prices
+  const activeServices = await prisma.service.findMany({ where: { isActive: true } });
+  for (const svc of activeServices) {
+    await prisma.providerService.updateMany({
+      where: { serviceId: svc.id },
+      data: { duration: svc.defaultDuration, price: svc.basePrice },
+    });
+  }
+
   // ── Regular users ───────────────────────────────────────────────────────────
   const userDefs = [
-    { email: "user@nobatyab.com", fullName: "کاربر نمونه", phone: "09120000003", lat: 35.6892, lng: 51.389 },
-    { email: "sara@demo.com", fullName: "سارا محمدی", phone: "09121111111", lat: 35.721, lng: 51.334 },
-    { email: "ali@demo.com", fullName: "علی رضایی", phone: "09122222222", lat: 35.758, lng: 51.41 },
-    { email: "maryam@demo.com", fullName: "مریم کریمی", phone: "09123333333", lat: 35.668, lng: 51.35 },
-    { email: "reza@demo.com", fullName: "رضا حسینی", phone: "09124444444", lat: 35.732, lng: 51.472 },
-    { email: "zahra@demo.com", fullName: "زهرا نوری", phone: "09125555555", lat: 35.655, lng: 51.43 },
-    { email: "pending.provider@demo.com", fullName: "امیر درخواست‌دهنده", phone: "09126666666", lat: 35.7, lng: 51.4 },
+    {
+      email: "user@nobatyab.com",
+      fullName: "کاربر نمونه",
+      firstName: "کاربر",
+      lastName: "نمونه",
+      phone: "09120000003",
+      address: "تهران، میدان ونک، پلاک ۱۲",
+      age: 28,
+      lat: 35.6892,
+      lng: 51.389,
+      passwordHash: userPassword,
+    },
+    {
+      email: "sara@demo.com",
+      fullName: "سارا محمدی",
+      firstName: "سارا",
+      lastName: "محمدی",
+      nationalCode: "1270139576",
+      phone: "09121111111",
+      address: "تهران، سعادت‌آباد، بلوار دریا",
+      age: 32,
+      lat: 35.721,
+      lng: 51.334,
+      passwordHash: demoPassword,
+    },
+    {
+      email: "ali@demo.com",
+      fullName: "علی رضایی",
+      firstName: "علی",
+      lastName: "رضایی",
+      nationalCode: "4429535396",
+      phone: "09122222222",
+      address: "تهران، تجریش، خیابان ولیعصر",
+      age: 35,
+      lat: 35.758,
+      lng: 51.41,
+      passwordHash: demoPassword,
+    },
+    {
+      email: "maryam@demo.com",
+      fullName: "مریم کریمی",
+      firstName: "مریم",
+      lastName: "کریمی",
+      nationalCode: "4075627896",
+      phone: "09123333333",
+      address: "تهران، شهرک غرب، فاز ۳",
+      age: 29,
+      lat: 35.668,
+      lng: 51.35,
+      passwordHash: demoPassword,
+    },
+    {
+      email: "reza@demo.com",
+      fullName: "رضا حسینی",
+      firstName: "رضا",
+      lastName: "حسینی",
+      nationalCode: "0066749867",
+      phone: "09124444444",
+      address: "تهران، نارمک، میدان هفت‌حوض",
+      age: 41,
+      lat: 35.732,
+      lng: 51.472,
+      passwordHash: demoPassword,
+    },
+    {
+      email: "zahra@demo.com",
+      fullName: "زهرا نوری",
+      firstName: "زهرا",
+      lastName: "نوری",
+      nationalCode: "2280181835",
+      phone: "09125555555",
+      address: "تهران، پونک، بلوار میرزابابایی",
+      age: 26,
+      lat: 35.655,
+      lng: 51.43,
+      passwordHash: demoPassword,
+    },
+    {
+      email: "pending.provider@demo.com",
+      fullName: "امیر درخواست‌دهنده",
+      firstName: "امیر",
+      lastName: "درخواست‌دهنده",
+      nationalCode: "2980396461",
+      phone: "09126666666",
+      address: "تهران، ولیعصر، کوچه گلستان",
+      age: 34,
+      lat: 35.7,
+      lng: 51.4,
+      passwordHash: demoPassword,
+    },
   ];
 
-  const users = [];
+  const users: User[] = [];
   for (const u of userDefs) {
     const user = await prisma.user.upsert({
       where: { email: u.email },
       update: {
         fullName: u.fullName,
+        firstName: u.firstName,
+        lastName: u.lastName,
+        nationalCode: u.nationalCode,
+        age: u.age,
         phone: u.phone,
+        address: u.address,
         latitude: u.lat,
         longitude: u.lng,
         isActive: true,
+        passwordHash: u.passwordHash,
       },
       create: {
         email: u.email,
-        passwordHash: demoPassword,
+        passwordHash: u.passwordHash,
         fullName: u.fullName,
+        firstName: u.firstName,
+        lastName: u.lastName,
+        nationalCode: u.nationalCode,
+        age: u.age,
         phone: u.phone,
+        address: u.address,
         role: Role.USER,
         latitude: u.lat,
         longitude: u.lng,
@@ -400,10 +539,10 @@ async function main() {
     },
   ];
 
-  const providers = [];
+  const providers: SeededProvider[] = [];
   for (const p of providerDefs) {
     const passwordHash =
-      p.email === "provider@nobatyab.com" ? await hashPassword("Provider123!") : demoPassword;
+      p.email === "provider@nobatyab.com" ? providerPassword : demoPassword;
     providers.push(await upsertProvider({ ...p, passwordHash }));
   }
 
@@ -414,7 +553,7 @@ async function main() {
   let appointmentCounter = 0;
   let paymentCounter = 0;
 
-  for (let monthOffset = 0; monthOffset < 6; monthOffset++) {
+  for (let monthOffset = 1; monthOffset < 6; monthOffset++) {
     const baseDate = new Date();
     baseDate.setMonth(baseDate.getMonth() - monthOffset);
     baseDate.setDate(1);
@@ -437,7 +576,7 @@ async function main() {
 
       const endAt = new Date(startAt.getTime() + ps.duration * 60 * 1000);
       const statusIdx = i % statuses.length;
-      const status = monthOffset === 0 && i < 3 ? "PENDING" : statuses[statusIdx];
+      const status = statuses[statusIdx];
       const paymentStatus =
         status === "COMPLETED" ? "PAID" : status === "CANCELLED" ? "PENDING" : paymentStatuses[statusIdx];
 
@@ -494,13 +633,8 @@ async function main() {
     }
   }
 
-  // Upcoming appointments for test user (my appointments page)
-  const upcomingDates = [2, 5, 10].map((daysAhead) => {
-    const d = new Date();
-    d.setDate(d.getDate() + daysAhead);
-    d.setHours(10, 0, 0, 0);
-    return d;
-  });
+  // Upcoming appointments for test user (my appointments page) — on provider working days
+  const upcomingDates = [3, 7, 14].map((daysAhead) => nextWorkingDate(daysAhead, 10, 0));
 
   for (let i = 0; i < upcomingDates.length; i++) {
     const { profile, providerServices } = providers[i];
@@ -510,7 +644,12 @@ async function main() {
 
     await prisma.appointment.upsert({
       where: { id: `seed-upcoming-${i + 1}` },
-      update: {},
+      update: {
+        startAt,
+        endAt,
+        status: i === 0 ? "CONFIRMED" : "PENDING",
+        paymentStatus: "PENDING",
+      },
       create: {
         id: `seed-upcoming-${i + 1}`,
         providerId: profile.id,
@@ -535,8 +674,8 @@ async function main() {
       providerId: reviewDemoProvider.profile.id,
       providerServiceId: reviewDemoPs.id,
       userId: testUser.id,
-      startAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
-      endAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000 + 30 * 60 * 1000),
+      startAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
+      endAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000 + reviewDemoPs.duration * 60 * 1000),
       status: "COMPLETED",
       paymentStatus: "PAID",
     },
@@ -545,19 +684,28 @@ async function main() {
   await prisma.review.deleteMany({ where: { appointmentId: completedNoReview.id } });
 
   // Guest appointment
+  const guestStartAt = nextWorkingDate(7, 11, 0);
   const guestProvider = providers[1];
+  const guestPs = guestProvider.providerServices[0];
   await prisma.appointment.upsert({
     where: { id: "seed-appt-guest" },
-    update: {},
+    update: {
+      startAt: guestStartAt,
+      endAt: new Date(guestStartAt.getTime() + guestPs.duration * 60 * 1000),
+      status: "CONFIRMED",
+      paymentStatus: "PENDING",
+      guestFullName: "مهمان نوبتی",
+      guestPhone: "09127777777",
+    },
     create: {
       id: "seed-appt-guest",
       providerId: guestProvider.profile.id,
-      providerServiceId: guestProvider.providerServices[0].id,
+      providerServiceId: guestPs.id,
       guestFullName: "مهمان نوبتی",
       guestPhone: "09127777777",
-      guestEmail: "guest@demo.com",
-      startAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-      endAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000 + 30 * 60 * 1000),
+      guestEmail: "mehman@demo.com",
+      startAt: guestStartAt,
+      endAt: new Date(guestStartAt.getTime() + guestPs.duration * 60 * 1000),
       status: "CONFIRMED",
       paymentStatus: "PENDING",
     },
@@ -568,9 +716,9 @@ async function main() {
     await recalculateProviderRatings(profile.id);
   }
 
-  // ── Time slots for booking / hero preview ───────────────────────────────────
-  const featuredProviderIds = providers.slice(0, 3).map((p) => p.profile.id);
-  await timeSlotSyncService.syncForProviders(featuredProviderIds, 14);
+  // ── Time slots for booking / hero preview (all providers) ───────────────────
+  const allProviderIds = providers.map((p) => p.profile.id);
+  await timeSlotSyncService.syncForProviders(allProviderIds, 14);
 
   // ── SMS notification history ────────────────────────────────────────────────
   const smsTemplates = [
@@ -616,23 +764,50 @@ async function main() {
   const pendingProviderUser = users.find((u) => u.email === "pending.provider@demo.com")!;
   await prisma.providerRequest.upsert({
     where: { id: "seed-provider-request-1" },
-    update: { status: ProviderRequestStatus.PENDING },
+    update: {
+      status: ProviderRequestStatus.PENDING,
+      categoryId: nutrition.id,
+      proposedCategoryName: null,
+      proposedCategoryDescription: null,
+      proposedServiceName: "مشاوره تغذیه",
+      proposedServiceDescription: "جلسه مشاوره و برنامه غذایی",
+      proposedServicePrice: 450000,
+      proposedServiceDuration: 60,
+    },
     create: {
       id: "seed-provider-request-1",
       userId: pendingProviderUser.id,
       status: ProviderRequestStatus.PENDING,
       note: "علاقه‌مند به ارائه خدمات مشاوره تغذیه هستم",
+      categoryId: nutrition.id,
+      proposedServiceName: "مشاوره تغذیه",
+      proposedServiceDescription: "جلسه مشاوره و برنامه غذایی",
+      proposedServicePrice: 450000,
+      proposedServiceDuration: 60,
     },
   });
 
   await prisma.providerRequest.upsert({
     where: { id: "seed-provider-request-2" },
-    update: {},
+    update: {
+      proposedCategoryName: "یوگا",
+      proposedCategoryDescription: "کلاس‌های یوگا و مدیتیشن",
+      proposedServiceName: "کلاس یوگا خصوصی",
+      proposedServiceDescription: "جلسه ۶۰ دقیقه‌ای یوگا",
+      proposedServicePrice: 350000,
+      proposedServiceDuration: 60,
+    },
     create: {
       id: "seed-provider-request-2",
       userId: users[3].id,
       status: ProviderRequestStatus.PENDING,
       note: "درخواست فعالیت به عنوان مربی یوگا",
+      proposedCategoryName: "یوگا",
+      proposedCategoryDescription: "کلاس‌های یوگا و مدیتیشن",
+      proposedServiceName: "کلاس یوگا خصوصی",
+      proposedServiceDescription: "جلسه ۶۰ دقیقه‌ای یوگا",
+      proposedServicePrice: 350000,
+      proposedServiceDuration: 60,
     },
   });
 
@@ -654,16 +829,47 @@ async function main() {
 
   await prisma.serviceRequest.upsert({
     where: { id: "seed-service-request-2" },
-    update: {},
+    update: {
+      status: ServiceRequestStatus.PENDING,
+      proposedName: "جوانسازی با RF",
+      proposedDescription: "درمان افتادگی پوست با دستگاه رادیوفرکانسی",
+      proposedPrice: 1200000,
+      proposedDuration: 60,
+    },
     create: {
       id: "seed-service-request-2",
       providerId: providers[7].profile.id,
       requestedById: providers[7].user.id,
       proposedName: "جوانسازی با RF",
-      proposedDescription: "درمان افتادگی پوست",
+      proposedDescription: "درمان افتادگی پوست با دستگاه رادیوفرکانسی",
       proposedPrice: 1200000,
-      proposedDuration: 45,
+      proposedDuration: 60,
       status: ServiceRequestStatus.PENDING,
+    },
+  });
+
+  await prisma.providerRequest.upsert({
+    where: { id: "seed-provider-request-rejected" },
+    update: {
+      status: ProviderRequestStatus.REJECTED,
+      adminNote: "مدارک تخصصی ناقص بود",
+      proposedServiceName: "ماساژ درمانی",
+      proposedServiceDescription: "جلسه ماساژ ورزشی ۶۰ دقیقه‌ای",
+      proposedServicePrice: 500000,
+      proposedServiceDuration: 60,
+    },
+    create: {
+      id: "seed-provider-request-rejected",
+      userId: users[4].id,
+      status: ProviderRequestStatus.REJECTED,
+      note: "درخواست فعالیت به عنوان ماساژور",
+      adminNote: "مدارک تخصصی ناقص بود",
+      proposedCategoryName: "ماساژ و اسپا",
+      proposedCategoryDescription: "خدمات ماساژ درمانی و ریلکسیشن",
+      proposedServiceName: "ماساژ درمانی",
+      proposedServiceDescription: "جلسه ماساژ ورزشی ۶۰ دقیقه‌ای",
+      proposedServicePrice: 500000,
+      proposedServiceDuration: 60,
     },
   });
 
@@ -704,10 +910,10 @@ async function main() {
 
   console.log("\nSeed completed successfully!\n");
   console.log("Accounts:");
-  console.log("  Admin:    admin@nobatyab.com / Admin123!");
-  console.log("  Provider: provider@nobatyab.com / Provider123!");
-  console.log("  User:     user@nobatyab.com / User123!");
-  console.log(`  Other users & providers: *@demo.com / ${DEFAULT_PASSWORD}`);
+  console.log(`  Admin:    admin@nobatyab.com / ${ADMIN_PASSWORD}`);
+  console.log(`  Provider: provider@nobatyab.com / ${PROVIDER_PASSWORD}`);
+  console.log(`  User:     user@nobatyab.com / ${USER_PASSWORD}`);
+  console.log(`  Other demo accounts: *@demo.com / ${DEMO_PASSWORD}`);
   console.log("\nDemo data:");
   console.log(`  ${stats.users} users, ${stats.providers} providers, ${stats.services} services`);
   console.log(`  ${stats.appointments} appointments, ${stats.reviews} reviews, ${stats.payments} payments`);

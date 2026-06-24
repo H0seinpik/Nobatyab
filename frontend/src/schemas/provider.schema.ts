@@ -50,10 +50,12 @@ export const serviceRequestFormSchema = z
         path: ["proposedName"],
       });
     }
-    if (data.proposedPrice === undefined || data.proposedPrice < 0) {
+    if (data.proposedPrice === undefined || data.proposedPrice < 0 || data.proposedPrice > 99_999_999) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "قیمت الزامی است",
+        message: data.proposedPrice !== undefined && data.proposedPrice > 99_999_999
+          ? "قیمت بیش از حد مجاز است"
+          : "قیمت الزامی است",
         path: ["proposedPrice"],
       });
     }
@@ -72,6 +74,8 @@ export const serviceRequestFormSchema = z
     }
   });
 
+const MAX_PRICE = 99_999_999;
+
 export const providerServiceFormSchema = z.object({
   name: z.string().min(2, "نام حداقل ۲ کاراکتر"),
   duration: z.coerce
@@ -79,7 +83,10 @@ export const providerServiceFormSchema = z.object({
     .int()
     .min(30, "حداقل ۳۰ دقیقه")
     .refine((d) => d % 30 === 0, "مدت باید مضرب ۳۰ باشد"),
-  price: z.coerce.number().min(0, "قیمت نامعتبر"),
+  price: z.coerce
+    .number()
+    .min(0, "قیمت نامعتبر")
+    .max(MAX_PRICE, "قیمت بیش از حد مجاز است"),
   description: z.string().max(500).optional().or(z.literal("")),
 });
 

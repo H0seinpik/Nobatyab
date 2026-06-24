@@ -35,10 +35,26 @@ export class ProviderRequestService {
       throw ApiError.conflict("You already have a pending provider request");
     }
 
+    if (input.categoryId) {
+      const category = await prisma.category.findFirst({
+        where: { id: input.categoryId, isActive: true },
+      });
+      if (!category) {
+        throw ApiError.notFound("Category not found");
+      }
+    }
+
     try {
       return await this.repo.create({
         userId,
         note: input.note,
+        categoryId: input.categoryId,
+        proposedCategoryName: input.proposedCategoryName,
+        proposedCategoryDescription: input.proposedCategoryDescription,
+        proposedServiceName: input.proposedServiceName,
+        proposedServiceDescription: input.proposedServiceDescription,
+        proposedServicePrice: input.proposedServicePrice,
+        proposedServiceDuration: input.proposedServiceDuration,
       });
     } catch (error) {
       if (isUniqueConstraintError(error)) {
@@ -95,14 +111,53 @@ export class ProviderRequestService {
     }
 
     const updated = await prisma.$transaction(async (tx) => {
+      let categoryId = request.categoryId;
+      let createdCategoryId: string | null = null;
+
+      if (!categoryId) {
+        if (!request.proposedCategoryName) {
+          throw ApiError.badRequest("Provider request is missing category information");
+        }
+
+        const categoryName = input.categoryName ?? request.proposedCategoryName;
+        const categorySlug = input.categorySlug;
+        if (!categoryName || !categorySlug) {
+          throw ApiError.badRequest("categoryName and categorySlug are required when approving a new category proposal");
+        }
+
+        let category;
+        try {
+          category = await tx.category.create({
+            data: {
+              name: categoryName,
+              slug: categorySlug,
+              description: input.categoryDescription ?? request.proposedCategoryDescription ?? undefined,
+            },
+          });
+        } catch (error) {
+          if (isUniqueConstraintError(error)) {
+            throw ApiError.conflict("Category slug already exists");
+          }
+          throw error;
+        }
+
+        categoryId = category.id;
+        createdCategoryId = category.id;
+      }
+
+      if (!request.proposedServiceName || request.proposedServicePrice === null || !request.proposedServiceDuration) {
+        throw ApiError.badRequest("Provider request is missing proposed service fields");
+      }
+
       const user = await tx.user.findUnique({
         where: { id: request.userId },
         include: { providerProfile: true },
       });
       if (!user) throw ApiError.notFound("User not found");
 
-      if (!user.providerProfile) {
-        await tx.providerProfile.create({ data: { userId: request.userId } });
+      let providerProfile = user.providerProfile;
+      if (!providerProfile) {
+        providerProfile = await tx.providerProfile.create({ data: { userId: request.userId } });
       }
 
       await tx.user.update({
@@ -110,14 +165,38 @@ export class ProviderRequestService {
         data: { role: Role.PROVIDER },
       });
 
+      const service = await tx.service.create({
+        data: {
+          categoryId: categoryId!,
+          name: request.proposedServiceName,
+          description: request.proposedServiceDescription ?? undefined,
+          defaultDuration: request.proposedServiceDuration,
+          basePrice: request.proposedServicePrice,
+        },
+      });
+
+      await tx.providerService.create({
+        data: {
+          providerId: providerProfile.id,
+          serviceId: service.id,
+          price: request.proposedServicePrice,
+          duration: request.proposedServiceDuration,
+        },
+      });
+
       return tx.providerRequest.update({
         where: { id },
         data: {
           status: ProviderRequestStatus.APPROVED,
           adminNote: input.adminNote,
+          createdCategoryId,
+          createdServiceId: service.id,
         },
         include: {
           user: { select: { id: true, fullName: true, email: true, phone: true, role: true } },
+          category: { select: { id: true, name: true, slug: true } },
+          createdCategory: { select: { id: true, name: true, slug: true } },
+          createdService: { select: { id: true, name: true } },
         },
       });
     });

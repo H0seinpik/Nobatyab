@@ -4,6 +4,15 @@
  */
 const BASE = process.env.API_URL ?? "http://localhost:3000";
 
+function buildProviderRequestBody(overrides: Record<string, unknown> = {}) {
+  return {
+    proposedServiceName: "خدمت تست دود",
+    proposedServicePrice: 150000,
+    proposedServiceDuration: 30,
+    ...overrides,
+  };
+}
+
 async function request(path: string, options: RequestInit = {}) {
   const res = await fetch(`${BASE}${path}`, {
     ...options,
@@ -22,6 +31,8 @@ async function main() {
 
   const categories = await request("/api/v1/categories");
   assert(categories.status === 200 && categories.body.success, "GET /api/v1/categories");
+  const smokeCategoryId = (categories.body.data as Array<{ id: string }>)[0]?.id;
+  assert(smokeCategoryId, "GET /api/v1/categories returns at least one category");
   console.log("OK  GET /api/v1/categories");
 
   const publicStats = await request("/api/v1/public/stats");
@@ -540,17 +551,30 @@ async function main() {
   assert(cancelledApt?.status === "CANCELLED", "user sees CANCELLED appointment");
   console.log("OK  GET /api/v1/appointments/my shows CANCELLED");
 
+  const providerReqInvalid = await request("/api/v1/provider/request", {
+    method: "POST",
+    headers: authHeaders,
+    body: JSON.stringify({ note: "missing category and service" }),
+  });
+  assert(providerReqInvalid.status === 400, "POST /api/v1/provider/request without category (400)");
+  console.log("OK  POST /api/v1/provider/request without category (400)");
+
   const providerReq = await request("/api/v1/provider/request", {
     method: "POST",
     headers: authHeaders,
-    body: JSON.stringify({ note: "smoke test provider application" }),
+    body: JSON.stringify(
+      buildProviderRequestBody({
+        note: "smoke test provider application",
+        categoryId: smokeCategoryId,
+      }),
+    ),
   });
   if (providerReq.status === 201) {
     console.log("OK  POST /api/v1/provider/request");
     const duplicateReq = await request("/api/v1/provider/request", {
       method: "POST",
       headers: authHeaders,
-      body: JSON.stringify({ note: "duplicate" }),
+      body: JSON.stringify(buildProviderRequestBody({ categoryId: smokeCategoryId })),
     });
     assert(duplicateReq.status === 409, "POST /api/v1/provider/request duplicate blocked");
     console.log("OK  POST /api/v1/provider/request duplicate (409)");
@@ -591,7 +615,12 @@ async function main() {
   const rejectUserSubmit = await request("/api/v1/provider/request", {
     method: "POST",
     headers: rejectUserHeaders,
-    body: JSON.stringify({ note: "reject smoke test" }),
+    body: JSON.stringify(
+      buildProviderRequestBody({
+        note: "reject smoke test",
+        categoryId: smokeCategoryId,
+      }),
+    ),
   });
   assert(rejectUserSubmit.status === 201, "POST provider request for reject flow");
   const rejectRequestId = rejectUserSubmit.body.data?.id as string;
@@ -617,6 +646,100 @@ async function main() {
   );
   console.log("OK  GET /api/v1/provider/request/me shows REJECTED");
 
+  const proposedSlug = `smoke-test-cat-${Date.now()}`;
+  const proposedUserEmail = `provider-proposed-smoke-${Date.now()}@nobatyab.com`;
+  const proposedUserReg = await request("/api/v1/auth/register", {
+    method: "POST",
+    body: JSON.stringify({
+      email: proposedUserEmail,
+      password: "User123!",
+      fullName: "Provider Proposed Category Smoke",
+      phone: "09120000996",
+    }),
+  });
+  assert(proposedUserReg.status === 201 && proposedUserReg.body.data?.accessToken, "POST register proposed-category user");
+  const proposedUserHeaders = { Authorization: `Bearer ${proposedUserReg.body.data.accessToken}` };
+  const proposedSubmit = await request("/api/v1/provider/request", {
+    method: "POST",
+    headers: proposedUserHeaders,
+    body: JSON.stringify(
+      buildProviderRequestBody({
+        proposedCategoryName: "دسته تست دود",
+        proposedCategoryDescription: "دسته‌بندی ایجاد شده در تست دود",
+      }),
+    ),
+  });
+  assert(proposedSubmit.status === 201, "POST provider request with proposed category");
+  const proposedRequestId = proposedSubmit.body.data?.id as string;
+  assert(proposedRequestId, "proposed category request id");
+
+  const proposedApprove = await request(`/api/v1/admin/provider-requests/${proposedRequestId}`, {
+    method: "PATCH",
+    headers: adminHeaders,
+    body: JSON.stringify({
+      status: "APPROVED",
+      adminNote: "smoke proposed category approve",
+      categoryName: "دسته تست دود",
+      categorySlug: proposedSlug,
+      categoryDescription: "دسته‌بندی ایجاد شده در تست دود",
+    }),
+  });
+  assert(
+    proposedApprove.status === 200 &&
+      proposedApprove.body.success &&
+      proposedApprove.body.data?.status === "APPROVED" &&
+      proposedApprove.body.data?.createdCategoryId &&
+      proposedApprove.body.data?.createdServiceId,
+    "PATCH approve provider request with new category",
+  );
+  const createdCategoryId = proposedApprove.body.data.createdCategoryId as string;
+  console.log("OK  PATCH approve provider request with new category");
+
+  const proposedProviders = await request(`/api/v1/providers?categoryId=${createdCategoryId}`);
+  assert(proposedProviders.status === 200 && proposedProviders.body.success, "GET /providers by new category");
+  const proposedProviderList = proposedProviders.body.data as Array<{ user?: { fullName?: string } }>;
+  assert(
+    proposedProviderList.some((p) => p.user?.fullName === "Provider Proposed Category Smoke"),
+    "approved provider appears in category listing",
+  );
+  console.log("OK  GET /providers?categoryId includes proposed-category provider");
+
+  const dupSlugUserEmail = `provider-dup-slug-smoke-${Date.now()}@nobatyab.com`;
+  const dupSlugUserReg = await request("/api/v1/auth/register", {
+    method: "POST",
+    body: JSON.stringify({
+      email: dupSlugUserEmail,
+      password: "User123!",
+      fullName: "Provider Dup Slug Smoke",
+      phone: "09120000995",
+    }),
+  });
+  assert(dupSlugUserReg.status === 201 && dupSlugUserReg.body.data?.accessToken, "POST register dup-slug user");
+  const dupSlugUserHeaders = { Authorization: `Bearer ${dupSlugUserReg.body.data.accessToken}` };
+  const dupSlugSubmit = await request("/api/v1/provider/request", {
+    method: "POST",
+    headers: dupSlugUserHeaders,
+    body: JSON.stringify(
+      buildProviderRequestBody({
+        proposedCategoryName: "دسته تکراری",
+      }),
+    ),
+  });
+  assert(dupSlugSubmit.status === 201, "POST provider request for duplicate slug test");
+  const dupSlugRequestId = dupSlugSubmit.body.data?.id as string;
+
+  const dupSlugApprove = await request(`/api/v1/admin/provider-requests/${dupSlugRequestId}`, {
+    method: "PATCH",
+    headers: adminHeaders,
+    body: JSON.stringify({
+      status: "APPROVED",
+      categoryName: "دسته تکراری",
+      categorySlug: proposedSlug,
+    }),
+  });
+  assert(dupSlugApprove.status === 409, "PATCH approve duplicate category slug (409)");
+  console.log("OK  PATCH approve duplicate category slug (409)");
+
   const approveUserEmail = `provider-approve-smoke-${Date.now()}@nobatyab.com`;
   const approveUserReg = await request("/api/v1/auth/register", {
     method: "POST",
@@ -635,7 +758,12 @@ async function main() {
   const approveUserSubmit = await request("/api/v1/provider/request", {
     method: "POST",
     headers: approveUserHeaders,
-    body: JSON.stringify({ note: "approve smoke test" }),
+    body: JSON.stringify(
+      buildProviderRequestBody({
+        note: "approve smoke test",
+        categoryId: smokeCategoryId,
+      }),
+    ),
   });
   assert(approveUserSubmit.status === 201, "POST provider request for approve flow");
   const approveRequestId = approveUserSubmit.body.data?.id as string;
@@ -650,10 +778,20 @@ async function main() {
     approveReview.status === 200 &&
       approveReview.body.success &&
       approveReview.body.data?.status === "APPROVED" &&
-      approveReview.body.data?.user?.role === "PROVIDER",
+      approveReview.body.data?.user?.role === "PROVIDER" &&
+      approveReview.body.data?.createdServiceId,
     "PATCH /api/v1/admin/provider-requests/:id approve",
   );
   console.log("OK  PATCH /api/v1/admin/provider-requests/:id approve");
+
+  const providersByCategory = await request(`/api/v1/providers?categoryId=${smokeCategoryId}`);
+  assert(providersByCategory.status === 200 && providersByCategory.body.success, "GET /providers by category");
+  const categoryProviderList = providersByCategory.body.data as Array<{ user?: { fullName?: string } }>;
+  assert(
+    categoryProviderList.some((p) => p.user?.fullName === "Provider Approve Smoke"),
+    "approved provider appears in existing category listing",
+  );
+  console.log("OK  GET /providers?categoryId includes approved provider");
 
   const refreshAfterApprove = await request("/api/v1/auth/refresh", {
     method: "POST",
@@ -671,6 +809,12 @@ async function main() {
     "POST login after approve has PROVIDER role",
   );
   console.log("OK  POST login after approve has PROVIDER role");
+
+  const approveProviderProfile = await request("/api/v1/provider/profile", {
+    headers: { Authorization: `Bearer ${approveUserLogin.body.data.accessToken}` },
+  });
+  assert(approveProviderProfile.status === 200, "GET /provider/profile after approve");
+  console.log("OK  GET /provider/profile after approve");
 
   const downgradeUserId = approveUserLogin.body.data.user.id as string;
   const staleProviderAccessToken = approveUserLogin.body.data.accessToken as string;

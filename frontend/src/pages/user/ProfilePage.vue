@@ -1,9 +1,18 @@
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { RouterLink, useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
+import { apiGet } from "@/services/api";
+import { useZodForm } from "@/composables/useZodForm";
+import {
+  providerRequestFormSchema,
+  providerRequestFormInitialValues,
+} from "@/schemas/providerRequest.schema";
 import UiCard from "@/components/ui/UiCard.vue";
 import UiInput from "@/components/ui/UiInput.vue";
+import UiSelect from "@/components/ui/UiSelect.vue";
+import UiPriceInput from "@/components/ui/UiPriceInput.vue";
+import UiNumberInput from "@/components/ui/UiNumberInput.vue";
 import UiButton from "@/components/ui/UiButton.vue";
 import UiAlert from "@/components/ui/UiAlert.vue";
 import SkeletonForm from "@/components/ui/skeleton/SkeletonForm.vue";
@@ -21,20 +30,87 @@ import {
   type ProviderRequest,
 } from "@/services/providerRequest.service";
 
+interface CategoryOption {
+  id: string;
+  name: string;
+  slug: string;
+}
+
 const auth = useAuthStore();
 const router = useRouter();
 const pageLoading = ref(true);
 
 const providerRequest = ref<ProviderRequest | null>(null);
-const providerRequestNote = ref("");
 const providerRequestLoading = ref(false);
-const providerRequestSubmitting = ref(false);
 const providerRequestSuccess = ref("");
 const providerRequestError = ref("");
+const categories = ref<CategoryOption[]>([]);
+const categoryMode = ref<"existing" | "new">("existing");
+
+const { values, fieldError, touch, submitting, validateAll, reset } = useZodForm(
+  providerRequestFormSchema,
+  providerRequestFormInitialValues,
+);
+
+const isNewCategory = computed(() => categoryMode.value === "new");
+
+const pendingCategoryLabel = computed(() => {
+  const req = providerRequest.value;
+  if (!req) return "";
+  if (req.category?.name) return req.category.name;
+  if (req.proposedCategoryName) return req.proposedCategoryName;
+  return "—";
+});
+
+function populateFormFromRequest(req: ProviderRequest) {
+  if (req.categoryId) {
+    categoryMode.value = "existing";
+    reset({
+      note: req.note ?? "",
+      categoryId: req.categoryId,
+      proposedCategoryName: "",
+      proposedCategoryDescription: "",
+      proposedServiceName: req.proposedServiceName,
+      proposedServiceDescription: req.proposedServiceDescription ?? "",
+      proposedServicePrice: Number(req.proposedServicePrice),
+      proposedServiceDuration: req.proposedServiceDuration,
+    });
+  } else if (req.proposedCategoryName) {
+    categoryMode.value = "new";
+    reset({
+      note: req.note ?? "",
+      categoryId: "",
+      proposedCategoryName: req.proposedCategoryName,
+      proposedCategoryDescription: req.proposedCategoryDescription ?? "",
+      proposedServiceName: req.proposedServiceName,
+      proposedServiceDescription: req.proposedServiceDescription ?? "",
+      proposedServicePrice: Number(req.proposedServicePrice),
+      proposedServiceDuration: req.proposedServiceDuration,
+    });
+  }
+}
+
+watch(categoryMode, (mode) => {
+  if (mode === "existing") {
+    values.proposedCategoryName = "";
+    values.proposedCategoryDescription = "";
+  } else {
+    values.categoryId = "";
+  }
+});
 
 async function handleApprovedRequestLogout() {
   await auth.logout();
   await router.push({ name: "login", query: { reason: "session-changed" } });
+}
+
+async function loadCategories() {
+  try {
+    const res = await apiGet<CategoryOption[]>("/categories");
+    categories.value = res.data;
+  } catch {
+    categories.value = [];
+  }
 }
 
 async function loadPage() {
@@ -47,7 +123,11 @@ async function loadPage() {
     if (auth.user?.role === "USER") {
       providerRequestLoading.value = true;
       try {
+        await loadCategories();
         providerRequest.value = await getMyProviderRequest();
+        if (providerRequest.value?.status === "REJECTED") {
+          populateFormFromRequest(providerRequest.value);
+        }
       } finally {
         providerRequestLoading.value = false;
       }
@@ -62,12 +142,24 @@ onMounted(loadPage);
 async function submitProviderApplication() {
   providerRequestSuccess.value = "";
   providerRequestError.value = "";
-  if (providerRequestSubmitting.value) return;
+  if (submitting.value) return;
+  if (!validateAll()) return;
 
-  providerRequestSubmitting.value = true;
+  submitting.value = true;
   try {
-    providerRequest.value = await submitProviderRequest(providerRequestNote.value.trim() || undefined);
-    providerRequestNote.value = "";
+    const data = providerRequestFormSchema.parse(values);
+    providerRequest.value = await submitProviderRequest({
+      note: data.note || undefined,
+      categoryId: data.categoryId || undefined,
+      proposedCategoryName: data.proposedCategoryName || undefined,
+      proposedCategoryDescription: data.proposedCategoryDescription || undefined,
+      proposedServiceName: data.proposedServiceName,
+      proposedServiceDescription: data.proposedServiceDescription || undefined,
+      proposedServicePrice: data.proposedServicePrice,
+      proposedServiceDuration: data.proposedServiceDuration,
+    });
+    reset(providerRequestFormInitialValues);
+    categoryMode.value = "existing";
     providerRequestSuccess.value = "درخواست شما با موفقیت ثبت شد و در انتظار بررسی است.";
   } catch (e: unknown) {
     const err = e as {
@@ -89,7 +181,7 @@ async function submitProviderApplication() {
       providerRequestError.value = "ارسال درخواست ناموفق بود. لطفاً دوباره تلاش کنید.";
     }
   } finally {
-    providerRequestSubmitting.value = false;
+    submitting.value = false;
   }
 }
 </script>
@@ -116,7 +208,7 @@ async function submitProviderApplication() {
       <UiCard v-if="auth.user?.role === 'USER'">
         <h2 class="profile-page__section-title">درخواست ارائه‌دهنده شدن</h2>
         <p class="profile-page__section-description">
-          اگر می‌خواهید خدمات خود را در پلتفرم ارائه دهید، درخواست خود را ارسال کنید.
+          اگر می‌خواهید خدمات خود را در پلتفرم ارائه دهید، دسته‌بندی و اولین خدمت خود را مشخص کنید.
         </p>
 
         <div v-if="providerRequestLoading" class="profile-page__loading-text">
@@ -128,6 +220,15 @@ async function submitProviderApplication() {
             <span>درخواست شما در انتظار بررسی است.</span>
             <StatusBadge kind="review" :value="providerRequest.status" />
           </UiAlert>
+          <div class="profile-page__summary">
+            <p><strong>دسته‌بندی:</strong> {{ pendingCategoryLabel }}</p>
+            <p><strong>خدمت:</strong> {{ providerRequest.proposedServiceName }}</p>
+            <p>
+              <strong>قیمت:</strong> {{ providerRequest.proposedServicePrice }} تومان —
+              <strong>مدت:</strong> {{ providerRequest.proposedServiceDuration }} دقیقه
+            </p>
+            <p v-if="providerRequest.note"><strong>توضیحات:</strong> {{ providerRequest.note }}</p>
+          </div>
         </template>
 
         <template v-else-if="providerRequest?.status === 'REJECTED'">
@@ -136,8 +237,77 @@ async function submitProviderApplication() {
             <span v-if="providerRequest.adminNote"> — {{ providerRequest.adminNote }}</span>
           </UiAlert>
           <form class="profile-page__form" @submit.prevent="submitProviderApplication">
-            <UiInput v-model="providerRequestNote" label="توضیحات (اختیاری)" />
-            <UiButton type="submit" :loading="providerRequestSubmitting" :disabled="providerRequestSubmitting">
+            <div class="profile-page__category-mode">
+              <label class="profile-page__radio">
+                <input v-model="categoryMode" type="radio" value="existing" />
+                انتخاب از لیست
+              </label>
+              <label class="profile-page__radio">
+                <input v-model="categoryMode" type="radio" value="new" />
+                درخواست دسته‌بندی جدید
+              </label>
+            </div>
+
+            <UiSelect
+              v-if="!isNewCategory"
+              :model-value="String(values.categoryId ?? '')"
+              label="دسته‌بندی"
+              required
+              :error="fieldError('categoryId')"
+              @update:model-value="(v) => (values.categoryId = v)"
+              @blur="touch('categoryId')"
+            >
+              <option value="">انتخاب کنید</option>
+              <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
+            </UiSelect>
+
+            <template v-else>
+              <UiInput
+                v-model="values.proposedCategoryName"
+                label="نام دسته‌بندی پیشنهادی"
+                required
+                :error="fieldError('proposedCategoryName')"
+                @blur="touch('proposedCategoryName')"
+              />
+              <UiInput
+                v-model="values.proposedCategoryDescription"
+                label="توضیحات دسته‌بندی (اختیاری)"
+              />
+            </template>
+
+            <h3 class="profile-page__subsection-title">اولین خدمت</h3>
+            <UiInput
+              v-model="values.proposedServiceName"
+              label="نام خدمت"
+              required
+              :error="fieldError('proposedServiceName')"
+              @blur="touch('proposedServiceName')"
+            />
+            <UiInput v-model="values.proposedServiceDescription" label="توضیحات خدمت (اختیاری)" />
+            <UiPriceInput
+              :model-value="values.proposedServicePrice"
+              label="قیمت (تومان)"
+              required
+              :min="0"
+              :max="99999999"
+              :error="fieldError('proposedServicePrice')"
+              @update:model-value="(v) => (values.proposedServicePrice = v)"
+              @blur="touch('proposedServicePrice')"
+            />
+            <UiNumberInput
+              :model-value="values.proposedServiceDuration"
+              label="مدت (دقیقه)"
+              required
+              :min="30"
+              :step="30"
+              :error="fieldError('proposedServiceDuration')"
+              @update:model-value="(v) => (values.proposedServiceDuration = v ?? 30)"
+              @blur="touch('proposedServiceDuration')"
+            />
+            <UiInput v-model="values.note" label="توضیحات (اختیاری)" />
+
+            <UiAlert v-if="providerRequestError" variant="error">{{ providerRequestError }}</UiAlert>
+            <UiButton type="submit" :loading="submitting" :disabled="submitting">
               ارسال درخواست جدید
             </UiButton>
           </form>
@@ -151,10 +321,78 @@ async function submitProviderApplication() {
 
         <template v-else>
           <form class="profile-page__form" @submit.prevent="submitProviderApplication">
-            <UiInput v-model="providerRequestNote" label="توضیحات (اختیاری)" />
+            <div class="profile-page__category-mode">
+              <label class="profile-page__radio">
+                <input v-model="categoryMode" type="radio" value="existing" />
+                انتخاب از لیست
+              </label>
+              <label class="profile-page__radio">
+                <input v-model="categoryMode" type="radio" value="new" />
+                درخواست دسته‌بندی جدید
+              </label>
+            </div>
+
+            <UiSelect
+              v-if="!isNewCategory"
+              :model-value="String(values.categoryId ?? '')"
+              label="دسته‌بندی"
+              required
+              :error="fieldError('categoryId')"
+              @update:model-value="(v) => (values.categoryId = v)"
+              @blur="touch('categoryId')"
+            >
+              <option value="">انتخاب کنید</option>
+              <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
+            </UiSelect>
+
+            <template v-else>
+              <UiInput
+                v-model="values.proposedCategoryName"
+                label="نام دسته‌بندی پیشنهادی"
+                required
+                :error="fieldError('proposedCategoryName')"
+                @blur="touch('proposedCategoryName')"
+              />
+              <UiInput
+                v-model="values.proposedCategoryDescription"
+                label="توضیحات دسته‌بندی (اختیاری)"
+              />
+            </template>
+
+            <h3 class="profile-page__subsection-title">اولین خدمت</h3>
+            <UiInput
+              v-model="values.proposedServiceName"
+              label="نام خدمت"
+              required
+              :error="fieldError('proposedServiceName')"
+              @blur="touch('proposedServiceName')"
+            />
+            <UiInput v-model="values.proposedServiceDescription" label="توضیحات خدمت (اختیاری)" />
+            <UiPriceInput
+              :model-value="values.proposedServicePrice"
+              label="قیمت (تومان)"
+              required
+              :min="0"
+              :max="99999999"
+              :error="fieldError('proposedServicePrice')"
+              @update:model-value="(v) => (values.proposedServicePrice = v)"
+              @blur="touch('proposedServicePrice')"
+            />
+            <UiNumberInput
+              :model-value="values.proposedServiceDuration"
+              label="مدت (دقیقه)"
+              required
+              :min="30"
+              :step="30"
+              :error="fieldError('proposedServiceDuration')"
+              @update:model-value="(v) => (values.proposedServiceDuration = v ?? 30)"
+              @blur="touch('proposedServiceDuration')"
+            />
+            <UiInput v-model="values.note" label="توضیحات (اختیاری)" />
+
             <UiAlert v-if="providerRequestSuccess" variant="success">{{ providerRequestSuccess }}</UiAlert>
             <UiAlert v-if="providerRequestError" variant="error">{{ providerRequestError }}</UiAlert>
-            <UiButton type="submit" :loading="providerRequestSubmitting" :disabled="providerRequestSubmitting">
+            <UiButton type="submit" :loading="submitting" :disabled="submitting">
               ارسال درخواست
             </UiButton>
           </form>
@@ -200,6 +438,13 @@ async function submitProviderApplication() {
   font-weight: 600;
 }
 
+.profile-page__subsection-title {
+  margin-top: 0.5rem;
+  margin-bottom: 0.25rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
 .profile-page__section-description {
   margin-bottom: 1rem;
   font-size: 0.875rem;
@@ -222,7 +467,31 @@ async function submitProviderApplication() {
   margin-bottom: 1rem;
 }
 
+.profile-page__summary {
+  margin-top: 0.75rem;
+  font-size: 0.875rem;
+  color: var(--color-muted);
+}
+
+.profile-page__summary > * + * {
+  margin-top: 0.25rem;
+}
+
 .profile-page__form > * + * {
   margin-top: 0.75rem;
+}
+
+.profile-page__category-mode {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.profile-page__radio {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.875rem;
+  cursor: pointer;
 }
 </style>

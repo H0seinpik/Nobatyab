@@ -10,6 +10,7 @@ const props = defineProps<{
   error?: string;
   disabled?: boolean;
   min?: number;
+  max?: number;
 }>();
 
 const emit = defineEmits<{
@@ -31,7 +32,10 @@ watch(
 
 function onInput(raw: string) {
   const parsed = parseLocalizedInt(raw);
-  if (parsed !== undefined && props.min !== undefined && parsed < props.min) return;
+  if (parsed !== undefined) {
+    if (props.min !== undefined && parsed < props.min) return;
+    if (props.max !== undefined && parsed > props.max) return;
+  }
   display.value = raw;
   emit("update:modelValue", parsed);
 }

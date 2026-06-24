@@ -2,6 +2,7 @@ import { Role, ServiceRequestStatus, ProviderRequestStatus } from "@prisma/clien
 import { prisma } from "../../config/database.js";
 import { ApiError, parsePagination, paginationMeta } from "../../shared/utils/apiError.js";
 import { hashPassword } from "../../shared/utils/password.js";
+import { isUniqueConstraintError } from "../../shared/utils/prismaErrors.js";
 import type { BaseListQuery } from "../../shared/schemas/listQuery.schema.js";
 import {
   appointmentListConfig,
@@ -57,26 +58,101 @@ export class AdminService {
     const role = input.role ?? Role.USER;
     const fullName = `${input.firstName} ${input.lastName}`.trim();
 
+    const {
+      categoryId,
+      serviceName,
+      serviceDescription,
+      servicePrice,
+      serviceDuration,
+      ...userFields
+    } = input;
+
+    if (role === Role.PROVIDER) {
+      if (!categoryId || !serviceName || servicePrice === undefined || !serviceDuration) {
+        throw ApiError.badRequest(
+          "categoryId, serviceName, servicePrice, and serviceDuration are required when creating a provider",
+        );
+      }
+    }
+
     const user = await this.repo.createUser({
-      email: input.email,
+      email: userFields.email,
       passwordHash,
       fullName,
-      firstName: input.firstName,
-      lastName: input.lastName,
-      nationalCode: input.nationalCode,
-      age: input.age,
-      address: input.address,
-      phone: input.phone,
-      latitude: input.latitude,
-      longitude: input.longitude,
+      firstName: userFields.firstName,
+      lastName: userFields.lastName,
+      nationalCode: userFields.nationalCode,
+      age: userFields.age,
+      address: userFields.address,
+      phone: userFields.phone,
+      latitude: userFields.latitude,
+      longitude: userFields.longitude,
       role,
-      isActive: input.isActive ?? true,
-      ...(role === Role.PROVIDER
-        ? { providerProfile: { create: {} } }
-        : {}),
+      isActive: userFields.isActive ?? true,
     });
 
+    if (role === Role.PROVIDER) {
+      await this.setupProviderOnboarding(user.id, {
+        categoryId: categoryId!,
+        serviceName: serviceName!,
+        serviceDescription,
+        servicePrice: servicePrice!,
+        serviceDuration: serviceDuration!,
+      });
+    }
+
     return user;
+  }
+
+  private async setupProviderOnboarding(
+    userId: string,
+    input: {
+      categoryId: string;
+      serviceName: string;
+      serviceDescription?: string;
+      servicePrice: number;
+      serviceDuration: number;
+    },
+  ) {
+    const category = await prisma.category.findFirst({
+      where: { id: input.categoryId, isActive: true },
+    });
+    if (!category) throw ApiError.notFound("Category not found");
+
+    try {
+      await prisma.$transaction(async (tx) => {
+        const profile = await tx.providerProfile.create({ data: { userId } });
+
+        await tx.user.update({
+          where: { id: userId },
+          data: { role: Role.PROVIDER },
+        });
+
+        const service = await tx.service.create({
+          data: {
+            categoryId: category.id,
+            name: input.serviceName,
+            description: input.serviceDescription ?? undefined,
+            defaultDuration: input.serviceDuration,
+            basePrice: input.servicePrice,
+          },
+        });
+
+        await tx.providerService.create({
+          data: {
+            providerId: profile.id,
+            serviceId: service.id,
+            price: input.servicePrice,
+            duration: input.serviceDuration,
+          },
+        });
+      });
+    } catch (error) {
+      if (isUniqueConstraintError(error)) {
+        throw ApiError.conflict("Provider profile or service link already exists");
+      }
+      throw error;
+    }
   }
 
   async updateUser(id: string, input: UpdateUserInput) {
@@ -97,11 +173,38 @@ export class AdminService {
       }
     }
 
-    if (input.role === Role.PROVIDER && !existing.providerProfile) {
-      await prisma.providerProfile.create({ data: { userId: id } });
+    if (input.role === Role.PROVIDER && existing.role !== Role.PROVIDER && !existing.providerProfile) {
+      if (
+        !input.categoryId ||
+        !input.serviceName ||
+        input.servicePrice === undefined ||
+        !input.serviceDuration
+      ) {
+        throw ApiError.badRequest(
+          "categoryId, serviceName, servicePrice, and serviceDuration are required when promoting a user to provider",
+        );
+      }
+
+      await this.setupProviderOnboarding(id, {
+        categoryId: input.categoryId,
+        serviceName: input.serviceName,
+        serviceDescription: input.serviceDescription,
+        servicePrice: input.servicePrice,
+        serviceDuration: input.serviceDuration,
+      });
+
+      await authRepository.revokeAllUserTokens(id);
     }
 
-    const { password, ...rest } = input;
+    const {
+      password,
+      categoryId: _categoryId,
+      serviceName: _serviceName,
+      serviceDescription: _serviceDescription,
+      servicePrice: _servicePrice,
+      serviceDuration: _serviceDuration,
+      ...rest
+    } = input;
     const data: Record<string, unknown> = { ...rest };
 
     if (input.firstName !== undefined || input.lastName !== undefined) {

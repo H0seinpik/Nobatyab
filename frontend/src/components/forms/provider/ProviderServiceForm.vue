@@ -41,6 +41,7 @@ defineProps<{
       label="قیمت (تومان)"
       required
       :min="0"
+      :max="99999999"
       :error="fieldError('price')"
       @update:model-value="(v) => (values.price = v)"
       @blur="touch('price')"

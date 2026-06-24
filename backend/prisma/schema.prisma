@@ -114,6 +114,9 @@ model Category {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   services    Service[]
+
+  providerRequests            ProviderRequest[]
+  createdFromProviderRequests ProviderRequest[] @relation("CreatedFromProviderRequest")
 }
 
 model Service {
@@ -130,6 +133,7 @@ model Service {
   category         Category          @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   providerServices ProviderService[]
   serviceRequests  ServiceRequest[]
+  createdFromProviderRequests ProviderRequest[] @relation("CreatedFromProviderRequest")
 }
 
 model ProviderProfile {
@@ -197,15 +201,27 @@ model ServiceRequest {
 }
 
 model ProviderRequest {
-  id        String                @id @default(cuid())
-  userId    String
-  status    ProviderRequestStatus @default(PENDING)
-  note      String?
-  adminNote String?
-  createdAt DateTime              @default(now())
-  updatedAt DateTime              @updatedAt
+  id                          String                @id @default(cuid())
+  userId                      String
+  status                      ProviderRequestStatus @default(PENDING)
+  note                        String?
+  adminNote                   String?
+  categoryId                  String?
+  proposedCategoryName        String?
+  proposedCategoryDescription String?
+  createdCategoryId           String?
+  proposedServiceName         String
+  proposedServiceDescription  String?
+  proposedServicePrice        Decimal               @db.Decimal(10, 2)
+  proposedServiceDuration     Int
+  createdServiceId            String?
+  createdAt                   DateTime              @default(now())
+  updatedAt                   DateTime              @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category        Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  createdCategory Category? @relation("CreatedFromProviderRequest", fields: [createdCategoryId], references: [id], onDelete: SetNull)
+  createdService  Service?  @relation("CreatedFromProviderRequest", fields: [createdServiceId], references: [id], onDelete: SetNull)
 
   @@index([status])
   @@index([userId])

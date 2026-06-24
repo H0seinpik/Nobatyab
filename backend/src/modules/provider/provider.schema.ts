@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { idSchema } from "../../shared/schemas/id.schema.js";
 import { serviceDurationSchema, optionalServiceDurationSchema } from "../../shared/schemas/duration.schema.js";
+import { priceSchema, optionalPriceSchema } from "../../shared/schemas/price.schema.js";
 
 export const updateProviderProfileSchema = z.object({
   specialization: z.string().max(200).optional(),
@@ -54,7 +55,7 @@ export const createServiceRequestSchema = z
     serviceId: z.string().cuid().optional(),
     proposedName: z.string().min(2).optional(),
     proposedDescription: z.string().optional(),
-    proposedPrice: z.number().min(0).optional(),
+    proposedPrice: priceSchema.optional(),
     proposedDuration: serviceDurationSchema.optional(),
   })
   .refine(
@@ -84,7 +85,7 @@ export const createProviderServiceSchema = z
   .object({
     name: z.string().min(2).optional(),
     duration: optionalServiceDurationSchema,
-    price: z.number().min(0).optional(),
+    price: optionalPriceSchema,
     categoryId: z.string().cuid().optional(),
     description: z.string().max(2000).optional(),
     serviceId: z.string().cuid().optional(),
@@ -113,7 +114,7 @@ export const createProviderServiceSchema = z
 export const updateProviderServiceSchema = z.object({
   name: z.string().min(2).optional(),
   duration: optionalServiceDurationSchema,
-  price: z.number().min(0).optional(),
+  price: optionalPriceSchema,
   isActive: z.boolean().optional(),
 });
 

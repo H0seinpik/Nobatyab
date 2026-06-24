@@ -44,7 +44,10 @@ export const usersRowActions: RowAction[] = [
   {
     key: "set-provider",
     label: "تبدیل به ارائه‌دهنده",
-    hidden: (r) => (r as unknown as UserRow).role === "ADMIN",
+    hidden: (r) => {
+      const u = r as unknown as UserRow;
+      return u.role === "ADMIN" || u.role === "PROVIDER";
+    },
   },
   {
     key: "set-user",

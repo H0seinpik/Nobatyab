@@ -1,16 +1,23 @@
 <script setup lang="ts">
+import { computed } from "vue";
 import FormFieldGrid from "@/components/forms/FormFieldGrid.vue";
 import UiInput from "@/components/ui/UiInput.vue";
 import UiNumberInput from "@/components/ui/UiNumberInput.vue";
 import UiSelect from "@/components/ui/UiSelect.vue";
+import AdminPromoteProviderForm from "@/components/forms/admin/AdminPromoteProviderForm.vue";
 import type { CrudMode } from "@/composables/useCrudForm";
 
-defineProps<{
+const props = defineProps<{
   mode: CrudMode;
   values: Record<string, unknown>;
   fieldError: (field: string) => string | undefined;
   touch: (field: string) => void;
+  categories: { id: string; name: string }[];
 }>();
+
+const showProviderSetup = computed(
+  () => props.values.role === "PROVIDER" && !props.values.hasProviderProfile,
+);
 </script>
 
 <template>
@@ -107,6 +114,15 @@ defineProps<{
       </label>
     </div>
   </FormFieldGrid>
+
+  <AdminPromoteProviderForm
+    v-if="showProviderSetup"
+    class="user-form__provider-setup"
+    :values="values"
+    :field-error="fieldError"
+    :touch="touch"
+    :categories="categories"
+  />
 </template>
 
 <style scoped>
@@ -115,5 +131,11 @@ defineProps<{
   align-items: center;
   gap: 0.5rem;
   font-size: 0.875rem;
+}
+
+.user-form__provider-setup {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-border);
 }
 </style>

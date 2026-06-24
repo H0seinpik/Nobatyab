@@ -6,7 +6,10 @@ import {
   type ProviderRequest,
 } from "@/services/providerRequest.service";
 import { useZodForm } from "@/composables/useZodForm";
-import { reviewProviderRequestSchema } from "@/schemas/admin/providerRequest.schema";
+import {
+  reviewProviderRequestSchema,
+  slugifyCategoryName,
+} from "@/schemas/admin/providerRequest.schema";
 import PageHeader from "@/components/layout/PageHeader.vue";
 import UiCard from "@/components/ui/UiCard.vue";
 import StatusBadge from "@/components/ui/StatusBadge.vue";
@@ -27,10 +30,24 @@ const modalOpen = ref(false);
 const reviewingRequest = ref<ProviderRequest | null>(null);
 const formError = ref<string | null>(null);
 
+const reviewFormInitial = {
+  status: "APPROVED" as const,
+  adminNote: "",
+  categoryName: "",
+  categorySlug: "",
+  categoryDescription: "",
+};
+
 const { values, fieldError, touch, submitting, validateAll, reset } = useZodForm(
   reviewProviderRequestSchema,
-  { status: "APPROVED" as const, adminNote: "" },
+  reviewFormInitial,
 );
+
+function requestCategoryLabel(request: ProviderRequest) {
+  if (request.category?.name) return request.category.name;
+  if (request.proposedCategoryName) return `${request.proposedCategoryName} (پیشنهادی)`;
+  return "—";
+}
 
 async function load() {
   loading.value = true;
@@ -49,7 +66,14 @@ function openReview(request: ProviderRequest) {
   if (request.status !== "PENDING") return;
   reviewingRequest.value = request;
   formError.value = null;
-  reset({ status: "APPROVED", adminNote: "" });
+  const proposedName = request.proposedCategoryName ?? "";
+  reset({
+    status: "APPROVED",
+    adminNote: "",
+    categoryName: proposedName,
+    categorySlug: slugifyCategoryName(proposedName),
+    categoryDescription: request.proposedCategoryDescription ?? "",
+  });
   modalOpen.value = true;
 }
 
@@ -67,12 +91,24 @@ async function submitReview() {
     return;
   }
 
+  const data = reviewProviderRequestSchema.parse(values);
+
+  if (data.status === "APPROVED" && !req.categoryId) {
+    if (!data.categoryName?.trim() || !data.categorySlug?.trim()) {
+      formError.value = "نام و شناسه URL دسته‌بندی برای تأیید الزامی است";
+      return;
+    }
+  }
+
   submitting.value = true;
   try {
-    const data = reviewProviderRequestSchema.parse(values);
     await reviewProviderRequest(req.id, {
       status: data.status,
       adminNote: data.adminNote || undefined,
+      categoryName: data.status === "APPROVED" && !req.categoryId ? data.categoryName : undefined,
+      categorySlug: data.status === "APPROVED" && !req.categoryId ? data.categorySlug : undefined,
+      categoryDescription:
+        data.status === "APPROVED" && !req.categoryId ? data.categoryDescription || undefined : undefined,
     });
     modalOpen.value = false;
     reviewingRequest.value = null;
@@ -117,6 +153,13 @@ onMounted(load);
               <p class="provider-requests-page__item-meta">{{ request.user?.email }}</p>
               <p v-if="request.user?.phone" class="provider-requests-page__item-meta">
                 {{ request.user.phone }}
+              </p>
+              <p class="provider-requests-page__item-note">
+                <strong>دسته:</strong> {{ requestCategoryLabel(request) }}
+              </p>
+              <p class="provider-requests-page__item-note">
+                <strong>خدمت:</strong> {{ request.proposedServiceName }} —
+                {{ request.proposedServicePrice }} تومان / {{ request.proposedServiceDuration }} دقیقه
               </p>
               <p v-if="request.note" class="provider-requests-page__item-note">{{ request.note }}</p>
               <p class="provider-requests-page__item-date">

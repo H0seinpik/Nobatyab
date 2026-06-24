@@ -5,6 +5,8 @@ import {
   iranianPhoneSchema,
   nationalCodeSchema,
 } from "../../shared/schemas/iranianIdentity.schema.js";
+import { serviceDurationSchema } from "../../shared/schemas/duration.schema.js";
+import { priceSchema } from "../../shared/schemas/price.schema.js";
 
 export const adminUserQuerySchema = baseListQuerySchema;
 
@@ -28,12 +30,22 @@ export const adminCreateUserSchema = adminUserFieldsSchema.extend({
   password: z.string().min(8),
   role: z.nativeEnum(Role).default(Role.USER),
   isActive: z.boolean().default(true),
+  categoryId: z.string().cuid().optional(),
+  serviceName: z.string().trim().min(2).max(200).optional(),
+  serviceDescription: z.string().max(2000).optional(),
+  servicePrice: priceSchema.optional(),
+  serviceDuration: serviceDurationSchema.optional(),
 });
 
 export const adminUpdateUserSchema = adminUserFieldsSchema
   .partial()
   .extend({
     password: z.string().min(8).optional(),
+    categoryId: z.string().cuid().optional(),
+    serviceName: z.string().trim().min(2).max(200).optional(),
+    serviceDescription: z.string().max(2000).optional(),
+    servicePrice: priceSchema.optional(),
+    serviceDuration: serviceDurationSchema.optional(),
   });
 
 export const adminServiceRequestQuerySchema = baseListQuerySchema.extend({
@@ -64,4 +76,11 @@ export const adminProviderRequestIdSchema = z.object({ id: z.string().cuid() });
 export const adminReviewProviderRequestSchema = z.object({
   status: z.enum([ProviderRequestStatus.APPROVED, ProviderRequestStatus.REJECTED]),
   adminNote: z.string().max(1000).optional(),
+  categoryName: z.string().trim().min(2).max(100).optional(),
+  categorySlug: z
+    .string()
+    .min(2)
+    .regex(/^[a-z0-9-]+$/)
+    .optional(),
+  categoryDescription: z.string().max(2000).optional(),
 });
