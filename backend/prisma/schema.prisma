@@ -51,6 +51,29 @@ enum SmsStatus {
   FAILED
 }
 
+enum EmailStatus {
+  QUEUED
+  SENT
+  FAILED
+}
+
+enum NotificationType {
+  APPOINTMENT_BOOKED
+  APPOINTMENT_CONFIRMED
+  APPOINTMENT_CANCELLED
+  APPOINTMENT_COMPLETED
+  PAYMENT_FAILED
+  PAYMENT_REFUNDED
+  PROVIDER_REQUEST_APPROVED
+  PROVIDER_REQUEST_REJECTED
+  SERVICE_REQUEST_APPROVED
+  SERVICE_REQUEST_REJECTED
+  NEW_APPOINTMENT_BOOKED
+  APPOINTMENT_CANCELLED_BY_USER
+  NEW_PROVIDER_REQUEST
+  NEW_SERVICE_REQUEST
+}
+
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
@@ -61,7 +84,9 @@ model User {
   nationalCode String?  @unique
   age          Int?
   address      String?
-  phone        String?
+  phone        String?  @unique
+  smsEnabled   Boolean  @default(true)
+  emailEnabled Boolean  @default(true)
   avatarUrl    String?
   latitude     Float?
   longitude    Float?
@@ -79,6 +104,7 @@ model User {
   availabilities    UserAvailability[]
   bookingRequests  BookingIdempotency[]
   reviews          Review[]
+  notifications    Notification[]
 }
 
 model RefreshToken {
@@ -312,18 +338,56 @@ model AppSetting {
 }
 
 model SmsLog {
-  id            String    @id @default(cuid())
-  appointmentId String?
-  userId        String?
-  phone         String
-  message       String
-  status        SmsStatus
-  providerKey   String
-  createdAt     DateTime  @default(now())
+  id             String    @id @default(cuid())
+  appointmentId  String?
+  userId         String?
+  notificationId String?
+  phone          String
+  message        String
+  status         SmsStatus
+  providerKey    String
+  createdAt      DateTime  @default(now())
 
-  appointment Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  appointment  Appointment?  @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  notification Notification? @relation(fields: [notificationId], references: [id], onDelete: SetNull)
 
   @@index([appointmentId])
+  @@index([notificationId])
+}
+
+model Notification {
+  id         String           @id @default(cuid())
+  userId     String
+  type       NotificationType
+  title      String
+  body       String
+  entityType String?
+  entityId   String?
+  readAt     DateTime?
+  metadata   Json?
+  createdAt  DateTime         @default(now())
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  smsLogs   SmsLog[]
+  emailLogs EmailLog[]
+
+  @@index([userId, readAt, createdAt])
+}
+
+model EmailLog {
+  id             String      @id @default(cuid())
+  email          String
+  subject        String
+  body           String
+  status         EmailStatus
+  providerKey    String
+  userId         String?
+  notificationId String?
+  createdAt      DateTime    @default(now())
+
+  notification Notification? @relation(fields: [notificationId], references: [id], onDelete: SetNull)
+
+  @@index([notificationId])
 }
 
 model UserAvailability {

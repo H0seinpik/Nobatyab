@@ -11,6 +11,7 @@ export interface SmsProvider {
     message: string;
     appointmentId?: string;
     userId?: string;
+    notificationId?: string;
     meta?: Record<string, unknown>;
   }): Promise<SmsResult>;
 }
