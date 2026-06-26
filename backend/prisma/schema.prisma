@@ -62,6 +62,8 @@ enum NotificationType {
   APPOINTMENT_CONFIRMED
   APPOINTMENT_CANCELLED
   APPOINTMENT_COMPLETED
+  PAYMENT_PENDING
+  PAYMENT_COMPLETED
   PAYMENT_FAILED
   PAYMENT_REFUNDED
   PROVIDER_REQUEST_APPROVED
@@ -72,6 +74,19 @@ enum NotificationType {
   APPOINTMENT_CANCELLED_BY_USER
   NEW_PROVIDER_REQUEST
   NEW_SERVICE_REQUEST
+}
+
+enum NotificationStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+enum NotificationRecipientRole {
+  USER
+  PROVIDER
+  ADMIN
 }
 
 model User {
@@ -356,22 +371,26 @@ model SmsLog {
 }
 
 model Notification {
-  id         String           @id @default(cuid())
-  userId     String
-  type       NotificationType
-  title      String
-  body       String
-  entityType String?
-  entityId   String?
-  readAt     DateTime?
-  metadata   Json?
-  createdAt  DateTime         @default(now())
+  id            String                    @id @default(cuid())
+  userId        String
+  recipientRole NotificationRecipientRole
+  type          NotificationType
+  status        NotificationStatus        @default(PENDING)
+  title         String
+  body          String
+  entityType    String?
+  entityId      String?
+  actionUrl     String?
+  readAt        DateTime?
+  metadata      Json?
+  createdAt     DateTime                  @default(now())
 
   user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   smsLogs   SmsLog[]
   emailLogs EmailLog[]
 
-  @@index([userId, readAt, createdAt])
+  @@index([userId, recipientRole, readAt, createdAt])
+  @@index([userId, recipientRole, status, createdAt])
 }
 
 model EmailLog {

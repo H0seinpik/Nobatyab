@@ -1,12 +1,21 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { RouterLink, RouterView, useRoute } from "vue-router";
+import { storeToRefs } from "pinia";
 import { useAuthStore } from "@/stores/auth";
+import { useNotificationsStore } from "@/stores/notifications";
+import { getNotificationsPath } from "@/utils/notificationRoute";
+import { formatPersianNumber } from "@/utils/numbers";
+import NotificationBell from "@/components/notifications/NotificationBell.vue";
 import AppShell from "@/components/layout/AppShell.vue";
 
 const route = useRoute();
 const auth = useAuthStore();
+const notificationsStore = useNotificationsStore();
+const { unreadCount } = storeToRefs(notificationsStore);
 const sidebarOpen = ref(false);
+
+const notificationsPath = computed(() => getNotificationsPath(auth.user?.role));
 
 const links = computed(() => {
   if (auth.user?.role === "ADMIN") {
@@ -18,6 +27,7 @@ const links = computed(() => {
       { to: "/admin/service-requests", label: "درخواست‌ها" },
       { to: "/admin/provider-requests", label: "درخواست ارائه‌دهنده" },
       { to: "/admin/appointments", label: "نوبت‌ها" },
+      { to: notificationsPath.value, label: "اعلان‌ها", showUnreadBadge: true },
       { to: "/admin/settings", label: "تنظیمات" },
     ];
   }
@@ -28,12 +38,33 @@ const links = computed(() => {
     { to: "/provider/services", label: "خدمات من" },
     { to: "/provider/appointments", label: "نوبت‌ها" },
     { to: "/provider/service-requests", label: "درخواست خدمات" },
+    { to: notificationsPath.value, label: "اعلان‌ها", showUnreadBadge: true },
   ];
 });
+
+function linkLabel(link: { label: string; showUnreadBadge?: boolean }) {
+  if (!link.showUnreadBadge || unreadCount.value <= 0) return link.label;
+  const count =
+    unreadCount.value > 99 ? "۹۹+" : formatPersianNumber(unreadCount.value);
+  return `${link.label} (${count})`;
+}
+
+function isLinkActive(path: string) {
+  if (path === notificationsPath.value) {
+    return route.path === path;
+  }
+  return route.path === path || route.path.startsWith(`${path}/`);
+}
 
 function closeSidebar() {
   sidebarOpen.value = false;
 }
+
+onMounted(() => {
+  notificationsStore.startPolling();
+  void notificationsStore.fetchUnreadCount();
+  void notificationsStore.fetchTabCounts();
+});
 </script>
 
 <template>
@@ -55,10 +86,10 @@ function closeSidebar() {
             :key="link.to"
             :to="link.to"
             class="dashboard-layout__link"
-            :class="{ 'dashboard-layout__link--active': route.path.startsWith(link.to) }"
+            :class="{ 'dashboard-layout__link--active': isLinkActive(link.to) }"
             @click="closeSidebar"
           >
-            {{ link.label }}
+            {{ linkLabel(link) }}
           </RouterLink>
         </nav>
         <div class="dashboard-layout__secondary-nav">
@@ -99,6 +130,7 @@ function closeSidebar() {
           >
             ☰ منو
           </button>
+          <NotificationBell />
         </div>
         <div class="dashboard-layout__main">
           <RouterView />
@@ -198,6 +230,8 @@ function closeSidebar() {
 .dashboard-layout__mobile-bar {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
   border-bottom: 1px solid var(--color-border);
   padding: 0.75rem 1rem;
 }

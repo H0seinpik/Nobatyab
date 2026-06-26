@@ -8,12 +8,19 @@ import {
   ServiceRequestStatus,
   ProviderRequestStatus,
   SmsStatus,
+  NotificationType,
   type User,
   type ProviderService,
   type ProviderProfile,
 } from "@prisma/client";
 import bcrypt from "bcrypt";
 import { timeSlotSyncService } from "../src/modules/smart-booking/timeSlotSync.service.js";
+import {
+  getCopyForType,
+  getStatusForType,
+  resolveActionUrl,
+  roleToRecipientRole,
+} from "../src/modules/notifications/notification.helpers.js";
 
 dotenv.config();
 
@@ -185,6 +192,197 @@ type SeededProvider = {
   profile: ProviderProfile;
   providerServices: ProviderService[];
 };
+
+async function upsertSeedNotification(input: {
+  id: string;
+  userId: string;
+  type: NotificationType;
+  role: Role;
+  entityType?: string;
+  entityId?: string;
+  readAt?: Date | null;
+  createdAt?: Date;
+}) {
+  const copy = getCopyForType(input.type);
+  const data = {
+    userId: input.userId,
+    recipientRole: roleToRecipientRole(input.role),
+    type: input.type,
+    status: getStatusForType(input.type),
+    title: copy.title,
+    body: copy.message,
+    entityType: input.entityType ?? null,
+    entityId: input.entityId ?? null,
+    actionUrl: resolveActionUrl(input.role, input.type),
+    readAt: input.readAt ?? null,
+    createdAt: input.createdAt,
+  };
+
+  await prisma.notification.upsert({
+    where: { id: input.id },
+    update: data,
+    create: { id: input.id, ...data },
+  });
+}
+
+async function seedInAppNotifications(adminUserIds: string[]) {
+  const appointments = await prisma.appointment.findMany({
+    include: { provider: { select: { userId: true } } },
+    orderBy: [{ createdAt: "desc" }, { id: "asc" }],
+  });
+
+  let index = 0;
+  for (const appt of appointments) {
+    const entity = { entityType: "appointment", entityId: appt.id };
+    const readAt = index % 5 === 0 ? new Date() : null;
+    const createdAt = appt.startAt;
+
+    if (appt.status === AppointmentStatus.PENDING || appt.status === AppointmentStatus.CONFIRMED) {
+      await upsertSeedNotification({
+        id: `seed-notif-provider-${appt.id}`,
+        userId: appt.provider.userId,
+        type: NotificationType.NEW_APPOINTMENT_BOOKED,
+        role: Role.PROVIDER,
+        ...entity,
+        readAt,
+        createdAt,
+      });
+    } else if (appt.status === AppointmentStatus.CANCELLED) {
+      await upsertSeedNotification({
+        id: `seed-notif-provider-${appt.id}`,
+        userId: appt.provider.userId,
+        type: NotificationType.APPOINTMENT_CANCELLED_BY_USER,
+        role: Role.PROVIDER,
+        ...entity,
+        readAt,
+        createdAt,
+      });
+    } else if (appt.status === AppointmentStatus.COMPLETED && appt.paymentStatus === PaymentStatus.PAID) {
+      await upsertSeedNotification({
+        id: `seed-notif-provider-${appt.id}`,
+        userId: appt.provider.userId,
+        type: NotificationType.PAYMENT_COMPLETED,
+        role: Role.PROVIDER,
+        ...entity,
+        readAt,
+        createdAt,
+      });
+    }
+
+    if (appt.userId) {
+      await upsertSeedNotification({
+        id: `seed-notif-user-booked-${appt.id}`,
+        userId: appt.userId,
+        type: NotificationType.APPOINTMENT_BOOKED,
+        role: Role.USER,
+        ...entity,
+        readAt: index % 7 === 0 ? new Date() : null,
+        createdAt,
+      });
+
+      if (
+        appt.status === AppointmentStatus.CONFIRMED ||
+        appt.status === AppointmentStatus.COMPLETED
+      ) {
+        await upsertSeedNotification({
+          id: `seed-notif-user-confirmed-${appt.id}`,
+          userId: appt.userId,
+          type: NotificationType.APPOINTMENT_CONFIRMED,
+          role: Role.USER,
+          ...entity,
+          readAt: index % 6 === 0 ? new Date() : null,
+          createdAt,
+        });
+      }
+
+      if (appt.status === AppointmentStatus.CANCELLED) {
+        await upsertSeedNotification({
+          id: `seed-notif-user-cancelled-${appt.id}`,
+          userId: appt.userId,
+          type: NotificationType.APPOINTMENT_CANCELLED,
+          role: Role.USER,
+          ...entity,
+          readAt,
+          createdAt,
+        });
+      }
+
+      if (appt.paymentStatus === PaymentStatus.PENDING && appt.status !== AppointmentStatus.CANCELLED) {
+        await upsertSeedNotification({
+          id: `seed-notif-user-payment-pending-${appt.id}`,
+          userId: appt.userId,
+          type: NotificationType.PAYMENT_PENDING,
+          role: Role.USER,
+          ...entity,
+          readAt: index % 8 === 0 ? new Date() : null,
+          createdAt,
+        });
+      }
+
+      if (appt.paymentStatus === PaymentStatus.PAID) {
+        await upsertSeedNotification({
+          id: `seed-notif-user-payment-${appt.id}`,
+          userId: appt.userId,
+          type: NotificationType.PAYMENT_COMPLETED,
+          role: Role.USER,
+          ...entity,
+          readAt,
+          createdAt,
+        });
+      }
+    }
+
+    for (const adminId of adminUserIds) {
+      await upsertSeedNotification({
+        id: `seed-notif-admin-${adminId}-${appt.id}`,
+        userId: adminId,
+        type: NotificationType.NEW_APPOINTMENT_BOOKED,
+        role: Role.ADMIN,
+        ...entity,
+        readAt: index % 9 === 0 ? new Date() : null,
+        createdAt,
+      });
+    }
+
+    index += 1;
+  }
+
+  const providerRequests = [
+    { id: "seed-provider-request-1" },
+    { id: "seed-provider-request-2" },
+  ];
+  for (const req of providerRequests) {
+    for (const adminId of adminUserIds) {
+      await upsertSeedNotification({
+        id: `seed-notif-admin-provider-req-${adminId}-${req.id}`,
+        userId: adminId,
+        type: NotificationType.NEW_PROVIDER_REQUEST,
+        role: Role.ADMIN,
+        entityType: "providerRequest",
+        entityId: req.id,
+        readAt: null,
+      });
+    }
+  }
+
+  const serviceRequests = [
+    { id: "seed-service-request-1" },
+    { id: "seed-service-request-2" },
+  ];
+  for (const req of serviceRequests) {
+    for (const adminId of adminUserIds) {
+      await upsertSeedNotification({
+        id: `seed-notif-admin-service-req-${adminId}-${req.id}`,
+        userId: adminId,
+        type: NotificationType.NEW_SERVICE_REQUEST,
+        role: Role.ADMIN,
+        entityType: "serviceRequest",
+        entityId: req.id,
+        readAt: null,
+      });
+    }
+  }
+}
 
 async function recalculateProviderRatings(providerId: string) {
   const agg = await prisma.review.aggregate({
@@ -873,6 +1071,12 @@ async function main() {
     },
   });
 
+  const adminUsers = await prisma.user.findMany({
+    where: { role: Role.ADMIN, isActive: true },
+    select: { id: true },
+  });
+  await seedInAppNotifications(adminUsers.map((u) => u.id));
+
   // ── App settings ────────────────────────────────────────────────────────────
   const defaultSettings = [
     { key: "site.title", value: "نوبت‌یاب", group: "general", label: "عنوان سایت", type: "text" },
@@ -906,6 +1110,7 @@ async function main() {
     payments: await prisma.paymentTransaction.count({ where: { status: "SUCCESS" } }),
     smsLogs: await prisma.smsLog.count(),
     timeSlots: await prisma.timeSlot.count(),
+    notifications: await prisma.notification.count(),
   };
 
   console.log("\nSeed completed successfully!\n");
@@ -917,7 +1122,7 @@ async function main() {
   console.log("\nDemo data:");
   console.log(`  ${stats.users} users, ${stats.providers} providers, ${stats.services} services`);
   console.log(`  ${stats.appointments} appointments, ${stats.reviews} reviews, ${stats.payments} payments`);
-  console.log(`  ${stats.smsLogs} SMS logs, ${stats.timeSlots} time slots`);
+  console.log(`  ${stats.smsLogs} SMS logs, ${stats.timeSlots} time slots, ${stats.notifications} notifications`);
   console.log(`  Admin ID: ${admin.id}`);
 }
 

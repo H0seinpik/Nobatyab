@@ -1,5 +1,7 @@
 import { createRouter, createWebHistory } from "vue-router";
 import { useAuthStore, type UserRole } from "@/stores/auth";
+import { useNotificationsStore } from "@/stores/notifications";
+import { getNotificationsPath, isNotificationsRoute } from "@/utils/notificationRoute";
 
 const router = createRouter({
   history: createWebHistory(),
@@ -46,6 +48,12 @@ const router = createRouter({
           component: () => import("@/pages/user/SmartBookingPage.vue"),
           meta: { requiresAuth: true, roles: ["USER"] as UserRole[] },
         },
+        {
+          path: "notifications",
+          name: "notifications",
+          component: () => import("@/pages/notifications/NotificationsPage.vue"),
+          meta: { requiresAuth: true },
+        },
         { path: "login", name: "login", component: () => import("@/pages/auth/LoginPage.vue") },
         { path: "register", name: "register", component: () => import("@/pages/auth/RegisterPage.vue") },
         {
@@ -87,6 +95,11 @@ const router = createRouter({
           name: "provider-service-requests",
           component: () => import("@/pages/provider/ServiceRequestsPage.vue"),
         },
+        {
+          path: "notifications",
+          name: "provider-notifications",
+          component: () => import("@/pages/notifications/NotificationsPage.vue"),
+        },
       ],
     },
     {
@@ -117,6 +130,11 @@ const router = createRouter({
           path: "settings",
           name: "admin-settings",
           component: () => import("@/pages/admin/SettingsPage.vue"),
+        },
+        {
+          path: "notifications",
+          name: "admin-notifications",
+          component: () => import("@/pages/notifications/NotificationsPage.vue"),
         },
       ],
     },
@@ -150,6 +168,27 @@ router.beforeEach(async (to) => {
       }
     }
     return { name: "home" };
+  }
+
+  if (
+    auth.isAuthenticated &&
+    to.path === "/notifications" &&
+    (auth.user?.role === "PROVIDER" || auth.user?.role === "ADMIN")
+  ) {
+    return getNotificationsPath(auth.user.role);
+  }
+});
+
+router.afterEach((to) => {
+  const hasToken = localStorage.getItem("accessToken");
+  const isProtected = to.matched.some((record) => record.meta.requiresAuth);
+  if (hasToken && isProtected) {
+    const notifications = useNotificationsStore();
+    notifications.startPolling();
+    void notifications.fetchUnreadCount();
+    if (isNotificationsRoute(to.path)) {
+      void notifications.fetchTabCounts();
+    }
   }
 });
 

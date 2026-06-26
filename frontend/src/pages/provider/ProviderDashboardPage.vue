@@ -9,6 +9,7 @@ import {
   ClipboardList,
   Settings,
   Wrench,
+  Bell,
 } from "lucide-vue-next";
 import { fetchProviderDashboardOverview } from "@/services/provider-dashboard.service";
 import DashboardStatCard from "@/components/dashboard/DashboardStatCard.vue";
@@ -25,6 +26,7 @@ const quickLinks = [
   { to: "/provider/schedule", label: "برنامه کاری", icon: Calendar },
   { to: "/provider/services", label: "خدمات من", icon: Wrench },
   { to: "/provider/appointments", label: "مدیریت نوبت‌ها", icon: ClipboardList },
+  { to: "/provider/notifications", label: "اعلان‌ها", icon: Bell },
   { to: "/profile", label: "پروفایل", icon: Settings },
 ];
 

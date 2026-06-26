@@ -8,6 +8,7 @@ import { ApiError, parsePagination, paginationMeta } from "../../shared/utils/ap
 import { timeToMinutes } from "../../shared/utils/datetime.js";
 import { timeSlotSyncService } from "../smart-booking/timeSlotSync.service.js";
 import { providerRepository } from "./provider.repository.js";
+import { notificationService } from "../notifications/notification.service.js";
 import type {
   createProviderServiceSchema,
   createServiceRequestSchema,
@@ -210,7 +211,12 @@ export class ProviderService {
     if (appointment.status !== AppointmentStatus.PENDING) {
       throw ApiError.badRequest("Only pending appointments can be confirmed");
     }
-    return this.repo.updateAppointmentStatus(appointmentId, AppointmentStatus.CONFIRMED);
+    const updated = await this.repo.updateAppointmentStatus(appointmentId, AppointmentStatus.CONFIRMED);
+    await notificationService.onAppointmentConfirmed({
+      id: updated.id,
+      userId: updated.userId,
+    });
+    return updated;
   }
 
   async completeAppointment(userId: string, appointmentId: string) {

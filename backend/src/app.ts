@@ -23,6 +23,7 @@ import { providerRequestRoutes } from "./modules/provider-request/provider-reque
 import { errorHandler, notFoundHandler } from "./shared/middlewares/errorHandler.js";
 import { analyticsRoutes } from "./modules/analytics/analytics.routes.js";
 import { publicRoutes } from "./modules/public/public.routes.js";
+import { notificationRoutes } from "./modules/notifications/notification.routes.js";
 
 export function createApp() {
   const app = express();
@@ -66,6 +67,7 @@ export function createApp() {
   api.use("/user/availability", userAvailabilityRoutes);
   api.use("/smart-booking", smartBookingRoutes);
   api.use("/confirm-booking", confirmBookingRoutes);
+  api.use("/notifications", notificationRoutes);
 
   app.use("/api/v1", api);
   app.use(notFoundHandler);

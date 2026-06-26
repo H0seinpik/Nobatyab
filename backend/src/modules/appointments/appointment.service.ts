@@ -6,6 +6,7 @@ import {
 import { prisma, prismaTransactionOptions } from "../../config/database.js";
 import { getPaymentProvider } from "../../integrations/payment/index.js";
 import { getSmsProvider } from "../../integrations/sms/index.js";
+import { notificationService } from "../notifications/notification.service.js";
 import { ApiError, parsePagination, paginationMeta } from "../../shared/utils/apiError.js";
 import type { AccessTokenPayload } from "../../shared/utils/jwt.js";
 import { appointmentRepository } from "./appointment.repository.js";
@@ -116,6 +117,15 @@ export class AppointmentService {
         message: `Your appointment for ${appointment.providerService.service.name} is pending confirmation.`,
         appointmentId: appointment.id,
         userId: user?.sub,
+      });
+    }
+
+    if (!result.isReplay) {
+      await notificationService.onAppointmentBooked({
+        id: appointment.id,
+        userId: appointment.userId,
+        providerId: appointment.providerId,
+        paymentStatus: appointment.paymentStatus,
       });
     }
 
@@ -248,6 +258,12 @@ export class AppointmentService {
       `[Appointment] cancel id=${id} by=${user.role} userId=${user.sub} status=CANCELLED`,
     );
 
+    await notificationService.onAppointmentCancelled({
+      id: cancelled.id,
+      userId: cancelled.userId,
+      providerId: cancelled.providerId,
+    });
+
     return cancelled;
   }
 
@@ -274,7 +290,15 @@ export class AppointmentService {
       throw ApiError.badRequest(result.errorMessage ?? "پرداخت ناموفق بود");
     }
 
-    return this.repo.updatePaymentStatus(id, PaymentStatus.PAID);
+    const updated = await this.repo.updatePaymentStatus(id, PaymentStatus.PAID);
+
+    await notificationService.onPaymentCompleted({
+      id: updated.id,
+      userId: updated.userId,
+      providerId: updated.providerId,
+    });
+
+    return updated;
   }
 }
 

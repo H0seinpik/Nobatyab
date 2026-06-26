@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { computed, ref } from "vue";
 import { RouterLink } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import { useSmartBookingNavigation } from "@/composables/useSmartBookingNavigation";
+import { getNotificationsPath } from "@/utils/notificationRoute";
 
 defineProps<{
   vertical?: boolean;
@@ -11,6 +12,8 @@ defineProps<{
 const auth = useAuthStore();
 const { goToSmartBooking } = useSmartBookingNavigation();
 const navLoading = ref(false);
+
+const notificationsPath = computed(() => getNotificationsPath(auth.user?.role));
 
 async function onSmartBookingClick() {
   navLoading.value = true;
@@ -40,6 +43,9 @@ async function onSmartBookingClick() {
     </RouterLink>
     <RouterLink v-if="auth.isAuthenticated" to="/appointments" class="main-nav__link">
       نوبت‌های من
+    </RouterLink>
+    <RouterLink v-if="auth.isAuthenticated" :to="notificationsPath" class="main-nav__link">
+      اعلان‌ها
     </RouterLink>
     <RouterLink
       v-if="auth.user?.role === 'PROVIDER'"

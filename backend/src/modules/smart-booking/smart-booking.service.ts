@@ -1,5 +1,6 @@
 import { prisma, prismaTransactionOptions } from "../../config/database.js";
 import { getSmsProvider } from "../../integrations/sms/index.js";
+import { notificationService } from "../notifications/notification.service.js";
 import { ApiError } from "../../shared/utils/apiError.js";
 import { formatLocalDate, getLocalDayOfWeek, localToUtc } from "../../shared/utils/datetime.js";
 import { appointmentRepository } from "../appointments/appointment.repository.js";
@@ -289,6 +290,15 @@ export class SmartBookingService {
         message: `Your appointment for ${appointment.providerService.service.name} is pending confirmation.`,
         appointmentId: appointment.id,
         userId,
+      });
+    }
+
+    if (!result.isReplay) {
+      await notificationService.onAppointmentBooked({
+        id: appointment.id,
+        userId: appointment.userId,
+        providerId: appointment.providerId,
+        paymentStatus: appointment.paymentStatus,
       });
     }
 

@@ -4,6 +4,7 @@ import { ApiError } from "../../shared/utils/apiError.js";
 import { isUniqueConstraintError } from "../../shared/utils/prismaErrors.js";
 import { authRepository } from "../auth/auth.repository.js";
 import { providerRequestRepository } from "./provider-request.repository.js";
+import { notificationService } from "../notifications/notification.service.js";
 import type { submitProviderRequestSchema } from "./provider-request.schema.js";
 import type { adminReviewProviderRequestSchema } from "../admin/admin.schema.js";
 import type { z } from "zod";
@@ -45,7 +46,7 @@ export class ProviderRequestService {
     }
 
     try {
-      return await this.repo.create({
+      const created = await this.repo.create({
         userId,
         note: input.note,
         categoryId: input.categoryId,
@@ -56,6 +57,8 @@ export class ProviderRequestService {
         proposedServicePrice: input.proposedServicePrice,
         proposedServiceDuration: input.proposedServiceDuration,
       });
+      await notificationService.onProviderRequestSubmitted({ id: created.id });
+      return created;
     } catch (error) {
       if (isUniqueConstraintError(error)) {
         throw ApiError.conflict("You already have a pending provider request");

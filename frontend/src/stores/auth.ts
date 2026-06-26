@@ -3,6 +3,7 @@ import { ref, computed } from "vue";
 import { apiGet, apiPost, apiPatch, apiUpload, setTokens, getAccessToken } from "@/services/api";
 import { changeUserPassword } from "@/services/user.service";
 import { decodeAccessTokenRole } from "@/utils/jwt";
+import { useNotificationsStore } from "@/stores/notifications";
 
 export type UserRole = "USER" | "PROVIDER" | "ADMIN";
 
@@ -32,6 +33,17 @@ export const useAuthStore = defineStore("auth", () => {
 
   const isAuthenticated = computed(() => !!user.value);
 
+  function syncNotificationsAfterAuth() {
+    const notifications = useNotificationsStore();
+    notifications.startPolling();
+    void notifications.fetchUnreadCount();
+    void notifications.fetchTabCounts();
+  }
+
+  function clearNotificationsOnLogout() {
+    useNotificationsStore().reset();
+  }
+
   function isTokenRoleStale(apiUser: User): boolean {
     if (apiUser.tokenRoleStale) return true;
     const jwtRole = decodeAccessTokenRole(getAccessToken());
@@ -53,6 +65,7 @@ export const useAuthStore = defineStore("auth", () => {
       }
 
       user.value = next;
+      syncNotificationsAfterAuth();
       return "ok";
     } catch {
       user.value = null;
@@ -107,6 +120,7 @@ export const useAuthStore = defineStore("auth", () => {
         await logout();
         throw new Error("session invalid after login");
       }
+      syncNotificationsAfterAuth();
       return user.value!;
     } catch (e: unknown) {
       error.value = "ایمیل یا رمز عبور اشتباه است";
@@ -131,6 +145,7 @@ export const useAuthStore = defineStore("auth", () => {
       );
       setTokens(res.data.accessToken, res.data.refreshToken);
       user.value = res.data.user;
+      syncNotificationsAfterAuth();
       return res.data.user;
     } catch {
       error.value = "ثبت‌نام ناموفق بود";
@@ -150,6 +165,7 @@ export const useAuthStore = defineStore("auth", () => {
     user.value = null;
     error.value = null;
     loading.value = false;
+    clearNotificationsOnLogout();
   }
 
   async function updateProfile(data: { fullName?: string; email?: string; phone?: string }) {
